@@ -1,103 +1,89 @@
-import Image from "next/image";
 
-export default function Home() {
+import Header from "./components/Header";
+import Vision from "./components/Vision";
+import Mision from "./components/Mision";
+import PortafolioProyectos from "./components/PortafolioProyectos";
+import FormularioContacto from "./components/FormularioDeContacto";
+import FormularioVoluntario from "./components/FormularioVoluntarios";
+import Comentarios from "./components/Comentarios";
+import Footer from "./components/Footer";
+
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gray-50">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Header visible */}
+      <Header poppinsFont="font-poppins" />
+
+
+      {/* 🔵 Sección de INICIO expandida al 100% del ancho */}
+      <section
+        id="inicio"
+        className="w-full relative text-center py-20 sm:py-28 bg-white overflow-hidden"
+      >
+        <h1
+          className="w-full text-[clamp(5rem,16vw,12rem)] font-normal text-center text-transparent bg-clip-text bg-[url('/imagenes/Fondo_Inicio.jpg')] bg-cover bg-center leading-none"
+          style={{ fontFamily: 'Anton, sans-serif' }}
+        >
+          FUNDECODES
+        </h1>
+
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] rotate-180">
+          <svg
+            className="relative block w-[calc(200%+1.3px)] h-[60px]"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="none"
+            viewBox="0 0 1200 120"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+            <path
+              d="M0,0V46.29c47.84,22,103.69,29.05,158,17.56,70.41-15.71,136.26-57.15,207-61.88C438.89-.61,511.62,31.59,584,50.69c69.89,18.36,137.41,15.63,206.5,0,65.72-14.8,130.09-44.76,195.5-37.4,41.67,4.86,82,22.09,120,41.33V0Z"
+              opacity="0.25"
+              className="fill-blue-600 animate-wave1"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <path
+              d="M0,0V15.81C47.84,34,103.69,45.59,158,42.61c70.41-3.77,136.26-33.93,207-38.66C438.89-.61,511.62,20.63,584,30.72c69.89,9.3,137.41,7.92,206.5,0,65.72-7.48,130.09-22.59,195.5-18.9,41.67,2.45,82,11.14,120,20.85V0Z"
+              opacity="0.5"
+              className="fill-blue-700 animate-wave2"
+            />
+            <path
+              d="M0,0V5.63C47.84,19.51,103.69,27.63,158,26.59c70.41-1.26,136.26-14.1,207-16.09C438.89,9.12,511.62,18.09,584,23.07c69.89,5.47,137.41,4.66,206.5,0,65.72-4.4,130.09-13.31,195.5-11.13,41.67,1.45,82,6.46,120,11.9V0Z"
+              className="fill-blue-800 animate-wave3"
+            />
+          </svg>
+        </div>
+      </section>
+
+
+      {/* CONTENIDO */}
+
+      {/* 🔵 Resto del contenido dentro del contenedor */}
+
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 sm:space-y-8 bg-[#1e3a8a] text-white">
+        <div id="vision">
+          <Vision />
+        </div>
+
+        <div id="mision">
+          <Mision />
+        </div>
+
+        <div id="proyectos">
+          <PortafolioProyectos />
+        </div>
+
+        {/* Forms Section - Responsive Grid */}
+
+        <section id="contacto" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <FormularioContacto />
+          <FormularioVoluntario />
+        </section>
+
+        <div id="comentarios">
+          <Comentarios />
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      <Footer />
     </div>
-  );
+  )
 }
