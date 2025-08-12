@@ -64,6 +64,7 @@ export default function HomePage() {
           <PortafolioProyectos />
         </div>
 
+        {/* Forms */}
         <section id="contacto" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <FormularioContacto />
           <FormularioVoluntario />
