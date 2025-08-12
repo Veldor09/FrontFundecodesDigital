@@ -1,15 +1,33 @@
-import Header from "./components/Header"
-import Vision from "./components/Vision"
-import Mision from "./components/Mision"
-import PortafolioProyectos from "./components/PortafolioProyectos"
-import FormularioContacto from "./components/FormularioDeContacto"
-import FormularioVoluntario from "./components/FormularioVoluntarios"
-import Comentarios from "./components/Comentarios"
-import Footer from "./components/Footer"
+
+import Header from "./components/Header";
+import Vision from "./components/Vision";
+import Mision from "./components/Mision";
+import PortafolioProyectos from "./components/PortafolioProyectos";
+import FormularioContacto from "./components/FormularioDeContacto";
+import FormularioVoluntario from "./components/FormularioVoluntarios";
+import Comentarios from "./components/Comentarios";
+import Footer from "./components/Footer";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* Header visible */}
+      <Header poppinsFont="font-poppins" />
+
+      {/* INICIO */}
+      <section
+        id="inicio"
+        className="w-full relative text-center py-20 sm:py-28 bg-white overflow-hidden"
+      >
+        <h1
+          className="w-full text-[clamp(5rem,16vw,12rem)] font-normal text-center text-transparent bg-clip-text bg-[url('/imagenes/Fondo_Inicio.jpg')] bg-cover bg-center leading-none"
+          style={{ fontFamily: "Anton, sans-serif" }}
+        >
+          FUNDECODES
+        </h1>
+
+
       {/* 🔵 Sección de INICIO expandida al 100% del ancho */}
       <section
         id="inicio"
@@ -47,7 +65,11 @@ export default function HomePage() {
         </div>
       </section>
 
+
+      {/* CONTENIDO */}
+
       {/* 🔵 Resto del contenido dentro del contenedor */}
+
       <main className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 sm:space-y-8 bg-[#1e3a8a] text-white">
         <div id="vision">
           <Vision />
@@ -62,6 +84,7 @@ export default function HomePage() {
         </div>
 
         {/* Forms Section - Responsive Grid */}
+
         <section id="contacto" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <FormularioContacto />
           <FormularioVoluntario />
