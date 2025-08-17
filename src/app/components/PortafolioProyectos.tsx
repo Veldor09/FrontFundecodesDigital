@@ -8,7 +8,7 @@ export default function PortafolioProyectos() {
     <section className="bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">PORTAFOLIO DE PROYECTOS</h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4].map((project) => (
+        {[1, 2, 3].map((project) => (
           <Card key={project} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <Image
