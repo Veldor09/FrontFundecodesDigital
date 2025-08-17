@@ -13,14 +13,23 @@ export default function HomePage() {
       {/* Header visible */}
       <Header poppinsFont="font-poppins" />
 
+
       {/* INICIO */}
+
+
+      {/* 🔵 Sección de INICIO expandida al 100% del ancho */}
+
       <section
         id="inicio"
         className="w-full relative text-center py-20 sm:py-28 bg-white overflow-hidden"
       >
         <h1
           className="w-full text-[clamp(5rem,16vw,12rem)] font-normal text-center text-transparent bg-clip-text bg-[url('/imagenes/Fondo_Inicio.jpg')] bg-cover bg-center leading-none"
+
           style={{ fontFamily: "Anton, sans-serif" }}
+
+          style={{ fontFamily: 'Anton, sans-serif' }}
+
         >
           FUNDECODES
         </h1>
