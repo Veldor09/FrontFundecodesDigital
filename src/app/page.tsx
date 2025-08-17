@@ -4,6 +4,7 @@ import Mision from "./components/Mision";
 import PortafolioProyectos from "./components/PortafolioProyectos";
 import FormularioContacto from "./components/FormularioDeContacto";
 import FormularioVoluntario from "./components/FormularioVoluntarios";
+import CarruselFotos from "./components/CarruselFotos";
 import Comentarios from "./components/Comentarios";
 import Footer from "./components/Footer";
 
@@ -78,6 +79,9 @@ export default function HomePage() {
           <FormularioContacto />
           <FormularioVoluntario />
         </section>
+
+    {/* Carrusel de Fotos - Nueva sección */}
+        <CarruselFotos />
 
         <div id="comentarios">
           <Comentarios />

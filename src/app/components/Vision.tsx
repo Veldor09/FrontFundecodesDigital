@@ -9,7 +9,7 @@ export default function Vision() {
           <div className="lg:col-span-3 flex justify-center lg:justify-start">
             <div className="bg-gray-100 rounded-lg p-4">
               <Image
-                src="/placeholder.svg?height=500&width=380"
+                src="/imagenes/Vision.png"
                 alt="Taller educativo comunitario"
                 width={380}
                 height={500}
