@@ -20,7 +20,7 @@ export default function Mision() {
           <div className="lg:col-span-3 flex justify-center lg:justify-end lg:order-2">
             <div className="bg-gray-100 rounded-lg p-4">
               <Image
-                src="/placeholder.svg?height=500&width=380"
+                src="/imagenes/Mision.jpg"
                 alt="Voluntarios trabajando en comunidad costera"
                 width={380}
                 height={500}

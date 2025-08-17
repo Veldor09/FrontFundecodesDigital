@@ -18,7 +18,7 @@ export default function Header() {
     { name: "Proyectos", href: "#proyectos" },
     { name: "Aliados", href: "#aliados" },
     { name: "Voluntariado", href: "#contacto" },
-    { name: "Contacto", href: "#comentarios" },
+    { name: "Contacto", href: "#footer" }, // Cambiado de "#comentarios" a "#footer"
   ]
 
   return (
@@ -30,11 +30,11 @@ export default function Header() {
             <div className="flex items-center space-x-3">
               <div className="bg-white rounded-full p-2 shadow-md">
                 <Image
-                  src="/placeholder.svg?height=40&width=40"
+                  src="/Imagenes/LOGOCODES_Logo.png"
                   alt="Logo Fundación"
                   width={40}
                   height={40}
-                  className="h-8 w-8"
+                  className="h-8 w-8 object-contain"
                 />
               </div>
               <div className="text-white">

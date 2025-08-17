@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 export default function PortafolioProyectos() {
   return (
     <section className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">PORTAFOLIO DE PROYECTOS</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center font-modern">PORTAFOLIO DE PROYECTOS</h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((project) => (
           <Card key={project} className="hover:shadow-md transition-shadow">
@@ -20,14 +20,16 @@ export default function PortafolioProyectos() {
               />
             </CardHeader>
             <CardContent>
-              <CardTitle className="text-lg mb-2">Proyecto {project}</CardTitle>
-              <p className="text-gray-600 text-sm">Descripción breve del proyecto y sus características principales.</p>
+              <CardTitle className="text-lg mb-2 font-modern">Proyecto {project}</CardTitle>
+              <p className="text-gray-600 text-sm font-modern">
+                Descripción breve del proyecto y sus características principales.
+              </p>
             </CardContent>
           </Card>
         ))}
       </div>
       <div className="text-center mt-8">
-        <Button asChild className="bg-blue-600 hover:bg-blue-700">
+        <Button asChild className="bg-blue-600 hover:bg-blue-700 font-modern">
           <Link href="/proyectos">Ver más proyectos</Link>
         </Button>
       </div>
