@@ -20,8 +20,8 @@ export default function Mision() {
           <div className="lg:col-span-3 flex justify-center lg:justify-end lg:order-2">
             <div className="bg-gray-100 rounded-lg p-4">
               <Image
-                src="/imagenes/Mision.jpg"
-                alt="Voluntarios trabajando en comunidad costera"
+                src="/Imagenes/Mision.jpg"
+                alt="Misión de la fundación"
                 width={380}
                 height={500}
                 className="rounded-lg w-full h-[500px] object-cover"
