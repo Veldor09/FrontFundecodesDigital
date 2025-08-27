@@ -1,108 +1,99 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Menu,
-  X,
-  Home,
-  Eye,
-  Target,
-  Briefcase,
-  Mail,
-  MessageSquare,
-} from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Menu, X, User } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
 
-type HeaderProps = {
-  /** Clase opcional para tipografía. Ej: "font-poppins" */
-  poppinsFont?: string;
-};
+export default function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-export default function Header({ poppinsFont = "" }: HeaderProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const toggleMenu = () => setIsMenuOpen((v) => !v);
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen)
+  }
 
   const menuItems = [
-    { name: "Inicio", href: "#inicio", icon: Home },
-    { name: "Visión", href: "#vision", icon: Eye },
-    { name: "Misión", href: "#mision", icon: Target },
-    { name: "Proyectos", href: "#proyectos", icon: Briefcase },
-    { name: "Todos los Proyectos", href: "/proyectos", icon: Briefcase },
-    { name: "Contacto", href: "#contacto", icon: Mail },
-    { name: "Comentarios", href: "#comentarios", icon: MessageSquare },
-  ];
+    { name: "Home", href: "#inicio" },
+    { name: "Proyectos", href: "#proyectos" },
+    { name: "Aliados", href: "#aliados" },
+    { name: "Voluntariado", href: "#contacto" },
+    { name: "Contacto", href: "#footer" }, // Cambiado de "#comentarios" a "#footer"
+  ]
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
+      <header className="bg-gradient-to-r from-teal-600 to-blue-600 shadow-lg sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Menú hamburguesa */}
-            <div className="flex items-center space-x-2 sm:space-x-4 relative">
-              <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Abrir menú">
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="bg-white rounded-full p-2 shadow-md">
+                <Image
+                  src="/Imagenes/LOGOCODES_Logo.png"
+                  alt="Logo Fundación"
+                  width={40}
+                  height={40}
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+              <div className="text-white">
+                <h1 className="text-xl font-bold font-modern tracking-wide">Fundación</h1>
+                <p className="text-sm text-blue-100 font-medium font-modern">Haciendo la diferencia</p>
+              </div>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-10">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="text-white hover:text-blue-100 transition-colors duration-200 font-semibold text-lg tracking-wide font-modern"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+
+            {/* Right side - User icon and Mobile menu */}
+            <div className="flex items-center space-x-4">
+              {/* User Profile Icon */}
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full">
+                <User className="h-6 w-6" />
               </Button>
 
-              {/* Título */}
-              <div className={`hidden sm:block text-lg font-bold tracking-wide ${poppinsFont}`}>
-                FUNDECODES
-              </div>
-
-              {/* Dropdown */}
-              {isMenuOpen && (
-                <div className="absolute top-12 left-0 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-in slide-in-from-top-2 duration-200">
-                  <div className="p-3 sm:p-4">
-                    <nav className="space-y-1">
-                      {menuItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            onClick={() => setIsMenuOpen(false)}
-                            className="flex items-center space-x-3 px-2 sm:px-3 py-2 rounded-md hover:bg-gray-50 transition-colors group text-sm"
-                          >
-                            <Icon className="h-4 w-4 text-gray-500 group-hover:text-blue-600 flex-shrink-0" />
-                            <span className="text-gray-700 group-hover:text-blue-600 font-medium">
-                              {item.name}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </nav>
-
-                    {/* Contacto rápido */}
-                    <div className="mt-3 sm:mt-4 pt-3 border-t border-gray-100">
-                      <p className="text-xs font-semibold text-gray-900 mb-2">Contacto Rápido</p>
-                      <p className="text-xs text-gray-600 flex items-center">
-                        <Mail className="h-3 w-3 mr-2 flex-shrink-0" />
-                        <span className="truncate">fundecodeshojancha@gmail.com</span>
-                      </p>
-                      <p className="text-xs text-gray-600">📞 +506 8670-3535</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Logo (asegúrate de que exista en /public/imagenes) */}
-            <div className="flex items-center">
-              <Image
-                src="/imagenes/FUNDECODES_Logo.png"
-                width={120}
-                height={40}
-                alt="Logo de FUNDECODES"
-                priority
-              />
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMenu}
+                className="lg:hidden text-white hover:bg-white/20"
+              >
+                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </Button>
             </div>
           </div>
+
+          {/* Mobile Navigation */}
+          {isMenuOpen && (
+            <div className="lg:hidden mt-4 pb-4 border-t border-white/20">
+              <nav className="flex flex-col space-y-3 mt-4">
+                {menuItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-white hover:text-blue-100 transition-colors duration-200 font-semibold text-lg py-3 px-4 rounded-md hover:bg-white/10 font-modern tracking-wide"
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          )}
         </div>
       </header>
-
-      {/* Cerrar menú haciendo click fuera */}
-      {isMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />}
     </>
-  );
+  )
 }

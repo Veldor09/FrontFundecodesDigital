@@ -2,27 +2,32 @@ import Image from "next/image"
 
 export default function Vision() {
   return (
-    <section className="bg-white rounded-lg shadow-sm p-6">
-      <div className="grid md:grid-cols-2 gap-6 items-center">
-        {/* Texto */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">VISIÓN</h2>
-          <p className="text-gray-600 leading-relaxed">
-            Ser líder en conservación de la biodiversidad y el desarrollo sostenible
-            con amplia participación de actores sociales.
-          </p>
-        </div>
+    <section className="bg-white rounded-lg shadow-sm p-8 lg:p-12">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-5 gap-12 lg:gap-16 items-center">
+          {/* Imagen grande vertical - Izquierda (3 columnas) */}
+          <div className="lg:col-span-3 flex justify-center lg:justify-start">
+            <div className="bg-gray-100 rounded-lg p-4">
+              <Image
+                src="/imagenes/Vision.png"
+                alt="Taller educativo comunitario"
+                width={380}
+                height={500}
+                className="rounded-lg w-full h-[500px] object-cover"
+              />
+            </div>
+          </div>
 
-        {/* Imagen con altura fija, ancho completo y esquinas redondeadas */}
-        <div className="w-full h-80 overflow-hidden rounded-lg">
-          <Image
-            src="/Imagenes/Vision.png"
-            alt="Visión de la empresa"
-            className="w-full h-full object-cover"
-            width={0}
-            height={0}
-            sizes="100vw"
-          />
+          {/* Contenido centrado - Derecha (2 columnas) */}
+          <div className="lg:col-span-2 flex flex-col justify-center items-center text-center space-y-6">
+            <h2 className="text-4xl lg:text-5xl font-bold text-blue-600 font-modern tracking-wide">VISIÓN</h2>
+            <p className="text-gray-700 leading-relaxed font-modern text-base lg:text-lg">
+              Nos esforzamos por impulsar comunidades costeras prósperas y resilientes donde las personas,
+              particularmente pescadores, acuicultores y comunidades costeras, tengan acceso equitativo a oportunidades
+              económicas sostenibles que les permitan prosperar mientras protegen los recursos marinos para las
+              generaciones futuras.
+            </p>
+          </div>
         </div>
       </div>
     </section>

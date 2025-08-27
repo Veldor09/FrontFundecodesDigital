@@ -97,13 +97,13 @@ export default function ProyectosPage() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Button asChild variant="ghost" className="flex items-center gap-2">
+            <Button asChild variant="ghost" className="flex items-center gap-2 font-modern">
               <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
                 Volver al inicio
               </Link>
             </Button>
-            <h1 className="text-xl font-bold text-gray-900">Todos los Proyectos</h1>
+            <h1 className="text-xl font-bold text-gray-900 font-modern">Todos los Proyectos</h1>
             <div></div>
           </div>
         </div>
@@ -112,8 +112,8 @@ export default function ProyectosPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <section className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Nuestro Portafolio</h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4 font-modern">Nuestro Portafolio</h1>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto font-modern">
             Explora todos nuestros proyectos y descubre cómo hemos ayudado a empresas de diferentes sectores a alcanzar
             sus objetivos tecnológicos.
           </p>
@@ -122,11 +122,11 @@ export default function ProyectosPage() {
         {/* Filter Categories */}
         <section className="mb-8">
           <div className="flex flex-wrap gap-2 justify-center">
-            <Badge variant="secondary" className="cursor-pointer hover:bg-blue-100">
+            <Badge variant="secondary" className="cursor-pointer hover:bg-blue-100 font-modern">
               Todos
             </Badge>
             {categorias.map((categoria) => (
-              <Badge key={categoria} variant="outline" className="cursor-pointer hover:bg-blue-50">
+              <Badge key={categoria} variant="outline" className="cursor-pointer hover:bg-blue-50 font-modern">
                 {categoria}
               </Badge>
             ))}
@@ -147,7 +147,7 @@ export default function ProyectosPage() {
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-2 right-2">
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs font-modern">
                       {proyecto.categoria}
                     </Badge>
                   </div>
@@ -156,26 +156,30 @@ export default function ProyectosPage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                   <Calendar className="h-4 w-4" />
-                  {proyecto.fecha}
+                  <span className="font-modern">{proyecto.fecha}</span>
                 </div>
-                <CardTitle className="text-lg mb-2 line-clamp-2">{proyecto.titulo}</CardTitle>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">{proyecto.descripcion}</p>
+                <CardTitle className="text-lg mb-2 line-clamp-2 font-modern">{proyecto.titulo}</CardTitle>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3 font-modern">{proyecto.descripcion}</p>
 
                 {/* Technologies */}
                 <div className="flex flex-wrap gap-1 mb-4">
                   {proyecto.tecnologias.slice(0, 3).map((tech) => (
-                    <Badge key={tech} variant="outline" className="text-xs">
+                    <Badge key={tech} variant="outline" className="text-xs font-modern">
                       {tech}
                     </Badge>
                   ))}
                   {proyecto.tecnologias.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs font-modern">
                       +{proyecto.tecnologias.length - 3}
                     </Badge>
                   )}
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full group-hover:bg-blue-50 bg-transparent">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full group-hover:bg-blue-50 bg-transparent font-modern"
+                >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Ver detalles
                 </Button>
@@ -186,15 +190,15 @@ export default function ProyectosPage() {
 
         {/* Call to Action */}
         <section className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">¿Tienes un proyecto en mente?</h2>
-          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4 font-modern">¿Tienes un proyecto en mente?</h2>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto font-modern">
             Nos encantaría conocer tu idea y ayudarte a convertirla en realidad. Contáctanos para una consulta gratuita.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild className="bg-blue-600 hover:bg-blue-700">
-              <Link href="/#contact">Contactar ahora</Link>
+            <Button asChild className="bg-blue-600 hover:bg-blue-700 font-modern">
+              <Link href="/#contacto">Contactar ahora</Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="font-modern bg-transparent">
               <Link href="/">Volver al inicio</Link>
             </Button>
           </div>
