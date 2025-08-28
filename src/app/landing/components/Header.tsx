@@ -18,7 +18,7 @@ export default function Header() {
     { name: "Proyectos", href: "#proyectos" },
     { name: "Aliados", href: "#aliados" },
     { name: "Voluntariado", href: "#contacto" },
-    { name: "Contacto", href: "#footer" }, // Cambiado de "#comentarios" a "#footer"
+    { name: "Contacto", href: "#footer" },
   ]
 
   return (
