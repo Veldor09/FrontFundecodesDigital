@@ -15,6 +15,7 @@ export default function Mision() {
               locales.
             </p>
           </div>
+          
 
           {/* Imagen grande vertical - Derecha (3 columnas) */}
           <div className="lg:col-span-3 flex justify-center lg:justify-end lg:order-2">
