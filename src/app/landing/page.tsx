@@ -42,29 +42,6 @@ export default function Page() {
           <PortafolioProyectos />
         </div>
 
-        {/* Aliados */}
-        <section id="aliados" className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center font-modern">
-            NUESTROS ALIADOS
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((aliado) => (
-              <div
-                key={aliado}
-                className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:shadow-md transition-shadow"
-              >
-                <Image
-                  src={`/ceholder-svg-height-80.png?height=80&width=120`}
-                  alt={`Aliado ${aliado}`}
-                  width={120}
-                  height={80}
-                  className="max-w-full h-auto opacity-70 hover:opacity-100 transition-opacity"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* Formularios */}
         <section id="contacto" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <FormularioDeContacto />
