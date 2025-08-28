@@ -2,12 +2,12 @@ import Image from "next/image";
 
 import Header from "./components/Header";
 import Vision from "./components/Vision";
-import Mision from "./components/Mision";
-import PortafolioProyectos from "./components/PortafolioProyectos";
-import FormularioDeContacto from "./components/FormularioDeContacto";
-import FormularioVoluntarios from "./components/FormularioVoluntarios";
-import CarruselFotos from "./components/CarruselFotos";
-import Comentarios from "./components/Comentarios";
+import Mision from "./components/Mission";
+import PortafolioProyectos from "./components/ProjectPortfolio";
+import FormularioDeContacto from "./components/ContactForm";
+import FormularioVoluntarios from "./components/VolunteerForm";
+import CarruselFotos from "./components/PhotoCarousel";
+import Comentarios from "./components/Comments";
 import Footer from "./components/Footer";
 
 export default function Page() {
