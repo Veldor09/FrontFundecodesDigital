@@ -64,20 +64,20 @@ export default function FormularioContacto() {
       <CardHeader className="p-4 sm:p-6">
         <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
           <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-          <span className="text-sm sm:text-base">FORMULARIO DE CONTACTO</span>
+          <span className="text-sm sm:text-base font-modern">FORMULARIO DE CONTACTO</span>
         </CardTitle>
 
         {/* Descripción cuando está colapsado */}
         {!isExpanded && (
           <div className="mt-3">
-            <p className="text-gray-600 text-sm mb-4">
+            <p className="text-gray-600 text-sm mb-4 font-modern">
               ¿Tienes alguna pregunta o necesitas más información? Completa nuestro formulario de contacto y te
               responderemos lo antes posible.
             </p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center text-xs text-gray-500 space-y-1 sm:space-y-0 sm:space-x-4 mb-4">
-              <span>✓ Respuesta en 24 horas</span>
-              <span>✓ Consulta gratuita</span>
-              <span>✓ Sin compromiso</span>
+              <span className="font-modern">✓ Respuesta en 24 horas</span>
+              <span className="font-modern">✓ Consulta gratuita</span>
+              <span className="font-modern">✓ Sin compromiso</span>
             </div>
           </div>
         )}
@@ -85,7 +85,7 @@ export default function FormularioContacto() {
         <Button
           variant="outline"
           onClick={toggleForm}
-          className="w-full flex items-center justify-center gap-2 mt-2 bg-transparent text-sm sm:text-base"
+          className="w-full flex items-center justify-center gap-2 mt-2 bg-transparent text-sm sm:text-base font-modern"
         >
           {isExpanded ? (
             <>
@@ -105,15 +105,15 @@ export default function FormularioContacto() {
       {isExpanded && (
         <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-300 p-4 sm:p-6 pt-0">
           <div>
-            <Label htmlFor="name" className="text-sm">
+            <Label htmlFor="name" className="text-sm font-modern">
               Nombre completo *
             </Label>
             <Input id="name" placeholder="Tu nombre completo" required className="mt-1" onChange={handleNameChange} />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            {errors.name && <p className="text-red-500 text-xs mt-1 font-modern">{errors.name}</p>}
           </div>
 
           <div>
-            <Label htmlFor="email" className="text-sm">
+            <Label htmlFor="email" className="text-sm font-modern">
               Correo electrónico *
             </Label>
             <Input
@@ -124,26 +124,26 @@ export default function FormularioContacto() {
               className="mt-1"
               onChange={handleEmailChange}
             />
-            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            {errors.email && <p className="text-red-500 text-xs mt-1 font-modern">{errors.email}</p>}
           </div>
 
           <div>
-            <Label htmlFor="phone" className="text-sm">
+            <Label htmlFor="phone" className="text-sm font-modern">
               Teléfono
             </Label>
             <Input id="phone" placeholder="Tu número de teléfono" className="mt-1" onChange={handlePhoneChange} />
-            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+            {errors.phone && <p className="text-red-500 text-xs mt-1 font-modern">{errors.phone}</p>}
           </div>
 
           <div>
-            <Label htmlFor="subject" className="text-sm">
+            <Label htmlFor="subject" className="text-sm font-modern">
               Asunto
             </Label>
             <Input id="subject" placeholder="¿Sobre qué quieres consultarnos?" className="mt-1" />
           </div>
 
           <div>
-            <Label htmlFor="message" className="text-sm">
+            <Label htmlFor="message" className="text-sm font-modern">
               Mensaje *
             </Label>
             <Textarea
@@ -156,14 +156,14 @@ export default function FormularioContacto() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <Button className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base">
+            <Button className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base font-modern">
               <Mail className="h-4 w-4 mr-2" />
               Enviar Mensaje
             </Button>
             <Button
               variant="outline"
               onClick={toggleForm}
-              className="w-full sm:flex-1 bg-transparent text-sm sm:text-base"
+              className="w-full sm:flex-1 bg-transparent text-sm sm:text-base font-modern"
             >
               Cancelar
             </Button>

@@ -9,8 +9,8 @@ export default function Vision() {
           <div className="lg:col-span-3 flex justify-center lg:justify-start">
             <div className="bg-gray-100 rounded-lg p-4">
               <Image
-                src="/imagenes/Vision.png"
-                alt="Taller educativo comunitario"
+                src="/Imagenes/Vision.jpg"
+                alt="Visión de la fundación"
                 width={380}
                 height={500}
                 className="rounded-lg w-full h-[500px] object-cover"

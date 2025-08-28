@@ -63,7 +63,6 @@ export default function CarruselFotos() {
         <h2 className="text-3xl lg:text-4xl font-bold text-green-600 mb-8 text-center font-modern">
           NUESTROS COLABORADORES
         </h2>
-       
 
         {/* Carrusel infinito */}
         <div className="relative">

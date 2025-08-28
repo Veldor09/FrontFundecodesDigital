@@ -12,7 +12,7 @@ export default function PortafolioProyectos() {
           <Card key={project} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <Image
-                src={`/placeholder.svg?height=150&width=250`}
+                src={`/placeholder-150px-height.png?height=150&width=250`}
                 alt={`Proyecto ${project}`}
                 width={250}
                 height={150}
