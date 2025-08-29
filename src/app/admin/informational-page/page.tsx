@@ -1,316 +1,343 @@
+// src/app/admin/informational-page/page.tsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, Plus, Trash2, Eye, EyeOff, Save, RefreshCw } from "lucide-react";
+
+// UI (shadcn)
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
-const initialPageData = {
-  hero: {
-    title: "FUNDECODES",
-    backgroundImage: "/imagenes/Fondo_Inicio.jpg", // <- asegúrate que exista en /public/imagenes/
-  },
+// Tu toast
+import { useToast } from "@/app/admin/informational-page/Hooks/use-toast";
+
+// Tus componentes de la landing (para la Vista Previa)
+import Header from "@/app/landing/components/Header";
+import Vision from "@/app/landing/components/Vision";
+import Mission from "@/app/landing/components/Mission";
+import ProjectPortfolio from "@/app/landing/components/ProjectPortfolio";
+import ContactForm from "@/app/landing/components/ContactForm";
+import VolunteerForm from "@/app/landing/components/VolunteerForm";
+import PhotoCarousel from "@/app/landing/components/PhotoCarousel";
+import Comments from "@/app/landing/components/Comments";
+import Footer from "@/app/landing/components/Footer";
+
+/* ------------------------------------------------------------------ */
+/*  Estado local (demo). Ajusta los valores por defecto a tu contenido */
+/*  Actual: sin backend; solo muestra la edición en vivo en el preview */
+/* ------------------------------------------------------------------ */
+
+const DEFAULT_DATA = {
   vision: {
-    title: "Nuestra Visión",
+    title: "VISIÓN",
     content:
-      "Ser reconocidos como una organización líder en el desarrollo social, creando oportunidades y generando cambios positivos duraderos en la sociedad.",
+      "Nos esforzamos por impulsar comunidades costeras prósperas y resilientes donde las personas, particularmente pescadores, acuicultores y comunidades costeras, tengan acceso equitativo a oportunidades económicas sostenibles que les permitan prosperar mientras protegen los recursos marinos para las generaciones futuras.",
+    imageUrl: "/Imagenes/Vision.jpg",
   },
   mission: {
-    title: "Nuestra Misión",
+    title: "MISIÓN",
     content:
-      "Facilitar el desarrollo integral de las comunidades a través de programas innovadores, trabajo colaborativo y el compromiso de nuestros voluntarios y colaboradores.",
+      "Trabajamos de manera colaborativa con comunidades costeras para desarrollar e implementar soluciones innovadoras y sostenibles que fortalezcan los medios de vida, mejoren la seguridad alimentaria y promuevan la conservación marina a través de la educación, la capacitación técnica y el desarrollo de capacidades locales.",
+    imageUrl: "/Imagenes/Mision.jpg",
   },
-  projects: {
-    title: "Portafolio de Proyectos",
-    description: "Conoce los proyectos que estamos desarrollando para mejorar nuestra comunidad.",
-  },
-  contact: {
-    title: "Formulario de Contacto",
-    description: "¿Tienes alguna pregunta o sugerencia? Contáctanos.",
-  },
-  volunteer: {
-    title: "Formulario de Voluntarios",
-    description: "Únete a nuestro equipo de voluntarios y ayuda a hacer la diferencia.",
-  },
-  carousel: {
-    title: "Galería de Fotos",
-    description: "Momentos destacados de nuestro trabajo en la comunidad.",
-  },
-  comments: {
-    title: "Comentarios",
-    description: "Lo que dicen las personas sobre nuestro trabajo.",
-  },
-  footer: {
-    copyright: "© 2024 FUNDECODES. Todos los derechos reservados.",
-    socialLinks: {
-      facebook: "#",
-      twitter: "#",
-      instagram: "#",
-    },
-  },
+  collaborators: [
+    { id: "c1", name: "Colaborador 1", role: "Rol / Área", photoUrl: "/imagenes/colaboradores/default.jpg" },
+  ],
+  comments: [
+    { id: "cm1", author: "María", text: "Gran labor de la fundación.", visible: true },
+    { id: "cm2", author: "Pedro", text: "Me gustaría ser voluntario.", visible: true },
+  ],
 };
 
-export default function PaginaInformativaAdmin() {
-  const [pageData, setPageData] = useState(initialPageData);
-  const [activeTab, setActiveTab] = useState("preview");
+export default function InformationalAdminPage() {
+  const [tab, setTab] = useState("preview");
+  const [data, setData] = useState(DEFAULT_DATA);
   const { toast } = useToast();
 
-  const handleSave = () => {
-    // TODO: aquí conectarás con tu backend
-    toast({
-      title: "Cambios guardados",
-      description: "La página de FUNDECODES ha sido actualizada correctamente.",
-    });
-  };
+  // Handlers Visión/Misión
+  const updateVision = (patch: any) => setData((p) => ({ ...p, vision: { ...p.vision, ...patch } }));
+  const updateMission = (patch: any) => setData((p) => ({ ...p, mission: { ...p.mission, ...patch } }));
 
-  const handleInputChange = (section: string, field: string, value: string) => {
-    setPageData((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
-        [field]: value,
-      },
+  // Colaboradores
+  const addCollaborator = () =>
+    setData((p) => ({
+      ...p,
+      collaborators: [
+        ...p.collaborators,
+        { id: String(Date.now()), name: "Nuevo", role: "Rol", photoUrl: "/imagenes/colaboradores/default.jpg" },
+      ],
     }));
+
+  const updateCollaborator = (id: string, patch: any) =>
+    setData((p) => ({
+      ...p,
+      collaborators: p.collaborators.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+
+  const removeCollaborator = (id: string) =>
+    setData((p) => ({ ...p, collaborators: p.collaborators.filter((c) => c.id !== id) }));
+
+  // Comentarios
+  const addComment = () =>
+    setData((p) => ({
+      ...p,
+      comments: [...p.comments, { id: String(Date.now()), author: "Anónimo", text: "Nuevo comentario…", visible: true }],
+    }));
+
+  const updateComment = (id: string, patch: any) =>
+    setData((p) => ({ ...p, comments: p.comments.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+
+  const removeComment = (id: string) =>
+    setData((p) => ({ ...p, comments: p.comments.filter((c) => c.id !== id) }));
+
+  const toggleComment = (id: string) =>
+    setData((p) => ({ ...p, comments: p.comments.map((c) => (c.id === id ? { ...c, visible: !c.visible } : c)) }));
+
+  // Guardar / Recargar (front-only demo)
+  const onSave = () =>
+    toast({ title: "Guardado (demo)", description: "Conecta aquí tu servicio al backend para persistir." });
+
+  const onReset = () => {
+    setData(DEFAULT_DATA);
+    toast({ title: "Restablecido", description: "Se restauraron los valores por defecto." });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/admin">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver al Panel
+                Volver al dashboard
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Editor de Landing FUNDECODES</h1>
-              <p className="text-gray-600">Gestiona el contenido de tu página principal</p>
+              <h1 className="text-2xl font-bold">Editor de Página informativa</h1>
+              <p className="text-slate-600">
+                Gestiona los contenidos visibles en la Landing (Visión, Misión, Colaboradores, Comentarios).
+              </p>
             </div>
           </div>
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Guardar Cambios
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={onReset}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Restablecer
+            </Button>
+            <Button onClick={onSave}>
+              <Save className="h-4 w-4 mr-2" />
+              Guardar cambios
+            </Button>
+          </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+        {/* Tabs */}
+        <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+          <TabsList>
             <TabsTrigger value="preview">Vista Previa</TabsTrigger>
             <TabsTrigger value="edit">Editor</TabsTrigger>
           </TabsList>
 
-          {/* PREVIEW */}
-          <TabsContent value="preview" className="space-y-6">
-            <Card>
-              <CardContent className="p-0">
-                {/* Hero */}
-                <div className="w-full relative text-center py-20 bg-white overflow-hidden">
-                  <h1
-                    className="w-full text-[clamp(3rem,12vw,8rem)] font-normal text-center text-transparent bg-clip-text bg-[url('/imagenes/Fondo_Inicio.jpg')] bg-cover bg-center leading-none"
-                    style={{ fontFamily: "Anton, sans-serif" }}
-                  >
-                    {pageData.hero.title}
-                  </h1>
+          {/* --------- VISTA PREVIA (usa tus componentes reales) --------- */}
+          <TabsContent value="preview" className="space-y-10">
+            {/* Si tu Header de landing no debe aparecer en el admin, quítalo */}
+            <Header />
+
+            {/* Vision y Mission de tu landing ya usan imagen/título/texto propios.
+                Si quieres que tomen lo editado en este panel, puedes adaptar
+                esos componentes para leer de un contexto o props. */}
+            <Vision />
+            <Mission />
+
+            <section className="bg-[#1e3a8a] text-white px-4 py-10 space-y-10">
+              <div className="max-w-7xl mx-auto">
+                <ProjectPortfolio />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+                  <ContactForm />
+                  <VolunteerForm />
                 </div>
 
-                {/* Main */}
-                <div className="w-full px-4 py-6 space-y-8 bg-[#1e3a8a] text-white">
-                  {/* Vision */}
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-4">{pageData.vision.title}</h2>
-                    <p className="text-gray-200 max-w-4xl mx-auto">{pageData.vision.content}</p>
-                  </div>
-                  {/* Mission */}
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-4">{pageData.mission.title}</h2>
-                    <p className="text-gray-200 max-w-4xl mx-auto">{pageData.mission.content}</p>
-                  </div>
-                  {/* Projects */}
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-4">{pageData.projects.title}</h2>
-                    <p className="text-gray-200">{pageData.projects.description}</p>
-                    <div className="mt-4 p-4 bg-blue-800 rounded-lg">
-                      <p className="text-sm">Componente: PortafolioProyectos</p>
-                    </div>
-                  </div>
-                  {/* Forms */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="text-center">
-                      <h3 className="text-xl font-bold mb-2">{pageData.contact.title}</h3>
-                      <p className="text-gray-200 mb-4">{pageData.contact.description}</p>
-                      <div className="p-4 bg-blue-800 rounded-lg">
-                        <p className="text-sm">Componente: FormularioDeContacto</p>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <h3 className="text-xl font-bold mb-2">{pageData.volunteer.title}</h3>
-                      <p className="text-gray-200 mb-4">{pageData.volunteer.description}</p>
-                      <div className="p-4 bg-blue-800 rounded-lg">
-                        <p className="text-sm">Componente: FormularioVoluntarios</p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Carousel */}
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-4">{pageData.carousel.title}</h2>
-                    <p className="text-gray-200 mb-4">{pageData.carousel.description}</p>
-                    <div className="p-4 bg-blue-800 rounded-lg">
-                      <p className="text-sm">Componente: CarruselFotos</p>
-                    </div>
-                  </div>
-                  {/* Comments */}
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-4">{pageData.comments.title}</h2>
-                    <p className="text-gray-200 mb-4">{pageData.comments.description}</p>
-                    <div className="p-4 bg-blue-800 rounded-lg">
-                      <p className="text-sm">Componente: Comentarios</p>
-                    </div>
-                  </div>
+                <div className="mt-10">
+                  <PhotoCarousel />
                 </div>
 
-                {/* Footer */}
-                <div className="bg-gray-900 text-white p-6 text-center">
-                  <p>{pageData.footer.copyright}</p>
+                <div className="mt-10">
+                  {/* En tu componente Comments puedes filtrar por visible si conectas backend */}
+                  <Comments />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
+
+            <Footer />
           </TabsContent>
 
-          {/* EDITOR */}
-          <TabsContent value="edit" className="space-y-6">
-            {/* Hero */}
+          {/* ------------------------- EDITOR ------------------------- */}
+          <TabsContent value="edit" className="space-y-8">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Visión */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Visión</CardTitle>
+                  <CardDescription>Texto e imagen mostrados en la landing.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Label>Título</Label>
+                  <Input
+                    value={data.vision.title}
+                    onChange={(e) => updateVision({ title: e.target.value })}
+                  />
+                  <Label>Contenido</Label>
+                  <Textarea
+                    rows={6}
+                    value={data.vision.content}
+                    onChange={(e) => updateVision({ content: e.target.value })}
+                  />
+                  <Label>URL de imagen</Label>
+                  <Input
+                    value={data.vision.imageUrl}
+                    onChange={(e) => updateVision({ imageUrl: e.target.value })}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Misión */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Misión</CardTitle>
+                  <CardDescription>Texto e imagen mostrados en la landing.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Label>Título</Label>
+                  <Input
+                    value={data.mission.title}
+                    onChange={(e) => updateMission({ title: e.target.value })}
+                  />
+                  <Label>Contenido</Label>
+                  <Textarea
+                    rows={6}
+                    value={data.mission.content}
+                    onChange={(e) => updateMission({ content: e.target.value })}
+                  />
+                  <Label>URL de imagen</Label>
+                  <Input
+                    value={data.mission.imageUrl}
+                    onChange={(e) => updateMission({ imageUrl: e.target.value })}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Colaboradores */}
             <Card>
-              <CardHeader>
-                <CardTitle>Sección Principal (Hero)</CardTitle>
-                <CardDescription>El título principal con imagen de fondo</CardDescription>
+              <CardHeader className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Colaboradores</CardTitle>
+                  <CardDescription>Agregar, editar o eliminar.</CardDescription>
+                </div>
+                <Button variant="secondary" size="sm" onClick={addCollaborator}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar
+                </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="hero-title">Título Principal</Label>
-                  <Input
-                    id="hero-title"
-                    value={pageData.hero.title}
-                    onChange={(e) => handleInputChange("hero", "title", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="hero-bg">Imagen de Fondo (URL)</Label>
-                  <Input
-                    id="hero-bg"
-                    value={pageData.hero.backgroundImage}
-                    onChange={(e) => handleInputChange("hero", "backgroundImage", e.target.value)}
-                  />
-                </div>
+                {data.collaborators.map((c) => (
+                  <div key={c.id} className="grid gap-3 rounded-xl border p-4 md:grid-cols-[120px_1fr_1fr_auto]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={c.photoUrl}
+                      alt={c.name}
+                      className="h-20 w-20 rounded-xl object-cover"
+                    />
+                    <div>
+                      <Label>Nombre</Label>
+                      <Input
+                        value={c.name}
+                        onChange={(e) => updateCollaborator(c.id, { name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Rol</Label>
+                      <Input
+                        value={c.role}
+                        onChange={(e) => updateCollaborator(c.id, { role: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <Label>Foto (URL)</Label>
+                      <Input
+                        value={c.photoUrl}
+                        onChange={(e) => updateCollaborator(c.id, { photoUrl: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-3 flex justify-end">
+                      <Button variant="destructive" size="sm" onClick={() => removeCollaborator(c.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
-            {/* Vision & Mission */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader><CardTitle>Visión</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Label htmlFor="vision-title">Título</Label>
-                  <Input id="vision-title" value={pageData.vision.title} onChange={(e) => handleInputChange("vision", "title", e.target.value)} />
-                  <Label htmlFor="vision-content">Contenido</Label>
-                  <Textarea id="vision-content" rows={6} value={pageData.vision.content} onChange={(e) => handleInputChange("vision", "content", e.target.value)} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Misión</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Label htmlFor="mission-title">Título</Label>
-                  <Input id="mission-title" value={pageData.mission.title} onChange={(e) => handleInputChange("mission", "title", e.target.value)} />
-                  <Label htmlFor="mission-content">Contenido</Label>
-                  <Textarea id="mission-content" rows={6} value={pageData.mission.content} onChange={(e) => handleInputChange("mission", "content", e.target.value)} />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Projects */}
+            {/* Comentarios */}
             <Card>
-              <CardHeader>
-                <CardTitle>Portafolio de Proyectos</CardTitle>
-                <CardDescription>Configuración de la sección de proyectos</CardDescription>
+              <CardHeader className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Comentarios</CardTitle>
+                  <CardDescription>Editar, ocultar/mostrar o eliminar.</CardDescription>
+                </div>
+                <Button variant="secondary" size="sm" onClick={addComment}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar
+                </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Label htmlFor="projects-title">Título</Label>
-                <Input id="projects-title" value={pageData.projects.title} onChange={(e) => handleInputChange("projects", "title", e.target.value)} />
-                <Label htmlFor="projects-description">Descripción</Label>
-                <Textarea id="projects-description" rows={3} value={pageData.projects.description} onChange={(e) => handleInputChange("projects", "description", e.target.value)} />
-              </CardContent>
-            </Card>
-
-            {/* Forms */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader><CardTitle>Formulario de Contacto</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Label htmlFor="contact-title">Título</Label>
-                  <Input id="contact-title" value={pageData.contact.title} onChange={(e) => handleInputChange("contact", "title", e.target.value)} />
-                  <Label htmlFor="contact-description">Descripción</Label>
-                  <Textarea id="contact-description" rows={3} value={pageData.contact.description} onChange={(e) => handleInputChange("contact", "description", e.target.value)} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Formulario de Voluntarios</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Label htmlFor="volunteer-title">Título</Label>
-                  <Input id="volunteer-title" value={pageData.volunteer.title} onChange={(e) => handleInputChange("volunteer", "title", e.target.value)} />
-                  <Label htmlFor="volunteer-description">Descripción</Label>
-                  <Textarea id="volunteer-description" rows={3} value={pageData.volunteer.description} onChange={(e) => handleInputChange("volunteer", "description", e.target.value)} />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Carousel & Comments */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader><CardTitle>Galería de Fotos</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Label htmlFor="carousel-title">Título</Label>
-                  <Input id="carousel-title" value={pageData.carousel.title} onChange={(e) => handleInputChange("carousel", "title", e.target.value)} />
-                  <Label htmlFor="carousel-description">Descripción</Label>
-                  <Textarea id="carousel-description" rows={3} value={pageData.carousel.description} onChange={(e) => handleInputChange("carousel", "description", e.target.value)} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Comentarios</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Label htmlFor="comments-title">Título</Label>
-                  <Input id="comments-title" value={pageData.comments.title} onChange={(e) => handleInputChange("comments", "title", e.target.value)} />
-                  <Label htmlFor="comments-description">Descripción</Label>
-                  <Textarea id="comments-description" rows={3} value={pageData.comments.description} onChange={(e) => handleInputChange("comments", "description", e.target.value)} />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Footer */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Footer</CardTitle>
-                <CardDescription>Información del pie de página</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Label htmlFor="footer-copyright">Copyright</Label>
-                <Input id="footer-copyright" value={pageData.footer.copyright}
-                       onChange={(e) => handleInputChange("footer", "copyright", e.target.value)} />
+                {data.comments.map((cm) => (
+                  <div
+                    key={cm.id}
+                    className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1fr_2fr_auto_auto] md:items-center"
+                  >
+                    <div>
+                      <Label>Autor</Label>
+                      <Input
+                        value={cm.author}
+                        onChange={(e) => updateComment(cm.id, { author: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Comentario</Label>
+                      <Textarea
+                        rows={3}
+                        value={cm.text}
+                        onChange={(e) => updateComment(cm.id, { text: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => toggleComment(cm.id)}>
+                        {cm.visible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                        {cm.visible ? "Ocultar" : "Mostrar"}
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => removeComment(cm.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </main>
   );
 }
