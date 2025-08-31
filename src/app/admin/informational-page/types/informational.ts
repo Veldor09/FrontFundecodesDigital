@@ -1,4 +1,10 @@
-export type VisionMission = {
+export type Vision = {
+  title: string;
+  content: string;
+  imageUrl: string;
+};
+
+export type Mission = {
   title: string;
   content: string;
   imageUrl: string;
@@ -19,8 +25,8 @@ export type CommentItem = {
 };
 
 export type InformationalPage = {
-  vision: VisionMission;
-  mission: VisionMission;
+  vision: Vision;
+  mission: Mission;
   collaborators: Collaborator[];
   comments: CommentItem[];
 };

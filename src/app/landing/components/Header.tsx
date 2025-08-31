@@ -38,7 +38,7 @@ export default function Header() {
               />
             </div>
             <div className="text-white">
-              <h1 className="text-xl font-bold font-modern tracking-wide">Fundación</h1>
+              <h1 className="text-xl font-bold font-modern tracking-wide">Fundecodes</h1>
               <p className="text-sm text-blue-100 font-medium font-modern">
                 Haciendo la diferencia
               </p>
