@@ -1,24 +1,34 @@
-'use client';
+"use client";
 import { useLandingData } from "../services/LandingDataProvider";
 
-// src/app/landing/components/VisionMision.tsx
-export default function VisionMision() {
+type Block = { title?: string; content?: string; imageUrl?: string };
+
+type Props = {
+  vision?: Block;
+  mission?: Block;
+};
+
+/**
+ * Componente único que muestra VISIÓN y MISIÓN en la misma sección.
+ * - Si recibe props (vision/mission) las usa.
+ * - Si no, lee del context (landing normal).
+ */
+export default function VisionMision({ vision, mission }: Props) {
   const { data } = useLandingData();
 
-  {/*MISION*/}
-  const titleM   = data?.mission?.title   || "MISIÓN";
-  const contentM = data?.mission?.content || "Trabajamos de manera colaborativa con comunidades costeras para desarrollar e implementar soluciones innovadoras y sostenibles que fortalezcan los medios de vida, mejoren la seguridad alimentaria y promuevan la conservación marina a través de la educación, la capacitación técnica y el desarrollo de capacidades locales.";
-  const imageM   = data?.mission?.imageUrl || "/Imagenes/Mision.jpg";
+  // VISIÓN
+  const titleV   = vision?.title   ?? data?.vision?.title   ?? "VISIÓN";
+  const contentV = vision?.content ?? data?.vision?.content ?? " Nos esforzamos por impulsar comunidades costeras prósperas y resilientes donde las personas, particularmente pescadores, acuicultores y comunidades costeras, tengan acceso equitativo a oportunidades económicas sostenibles que les permitan prosperar mientras protegen los recursos marinos para las generaciones futuras.";
+  const imageV   = vision?.imageUrl ?? data?.vision?.imageUrl ?? "/Img/Vision.jpg";
 
-  {/*VSION*/}
-  const titleV   = data?.vision?.title   || "VISIÓN";
-  const contentV = data?.vision?.content || " Nos esforzamos por impulsar comunidades costeras prósperas y resilientes donde las personas, particularmente pescadores, acuicultores y comunidades costeras, tengan acceso equitativo a oportunidades económicas sostenibles que les permitan prosperar mientras protegen los recursos marinos para las generaciones futuras.";
-  const imageV   = data?.vision?.imageUrl || "/Imagenes/Vision.jpg"; // usa el mismo path que ya tienes
-
+  // MISIÓN
+  const titleM   = mission?.title   ?? data?.mission?.title   ?? "MISIÓN";
+  const contentM = mission?.content ?? data?.mission?.content ?? "Trabajamos de manera colaborativa con comunidades costeras para desarrollar e implementar soluciones innovadoras y sostenibles que fortalezcan los medios de vida, mejoren la seguridad alimentaria y promuevan la conservación marina a través de la educación, la capacitación técnica y el desarrollo de capacidades locales.";
+  const imageM   = mission?.imageUrl ?? data?.mission?.imageUrl ?? "/Img/Mision.jpg";
 
   return (
     <section className="relative bg-white rounded-xl shadow-md py-12 lg:py-16 mx-4 sm:mx-6 overflow-hidden">
-      {/* OLA IZQUIERDA (más pequeña) */}
+      {/* OLA IZQUIERDA (Visión) */}
       <svg
         className="absolute top-0 left-0 w-28 h-28 md:w-40 md:h-40 lg:w-52 lg:h-52 z-0"
         viewBox="0 0 100 100"
@@ -34,17 +44,11 @@ export default function VisionMision() {
             <stop offset="100%" stopColor="rgba(30,58,138,0.0)" />
           </linearGradient>
         </defs>
-        <image
-          href={imageV}
-          width="100%"
-          height="100%"
-          preserveAspectRatio="xMidYMid slice"
-          clipPath="url(#clip-ola-left)"
-        />
+        <image href={imageV} width="100%" height="100%" preserveAspectRatio="xMidYMid slice" clipPath="url(#clip-ola-left)" />
         <rect width="100%" height="100%" clipPath="url(#clip-ola-left)" fill="url(#fade-left)" />
       </svg>
 
-      {/* OLA DERECHA (más pequeña) */}
+      {/* OLA DERECHA (Misión) */}
       <svg
         className="absolute bottom-0 right-0 w-32 h-32 md:w-44 md:h-44 lg:w-56 lg:h-56 z-0"
         viewBox="0 0 100 100"
@@ -60,36 +64,22 @@ export default function VisionMision() {
             <stop offset="100%" stopColor="rgba(16,185,129,0.0)" />
           </linearGradient>
         </defs>
-        <image
-          href={imageM}
-          width="100%"
-          height="100%"
-          preserveAspectRatio="xMidYMid slice"
-          clipPath="url(#clip-ola-right)"
-        />
+        <image href={imageM} width="100%" height="100%" preserveAspectRatio="xMidYMid slice" clipPath="url(#clip-ola-right)" />
         <rect width="100%" height="100%" clipPath="url(#clip-ola-right)" fill="url(#fade-right)" />
       </svg>
 
-      {/* CONTENIDO */}
+      {/* CONTENIDO EN LA MISMA SECCIÓN */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 lg:px-10">
         {/* VISIÓN */}
         <div className="max-w-2xl pl-6 sm:pl-10 lg:pl-14">
-          <h2 className="text-3xl lg:text-4xl font-bold text-blue-600 font-modern mb-3">
-            {titleV}
-          </h2>
-          <p className="text-gray-700 leading-relaxed font-modern text-base lg:text-lg">
-           {contentV}
-          </p>
+          <h2 className="text-3xl lg:text-4xl font-bold text-blue-600 font-modern mb-3">{titleV}</h2>
+          <p className="text-gray-700 leading-relaxed font-modern text-base lg:text-lg">{contentV}</p>
         </div>
 
-        {/* MISIÓN (alineada a la derecha con aire) */}
+        {/* MISIÓN */}
         <div className="max-w-2xl mt-8 md:mt-10 lg:mt-12 ml-auto text-right pr-6 sm:pr-10 lg:pr-14">
-          <h2 className="text-3xl lg:text-4xl font-bold text-green-600 font-modern mb-3">
-            {titleM}
-          </h2>
-          <p className="text-gray-700 leading-relaxed font-modern text-base lg:text-lg">
-            {contentM}
-          </p>
+          <h2 className="text-3xl lg:text-4xl font-bold text-green-600 font-modern mb-3">{titleM}</h2>
+          <p className="text-gray-700 leading-relaxed font-modern text-base lg:text-lg">{contentM}</p>
         </div>
       </div>
     </section>

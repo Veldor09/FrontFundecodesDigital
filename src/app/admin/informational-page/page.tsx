@@ -1,4 +1,3 @@
-// src/app/admin/informational-page/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -16,10 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 // Tu toast
 import { useToast } from "@/app/admin/informational-page/Hooks/use-toast";
 
-// Tus componentes de la landing (para la Vista Previa)
+// Componentes de la landing (Preview)
 import Header from "@/app/landing/components/Header";
-import Vision from "@/app/landing/components/Vision";
-import Mission from "@/app/landing/components/Mission";
+import VisionMision from "@/app/landing/components/VisionMision";
 import ProjectPortfolio from "@/app/landing/components/ProjectPortfolio";
 import ContactForm from "@/app/landing/components/ContactForm";
 import VolunteerForm from "@/app/landing/components/VolunteerForm";
@@ -29,7 +27,6 @@ import Footer from "@/app/landing/components/Footer";
 
 /* ------------------------------------------------------------------ */
 /*  Estado local (demo). Ajusta los valores por defecto a tu contenido */
-/*  Actual: sin backend; solo muestra la edición en vivo en el preview */
 /* ------------------------------------------------------------------ */
 
 const DEFAULT_DATA = {
@@ -145,16 +142,22 @@ export default function InformationalAdminPage() {
             <TabsTrigger value="edit">Editor</TabsTrigger>
           </TabsList>
 
-          {/* --------- VISTA PREVIA (usa tus componentes reales) --------- */}
+          {/* --------- VISTA PREVIA --------- */}
           <TabsContent value="preview" className="space-y-10">
-            {/* Si tu Header de landing no debe aparecer en el admin, quítalo */}
             <Header />
 
-            {/* Vision y Mission de tu landing ya usan imagen/título/texto propios.
-                Si quieres que tomen lo editado en este panel, puedes adaptar
-                esos componentes para leer de un contexto o props. */}
-            <Vision />
-            <Mission />
+            <VisionMision
+              vision={{
+                title: data.vision.title,
+                content: data.vision.content,
+                imageUrl: data.vision.imageUrl,
+              }}
+              mission={{
+                title: data.mission.title,
+                content: data.mission.content,
+                imageUrl: data.mission.imageUrl,
+              }}
+            />
 
             <section className="bg-[#1e3a8a] text-white px-4 py-10 space-y-10">
               <div className="max-w-7xl mx-auto">
@@ -170,7 +173,6 @@ export default function InformationalAdminPage() {
                 </div>
 
                 <div className="mt-10">
-                  {/* En tu componente Comments puedes filtrar por visible si conectas backend */}
                   <Comments />
                 </div>
               </div>
