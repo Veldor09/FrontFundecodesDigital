@@ -11,6 +11,16 @@ import {
   FolderKanban,
 } from "lucide-react";
 
+// ⚠️ Import robusto: funciona si el header se exportó como default o como named
+import * as AdminHeaderMinimalModule from "./components/AdminHeaderMinimal";
+const AdminHeaderMinimal: any =
+  (AdminHeaderMinimalModule as any).default ??
+  (AdminHeaderMinimalModule as any).AdminHeaderMinimal ??
+  (AdminHeaderMinimalModule as any).AdminHeaderMinimalNamed ??
+  null;
+
+import React from "react";
+
 type CardItem = {
   title: string;
   href: string;
@@ -57,51 +67,62 @@ const CARDS: CardItem[] = [
   },
   {
     title: "Página informativa",
-    href: "/admin/informational-page", // 👈 aquí entras al editor de landing
+    href: "/admin/informational-page",
     description: "Contenido público del sitio y secciones.",
     Icon: Globe,
   },
 ];
 
 export default function AdminDashboardPage() {
+  // Si el módulo no resolvió a una función React, no lo renderizamos y mostramos aviso en consola
+  if (typeof AdminHeaderMinimal !== "function") {
+    if (typeof window !== "undefined") {
+      console.error(
+        "[Admin] AdminHeaderMinimal no es un componente. Revisa el export en src/app/admin/components/AdminHeaderMinimal.tsx"
+      );
+    }
+  }
+
   return (
-    <main className="min-h-[calc(100vh-80px)] bg-gradient-to-b from-slate-50 to-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-800">
-            Panel administrativo
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Elige un módulo para continuar.
-          </p>
-        </div>
+    <>
+      {typeof AdminHeaderMinimal === "function" ? <AdminHeaderMinimal /> : null}
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {CARDS.map(({ title, href, description, Icon }) => (
-            <Link
-              key={title}
-              href={href}
-              className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-            >
-              <div className="flex items-center gap-4">
-                <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200">
-                  <Icon className="h-7 w-7" aria-hidden="true" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-800 group-hover:text-teal-700 transition-colors">
-                    {title}
-                  </h2>
-                  <p className="text-sm text-slate-500">{description}</p>
-                </div>
-              </div>
+      <main className="min-h-[calc(100vh-80px)] bg-gradient-to-b from-slate-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-800">
+              Panel administrativo
+            </h1>
+            <p className="text-slate-500 mt-1">Elige un módulo para continuar.</p>
+          </div>
 
-              <div className="mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                Entrar →
-              </div>
-            </Link>
-          ))}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {CARDS.map(({ title, href, description, Icon }) => (
+              <Link
+                key={title}
+                href={href}
+                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200">
+                    <Icon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-800 group-hover:text-teal-700 transition-colors">
+                      {title}
+                    </h2>
+                    <p className="text-sm text-slate-500">{description}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Entrar →
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
