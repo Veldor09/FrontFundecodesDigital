@@ -121,13 +121,14 @@ export default function VolunteerForm() {
             />
           </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-red-500 hover:bg-red-600 text-white"
-          >
-            {loading ? 'Enviando...' : 'Registrarme como voluntario'}
-          </Button>
+         <Button
+  type="submit"
+  disabled={loading}
+  className="w-full bg-black hover:bg-gray-800 text-white"
+>
+  {loading ? "Enviando..." : "Registrarme como voluntario"}
+</Button>
+
         </form>
       </CardContent>
     </Card>
