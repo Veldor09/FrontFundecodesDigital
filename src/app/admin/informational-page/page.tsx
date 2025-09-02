@@ -20,7 +20,6 @@ import Header from "@/app/landing/components/Header";
 import VisionMision from "@/app/landing/components/VisionMision";
 import ProjectPortfolio from "@/app/landing/components/ProjectPortfolio";
 import ContactForm from "@/app/landing/components/ContactForm";
-import VolunteerForm from "@/app/landing/components/VolunteerForm";
 import PhotoCarousel from "@/app/landing/components/PhotoCarousel";
 import Comments from "@/app/landing/components/Comments";
 import Footer from "@/app/landing/components/Footer";
@@ -161,11 +160,6 @@ export default function InformationalAdminPage() {
             <section className="bg-[#1e3a8a] text-white px-4 py-10 space-y-10">
               <div className="max-w-7xl mx-auto">
                 <ProjectPortfolio />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-                  <ContactForm />
-                  <VolunteerForm />
-                </div>
 
                 <div className="mt-10">
                   {/* 👇 Carrusel alimentado por colaboradores */}
