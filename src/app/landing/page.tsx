@@ -2,8 +2,6 @@ import Image from "next/image";
 
 import Header from "./components/Header";
 import PortafolioProyectos from "./components/ProjectPortfolio";
-import FormularioDeContacto from "./components/ContactForm";
-import FormularioVoluntarios from "./components/VolunteerForm";
 import CarruselFotos from "./components/PhotoCarousel";
 import Comentarios from "./components/Comments";
 import Footer from "./components/Footer";
@@ -71,12 +69,6 @@ export default function Page() {
         <div id="proyectos">
           <PortafolioProyectos />
         </div>
-
-        {/* Formularios */}
-        <section id="contacto" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <FormularioDeContacto />
-          <FormularioVoluntarios />
-        </section>
 
         {/* Carrusel */}
         <CarruselFotos />
