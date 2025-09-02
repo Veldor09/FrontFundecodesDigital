@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-// Tu toast
+// Toast (demo)
 import { useToast } from "@/app/admin/informational-page/Hooks/use-toast";
 
 // Componentes de la landing (Preview)
@@ -52,11 +52,11 @@ const DEFAULT_DATA = {
 };
 
 export default function InformationalAdminPage() {
-  const [tab, setTab] = useState("preview");
+  const [tab, setTab] = useState<"preview" | "edit">("preview");
   const [data, setData] = useState(DEFAULT_DATA);
   const { toast } = useToast();
 
-  // Handlers Visión/Misión
+  // Visión/Misión
   const updateVision = (patch: any) => setData((p) => ({ ...p, vision: { ...p.vision, ...patch } }));
   const updateMission = (patch: any) => setData((p) => ({ ...p, mission: { ...p.mission, ...patch } }));
 
@@ -66,7 +66,12 @@ export default function InformationalAdminPage() {
       ...p,
       collaborators: [
         ...p.collaborators,
-        { id: String(Date.now()), name: "Nuevo", role: "Rol", photoUrl: "/imagenes/colaboradores/default.jpg" },
+        {
+          id: String(Date.now()),
+          name: "Nuevo",
+          role: "Rol",
+          photoUrl: "/imagenes/colaboradores/default.jpg",
+        },
       ],
     }));
 
@@ -79,13 +84,7 @@ export default function InformationalAdminPage() {
   const removeCollaborator = (id: string) =>
     setData((p) => ({ ...p, collaborators: p.collaborators.filter((c) => c.id !== id) }));
 
-  // Comentarios
-  const addComment = () =>
-    setData((p) => ({
-      ...p,
-      comments: [...p.comments, { id: String(Date.now()), author: "Anónimo", text: "Nuevo comentario…", visible: true }],
-    }));
-
+  // Comentarios (sin agregar)
   const updateComment = (id: string, patch: any) =>
     setData((p) => ({ ...p, comments: p.comments.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
 
@@ -95,7 +94,7 @@ export default function InformationalAdminPage() {
   const toggleComment = (id: string) =>
     setData((p) => ({ ...p, comments: p.comments.map((c) => (c.id === id ? { ...c, visible: !c.visible } : c)) }));
 
-  // Guardar / Recargar (front-only demo)
+  // Guardar / Reset (demo)
   const onSave = () =>
     toast({ title: "Guardado (demo)", description: "Conecta aquí tu servicio al backend para persistir." });
 
@@ -136,7 +135,7 @@ export default function InformationalAdminPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="space-y-6">
           <TabsList>
             <TabsTrigger value="preview">Vista Previa</TabsTrigger>
             <TabsTrigger value="edit">Editor</TabsTrigger>
@@ -169,11 +168,19 @@ export default function InformationalAdminPage() {
                 </div>
 
                 <div className="mt-10">
-                  <PhotoCarousel />
+                  {/* 👇 Carrusel alimentado por colaboradores */}
+                  <PhotoCarousel
+                    photos={data.collaborators.map((c) => ({
+                      id: c.id,
+                      src: c.photoUrl,
+                      alt: c.name,
+                    }))}
+                  />
                 </div>
 
                 <div className="mt-10">
-                  <Comments />
+                  {/* 👇 Solo se muestran visibles */}
+                  <Comments comments={data.comments} />
                 </div>
               </div>
             </section>
@@ -192,10 +199,7 @@ export default function InformationalAdminPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Label>Título</Label>
-                  <Input
-                    value={data.vision.title}
-                    onChange={(e) => updateVision({ title: e.target.value })}
-                  />
+                  <Input value={data.vision.title} onChange={(e) => updateVision({ title: e.target.value })} />
                   <Label>Contenido</Label>
                   <Textarea
                     rows={6}
@@ -203,10 +207,7 @@ export default function InformationalAdminPage() {
                     onChange={(e) => updateVision({ content: e.target.value })}
                   />
                   <Label>URL de imagen</Label>
-                  <Input
-                    value={data.vision.imageUrl}
-                    onChange={(e) => updateVision({ imageUrl: e.target.value })}
-                  />
+                  <Input value={data.vision.imageUrl} onChange={(e) => updateVision({ imageUrl: e.target.value })} />
                 </CardContent>
               </Card>
 
@@ -218,10 +219,7 @@ export default function InformationalAdminPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Label>Título</Label>
-                  <Input
-                    value={data.mission.title}
-                    onChange={(e) => updateMission({ title: e.target.value })}
-                  />
+                  <Input value={data.mission.title} onChange={(e) => updateMission({ title: e.target.value })} />
                   <Label>Contenido</Label>
                   <Textarea
                     rows={6}
@@ -229,10 +227,7 @@ export default function InformationalAdminPage() {
                     onChange={(e) => updateMission({ content: e.target.value })}
                   />
                   <Label>URL de imagen</Label>
-                  <Input
-                    value={data.mission.imageUrl}
-                    onChange={(e) => updateMission({ imageUrl: e.target.value })}
-                  />
+                  <Input value={data.mission.imageUrl} onChange={(e) => updateMission({ imageUrl: e.target.value })} />
                 </CardContent>
               </Card>
             </div>
@@ -253,24 +248,14 @@ export default function InformationalAdminPage() {
                 {data.collaborators.map((c) => (
                   <div key={c.id} className="grid gap-3 rounded-xl border p-4 md:grid-cols-[120px_1fr_1fr_auto]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={c.photoUrl}
-                      alt={c.name}
-                      className="h-20 w-20 rounded-xl object-cover"
-                    />
+                    <img src={c.photoUrl} alt={c.name} className="h-20 w-20 rounded-xl object-cover" />
                     <div>
                       <Label>Nombre</Label>
-                      <Input
-                        value={c.name}
-                        onChange={(e) => updateCollaborator(c.id, { name: e.target.value })}
-                      />
+                      <Input value={c.name} onChange={(e) => updateCollaborator(c.id, { name: e.target.value })} />
                     </div>
                     <div>
                       <Label>Rol</Label>
-                      <Input
-                        value={c.role}
-                        onChange={(e) => updateCollaborator(c.id, { role: e.target.value })}
-                      />
+                      <Input value={c.role} onChange={(e) => updateCollaborator(c.id, { role: e.target.value })} />
                     </div>
                     <div className="md:col-span-3">
                       <Label>Foto (URL)</Label>
@@ -290,17 +275,13 @@ export default function InformationalAdminPage() {
               </CardContent>
             </Card>
 
-            {/* Comentarios */}
+            {/* Comentarios (sin agregar) */}
             <Card>
               <CardHeader className="flex items-center justify-between">
                 <div>
                   <CardTitle>Comentarios</CardTitle>
                   <CardDescription>Editar, ocultar/mostrar o eliminar.</CardDescription>
                 </div>
-                <Button variant="secondary" size="sm" onClick={addComment}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar
-                </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 {data.comments.map((cm) => (
@@ -310,10 +291,7 @@ export default function InformationalAdminPage() {
                   >
                     <div>
                       <Label>Autor</Label>
-                      <Input
-                        value={cm.author}
-                        onChange={(e) => updateComment(cm.id, { author: e.target.value })}
-                      />
+                      <Input value={cm.author} onChange={(e) => updateComment(cm.id, { author: e.target.value })} />
                     </div>
                     <div>
                       <Label>Comentario</Label>
