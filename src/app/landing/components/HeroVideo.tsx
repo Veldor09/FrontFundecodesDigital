@@ -1,6 +1,6 @@
 "use client";
 
-export default function HeroVideo() {
+export default function HeroVideo({ videoUrl }: { videoUrl: string }) {
   return (
     <section
       id="inicio"
@@ -13,7 +13,7 @@ export default function HeroVideo() {
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
       >
-        <source src="/videos/VideoFUNDECODES.mp4" type="video/mp4" />
+        <source src={videoUrl || "/videos/VideoFUNDECODES.mp4"} type="video/mp4" />
         Tu navegador no soporta video HTML5.
       </video>
 
