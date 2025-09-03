@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
@@ -15,10 +16,10 @@ export default function Header() {
   const toggleMenu = () => setIsMenuOpen((v) => !v);
 
   const menuItems = [
-    { name: "Home", href: "#inicio" },
+    { name: "Home", href: "/landing" },
     { name: "Proyectos", href: "#proyectos" },
     { name: "Aliados", href: "#aliados" },
-    { name: "Voluntariado", href: "#contacto" },
+    { name: "Voluntariado", href: "/PagInfo/Voluntariado" },
     { name: "Contacto", href: "#footer" },
   ];
 
@@ -30,7 +31,7 @@ export default function Header() {
           <div className="flex items-center space-x-3">
             <div className="bg-white rounded-full p-2 shadow-md">
               <Image
-                src="/Imagenes/LOGOCODES_Logo.png"
+                src="/Imagenes/FUNDECODES_Logo.png"
                 alt="Logo Fundación"
                 width={40}
                 height={40}
