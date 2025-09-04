@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Modal from "@/components/Modal"; // ⚠️ Ajusta si tu ruta es distinta
+import Modal from "../../../components/ui/Modal"; // ⚠️ Ajusta si tu ruta es distinta
 import { listProjects } from "@/services/projects.service";
 import type { Project } from "@/lib/projects.types";
 
