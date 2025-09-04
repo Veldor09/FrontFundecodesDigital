@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Modal from "@/components/ui/Modal";
+import Modal from "@/components/Modal"; // ⚠️ Ajusta si tu ruta es distinta
 import { listProjects } from "@/services/projects.service";
 import type { Project } from "@/lib/projects.types";
-import Link from "next/link";
 
 export default function PortafolioProyectos() {
   const [items, setItems] = useState<Project[]>([]);
@@ -23,9 +23,7 @@ export default function PortafolioProyectos() {
       setError(null);
       try {
         const { data } = await listProjects({ page: 1, pageSize: 12 });
-        const published = (Array.isArray(data) ? data : []).filter(
-          (p) => p?.published === true
-        );
+        const published = (Array.isArray(data) ? data : []).filter((p) => p?.published === true);
         setItems(published.slice(0, 3));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Error cargando proyectos");
