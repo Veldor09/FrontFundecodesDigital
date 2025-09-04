@@ -1,8 +1,12 @@
 import type { Project, ProjectQuery, ProjectStatus } from "@/lib/projects.types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
+// Base: usamos el proxy del front (/api -> http://localhost:4000)
+const API_BASE = "/api";
 
-// Tipado explícito para los params de query (sin any)
+// -----------------------------
+// Utilidades
+// -----------------------------
+
 type QueryParamPrimitive = string | number | boolean | null | undefined;
 type QueryParams = Record<string, QueryParamPrimitive>;
 
@@ -17,6 +21,74 @@ function toQuery(params: QueryParams): string {
   return q.toString();
 }
 
+async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(url, { cache: "no-store", ...init });
+  } catch {
+    throw new Error(`No se pudo conectar a la API: ${url}`);
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${init?.method ?? "GET"} ${url} → ${res.status}: ${text}`);
+  }
+  return res;
+}
+
+// Normaliza cualquier forma de respuesta a { data, total, page, pageSize } sin usar `any`
+function normalizeList(
+  json: unknown
+): { data: Project[]; total?: number; page?: number; pageSize?: number } {
+  let data: Project[] = [];
+  let total: number | undefined;
+  let page: number | undefined;
+  let pageSize: number | undefined;
+
+  if (Array.isArray(json)) {
+    // Respuesta: array plano
+    data = json as Project[];
+  } else if (json && typeof json === "object") {
+    const obj = json as Record<string, unknown>;
+
+    // data en distintas claves conocidas
+    if (Array.isArray(obj.data)) data = obj.data as Project[];
+    else if (Array.isArray(obj.items)) data = obj.items as Project[];
+    else if (Array.isArray(obj.results)) data = obj.results as Project[];
+    else if (Array.isArray(obj.rows)) data = obj.rows as Project[];
+
+    // total directo
+    if (typeof obj.total === "number") total = obj.total;
+    else if (typeof obj.count === "number") total = obj.count;
+
+    // meta.total / meta.page / meta.pageSize
+    if (obj.meta && typeof obj.meta === "object") {
+      const meta = obj.meta as Record<string, unknown>;
+      if (typeof meta.total === "number") total ??= meta.total;
+      if (typeof meta.page === "number") page = meta.page;
+      if (typeof meta.pageSize === "number") pageSize = meta.pageSize;
+    }
+
+    // pagination.total / pagination.page / pagination.pageSize
+    if (obj.pagination && typeof obj.pagination === "object") {
+      const pag = obj.pagination as Record<string, unknown>;
+      if (typeof pag.total === "number") total ??= pag.total;
+      if (typeof pag.page === "number") page ??= pag.page;
+      if (typeof pag.pageSize === "number") pageSize ??= pag.pageSize;
+    }
+
+    // fallback de total: largo del array
+    if (total === undefined && Array.isArray(data)) {
+      total = data.length;
+    }
+  }
+
+  return { data, total, page, pageSize };
+}
+
+// -----------------------------
+// API pública
+// -----------------------------
+
 type ListReturn = {
   data: Project[];
   total?: number;
@@ -26,21 +98,18 @@ type ListReturn = {
 
 export async function listProjects(params: ProjectQuery = {}): Promise<ListReturn> {
   const qs = toQuery(params as QueryParams);
-  const res = await fetch(`${API_BASE}/projects${qs ? `?${qs}` : ""}`, {
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`GET /projects ${res.status}`);
-  return res.json();
+  const url = `${API_BASE}/projects${qs ? `?${qs}` : ""}`;
+  const res = await safeFetch(url, { headers: { "Content-Type": "application/json" } });
+  const json: unknown = await res.json();
+  return normalizeList(json);
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project> {
-  const res = await fetch(`${API_BASE}/projects/${encodeURIComponent(slug)}`, {
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`GET /projects/${slug} ${res.status}`);
-  return res.json();
+  const url = `${API_BASE}/projects/${encodeURIComponent(slug)}`;
+  const res = await safeFetch(url, { headers: { "Content-Type": "application/json" } });
+  const json: unknown = await res.json();
+  // aquí asumimos que la API devuelve un Project
+  return json as Project;
 }
 
 export type ProjectCreateInput = {
@@ -59,27 +128,30 @@ export type ProjectCreateInput = {
 export type ProjectUpdateInput = Partial<ProjectCreateInput>;
 
 export async function createProject(payload: ProjectCreateInput): Promise<Project> {
-  const res = await fetch(`${API_BASE}/projects`, {
+  const url = `${API_BASE}/projects`;
+  const res = await safeFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`POST /projects ${res.status}`);
-  return res.json();
+  const json: unknown = await res.json();
+  return json as Project;
 }
 
 export async function updateProject(id: number, payload: ProjectUpdateInput): Promise<Project> {
-  const res = await fetch(`${API_BASE}/projects/${id}`, {
+  const url = `${API_BASE}/projects/${id}`;
+  const res = await safeFetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`PATCH /projects/${id} ${res.status}`);
-  return res.json();
+  const json: unknown = await res.json();
+  return json as Project;
 }
 
 export async function removeProject(id: number): Promise<{ success?: boolean } | Project> {
-  const res = await fetch(`${API_BASE}/projects/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(`DELETE /projects/${id} ${res.status}`);
-  return res.json();
+  const url = `${API_BASE}/projects/${id}`;
+  const res = await safeFetch(url, { method: "DELETE" });
+  const json: unknown = await res.json();
+  return json as { success?: boolean } | Project;
 }
