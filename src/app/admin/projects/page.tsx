@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProjectForm from "@/app/admin/projects/ProjectForm";
-import Modal from "@/components/ui/Modal"; // ⬅️ ajusta la ruta si es distinta
+import Modal from "@/components/ui/Modal";
 
 // Tipos de payload
 export type ProjectCreateInput = {
@@ -50,9 +50,8 @@ export default function AdminProjectsPage() {
   const [items, setItems] = useState<Project[]>([]);
   const [total, setTotal] = useState<number>(0);
 
-  // Modal (create/edit)
+  // Estado del formulario
   const [mode, setMode] = useState<Mode>({ kind: "none" });
-  const isOpen = mode.kind !== "none";
 
   async function load(nextPage: number = page): Promise<void> {
     setLoading(true);
@@ -99,17 +98,16 @@ export default function AdminProjectsPage() {
   async function handleCreate(payload: ProjectCreateInput): Promise<void> {
     await createProject(payload);
     setMode({ kind: "none" });
-    await load(1); // refresca lista desde la página 1
+    await load(1);
   }
 
   async function handleUpdate(payload: ProjectUpdateInput, id: number): Promise<void> {
     await updateProject(id, payload);
     setMode({ kind: "none" });
-    await load(page); // refresca manteniendo la página actual
+    await load(page);
   }
 
   async function handleRemove(id: number): Promise<void> {
-    // eslint-disable-next-line no-restricted-globals
     if (!confirm("¿Dar de baja/eliminar este proyecto?")) return;
     await removeProject(id);
     await load(page);
@@ -319,31 +317,36 @@ export default function AdminProjectsPage() {
             Siguiente
           </Button>
         </div>
+
+        
+        {/* Modal SIEMPRE montado – solo cambia "open" */}
+<Modal
+  open={mode.kind !== "none"}
+  onClose={() => setMode({ kind: "none" })}
+  title={mode.kind === "create" ? "Añadir proyecto" : "Editar proyecto"}
+>
+  {/* Form CREATE – siempre en DOM */}
+  <div style={{ display: mode.kind === "create" ? "block" : "none" }}>
+    <ProjectForm
+      key="create"
+      onCancel={() => setMode({ kind: "none" })}
+      onSubmit={handleCreate}
+    />
+  </div>
+
+  {/* Form EDIT – siempre en DOM */}
+  <div style={{ display: mode.kind === "edit" ? "block" : "none" }}>
+    {mode.kind === "edit" && (
+      <ProjectForm
+        key={`edit-${mode.item.id}`}
+        initial={mode.item}
+        onCancel={() => setMode({ kind: "none" })}
+        onSubmit={(p) => handleUpdate(p, mode.item.id)}
+      />
+    )}
+  </div>
+</Modal>
       </div>
-
-      {/* MODAL usando tu componente */}
-      <Modal
-        open={isOpen}
-        onClose={() => setMode({ kind: "none" })}
-        title={mode.kind === "create" ? "Añadir proyecto" : "Editar proyecto"}
-      >
-        {mode.kind === "create" && (
-          <ProjectForm
-            inModal
-            onCancel={() => setMode({ kind: "none" })}
-            onSubmit={handleCreate}
-          />
-        )}
-
-        {mode.kind === "edit" && (
-          <ProjectForm
-            inModal
-            initial={mode.item}
-            onCancel={() => setMode({ kind: "none" })}
-            onSubmit={(payload) => handleUpdate(payload, mode.item.id)}
-          />
-        )}
-      </Modal>
     </main>
   );
 }

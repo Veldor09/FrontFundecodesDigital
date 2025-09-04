@@ -6,10 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
 
-/* =========================
-   Opciones predefinidas
-   ========================= */
-
+/* Opciones predefinidas */
 const CATEGORIES = [
   "Conservación Marina",
   "Conservación Terrestre",
@@ -55,33 +52,26 @@ const AREAS = [
   "Alianzas Público–Privadas",
 ] as const;
 
-/* =========================
-   Tipos y validación
-   ========================= */
-
+/* Tipos y validación */
 type ProjectFormInput = {
   title: string;
+  slug?: string;
   summary?: string;
   content?: string;
   coverUrl?: string;
   category: string;
   place: string;
   area: string;
-  funds?: number;
   status?: ProjectStatus;
   published?: boolean;
 };
 
-type FormState = Omit<ProjectFormInput, "funds"> & {
-  fundsRaw?: string;
-};
+type FormState = ProjectFormInput;
 
 type Props = {
-  initial?: Partial<Project> & { funds?: number };
+  initial?: Partial<Project>;
   onCancel: () => void;
   onSubmit: (payload: ProjectFormInput) => Promise<void>;
-  /** Si true, no envuelve en <Card> (ideal para modal) */
-  inModal?: boolean;
 };
 
 function validate(p: ProjectFormInput) {
@@ -104,10 +94,6 @@ function validate(p: ProjectFormInput) {
     errors.status = "Estado inválido";
   }
 
-  if (typeof p.funds === "number" && p.funds < 0) {
-    errors.funds = "Los fondos no pueden ser negativos";
-  }
-
   return errors;
 }
 
@@ -119,14 +105,11 @@ const DEFAULT_FORM: FormState = {
   category: "",
   place: "",
   area: "",
-  fundsRaw: "",
   status: "EN_PROCESO",
   published: true,
 };
 
-/* ==========================================================
-   Input + Botón ⋮ + Menú contextual
-   ========================================================== */
+/* Selector con menú contextual */
 function PresetSelectInput({
   label,
   value,
@@ -158,8 +141,6 @@ function PresetSelectInput({
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           className="w-8 h-8 flex items-center justify-center rounded-full border bg-white hover:bg-gray-100"
-          aria-label={`Elegir ${label}`}
-          title={`Elegir ${label}`}
         >
           ⋮
         </button>
@@ -195,18 +176,14 @@ function PresetSelectInput({
   );
 }
 
-/* =========================
-   Formulario principal
-   ========================= */
-
-export default function ProjectForm({ initial, onCancel, onSubmit, inModal }: Props) {
+/* Formulario principal */
+export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!initial) return;
-
     setForm((prev) => ({
       ...prev,
       title: initial.title ?? prev.title,
@@ -216,10 +193,6 @@ export default function ProjectForm({ initial, onCancel, onSubmit, inModal }: Pr
       category: initial.category ?? prev.category,
       place: initial.place ?? prev.place,
       area: initial.area ?? prev.area,
-      fundsRaw:
-        typeof (initial as any).funds === "number" && !Number.isNaN((initial as any).funds)
-          ? String((initial as any).funds)
-          : prev.fundsRaw,
       status: (initial.status as ProjectStatus | undefined) ?? prev.status,
       published: initial.published ?? prev.published,
     }));
@@ -232,29 +205,22 @@ export default function ProjectForm({ initial, onCancel, onSubmit, inModal }: Pr
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const fundsNumber =
-      form.fundsRaw && form.fundsRaw.trim() !== "" ? Number(form.fundsRaw) : undefined;
-
     const payload: ProjectFormInput = {
-      title: form.title?.trim(),
+      title: form.title.trim(),
+      slug: form.slug?.trim() || undefined,
       summary: form.summary?.trim() || undefined,
       content: form.content || undefined,
       coverUrl: form.coverUrl?.trim() || undefined,
-      category: form.category?.trim(),
-      place: form.place?.trim(),
-      area: form.area?.trim(),
-      funds: typeof fundsNumber === "number" && !Number.isNaN(fundsNumber) ? fundsNumber : undefined,
+      category: form.category.trim(),
+      place: form.place.trim(),
+      area: form.area.trim(),
       status: form.status,
       published: Boolean(form.published),
     };
 
     const errs = validate(payload);
-    if (form.fundsRaw && form.fundsRaw.trim() !== "" && (Number.isNaN(fundsNumber) || fundsNumber! < 0)) {
-      errs.funds = "Ingrese un monto válido (número positivo)";
-    }
-
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length) return;
 
     setBusy(true);
     try {
@@ -264,36 +230,13 @@ export default function ProjectForm({ initial, onCancel, onSubmit, inModal }: Pr
     }
   }
 
-  const FormShell = ({ children }: { children: React.ReactNode }) =>
-    inModal ? (
-      <div className="p-0">{children}</div>
-    ) : (
-      <Card className="p-4">{children}</Card>
-    );
-
   return (
-    <FormShell>
+    <Card className="p-4">
       <form className="grid gap-4" onSubmit={handleSubmit}>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm">Título *</label>
-            <Input value={form.title} onChange={(e) => set("title", e.target.value)} />
-            {errors.title && <p className="text-xs text-red-600 mt-1">{errors.title}</p>}
-          </div>
-
-          <div>
-            <label className="text-sm">Fondos destinados (CRC)</label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="100"
-              min="0"
-              placeholder="Ej. 1500000"
-              value={form.fundsRaw ?? ""}
-              onChange={(e) => set("fundsRaw", e.target.value)}
-            />
-            {errors.funds && <p className="text-xs text-red-600 mt-1">{errors.funds}</p>}
-          </div>
+        <div>
+          <label className="text-sm">Título *</label>
+          <Input value={form.title} onChange={(e) => set("title", e.target.value)} />
+          {errors.title && <p className="text-xs text-red-600 mt-1">{errors.title}</p>}
         </div>
 
         <div className="grid sm:grid-cols-3 gap-3">
@@ -388,6 +331,6 @@ export default function ProjectForm({ initial, onCancel, onSubmit, inModal }: Pr
           </Button>
         </div>
       </form>
-    </FormShell>
+    </Card>
   );
 }
