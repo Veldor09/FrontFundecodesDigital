@@ -4,14 +4,25 @@ import { useState, useEffect } from "react";
 import { FileUploader } from "@/components/ui/FileUploader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Upload, FileText, Download, Trash2, Eye } from "lucide-react";
-import { uploadProjectFile, deleteProjectFile, getProjectFiles } from "@/services/projects.service";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Download, Trash2, Eye } from "lucide-react";
+import {
+  uploadProjectFile,
+  deleteProjectFile,
+  getProjectFiles,
+} from "@/services/projects.service";
 import { formatFileSize, getFileIcon } from "@/services/files.service";
 
-
 interface ProjectFile {
-  id?: number;
+  id?: number; // 👈 necesario para eliminar por ID
   url: string;
   name: string;
   mimeType: string;
@@ -24,14 +35,19 @@ interface ProjectFilesManagerProps {
   onFilesChange: (files: ProjectFile[]) => void;
 }
 
-export function ProjectFilesManager({ projectId, onFilesChange }: ProjectFilesManagerProps) {
+export function ProjectFilesManager({
+  projectId,
+  onFilesChange,
+}: ProjectFilesManagerProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<ProjectFile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadProjectFiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const loadProjectFiles = async () => {
@@ -41,17 +57,25 @@ export function ProjectFilesManager({ projectId, onFilesChange }: ProjectFilesMa
       setFiles(projectFiles);
       onFilesChange(projectFiles);
     } catch (error) {
-      console.error('Error al cargar archivos:', error);
+      console.error("Error al cargar archivos:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleFileSelect = (file: File) => {
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'text/plain'];
-    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|jpg|jpeg|png|gif|txt)$/i)) {
-      alert('Tipo de archivo no permitido. Use: PDF, JPG, PNG, GIF, TXT');
-      return;
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "text/plain",
+    ];
+    if (
+      !allowedTypes.includes(file.type) &&
+      !file.name.match(/\.(pdf|jpg|jpeg|png|gif|txt)$/i)
+    ) {
+      alert("Tipo de archivo no permitido. Use: PDF, JPG, PNG, GIF, TXT");
     }
   };
 
@@ -61,11 +85,11 @@ export function ProjectFilesManager({ projectId, onFilesChange }: ProjectFilesMa
       await uploadProjectFile(projectId, file);
       await loadProjectFiles();
     } catch (error) {
-      if (error instanceof Error) {
-        alert(`Error al subir archivo: ${error.message}`);
-      } else {
-        alert('Error desconocido al subir archivo');
-      }
+      alert(
+        error instanceof Error
+          ? `Error al subir archivo: ${error.message}`
+          : "Error desconocido al subir archivo"
+      );
       throw error;
     } finally {
       setUploading(false);
@@ -73,32 +97,48 @@ export function ProjectFilesManager({ projectId, onFilesChange }: ProjectFilesMa
   };
 
   const handleDeleteFile = (file: ProjectFile) => {
-    setFileToDelete(file);
+    setFileToDelete(file); // abre la alerta
   };
 
- const confirmDeleteFile = async () => {
-  if (!fileToDelete) return;
-
-  try {
-    await deleteProjectFile(projectId, fileToDelete.url);
-    await loadProjectFiles();
-    setFileToDelete(null); // ✅ solo cierra si todo sale bien
-  } catch (error) {
-    console.error("Error al eliminar archivo:", error);
-    alert("No se pudo eliminar el archivo.");
-    // ❌ NO cierres el modal aquí si falla
-  }
-};
+  const confirmDeleteFile = async () => {
+    if (!fileToDelete) return;
+    if (fileToDelete.id == null) {
+      alert("No se encontró el ID del archivo a eliminar.");
+      return;
+    }
+    try {
+      setDeleting(true);
+      await deleteProjectFile(projectId, Number(fileToDelete.id)); // ✅ por ID
+      await loadProjectFiles();
+      setFileToDelete(null); // cierra solo si todo salió bien
+    } catch (error: any) {
+      console.error("Error al eliminar archivo:", error);
+      alert(error?.message || "No se pudo eliminar el archivo.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleDownloadFile = (file: ProjectFile) => {
-    window.open(`http://localhost:4000/files/download/${file.url.split('/').pop()}`, '_blank');
+    const filename = file.url.split("/").pop() || "";
+    window.open(
+      `http://localhost:4000/files/download/${encodeURIComponent(filename)}`,
+      "_blank"
+    );
   };
 
   const handlePreviewFile = (file: ProjectFile) => {
-    if (file.mimeType.startsWith('image/') || file.mimeType === 'application/pdf') {
-      window.open(`http://localhost:4000/files/preview/${file.url.split('/').pop()}`, '_blank');
+    const filename = file.url.split("/").pop() || "";
+    if (
+      file.mimeType.startsWith("image/") ||
+      file.mimeType === "application/pdf"
+    ) {
+      window.open(
+        `http://localhost:4000/files/preview/${encodeURIComponent(filename)}`,
+        "_blank"
+      );
     } else {
-      alert('Vista previa no disponible para este tipo de archivo');
+      alert("Vista previa no disponible para este tipo de archivo");
     }
   };
 
@@ -117,46 +157,68 @@ export function ProjectFilesManager({ projectId, onFilesChange }: ProjectFilesMa
       <CardHeader>
         <CardTitle>Archivos del Proyecto</CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-6">
         <FileUploader
           onFileSelect={handleFileSelect}
           onFileUpload={handleFileUpload}
-          acceptedTypes={['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.txt']}
+          acceptedTypes={[".pdf", ".jpg", ".jpeg", ".png", ".gif", ".txt"]}
           maxSize={10 * 1024 * 1024}
         />
 
         {files.length > 0 && (
           <div className="space-y-3">
-            <h4 className="font-medium text-sm text-gray-700">Archivos subidos ({files.length})</h4>
+            <h4 className="font-medium text-sm text-gray-700">
+              Archivos subidos ({files.length})
+            </h4>
+
             {files.map((file) => (
-              <div key={file.id || file.url} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div
+                key={file.id || file.url}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
                 <div className="flex items-center gap-3">
                   <div className="text-2xl">{getFileIcon(file.mimeType)}</div>
                   <div>
                     <p className="font-medium text-sm">{file.name}</p>
                     <p className="text-xs text-gray-500">
-                      {file.size ? formatFileSize(file.size) : 'Tamaño desconocido'}
+                      {file.size ? formatFileSize(file.size) : "Tamaño desconocido"}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => handlePreviewFile(file)} title="Vista previa">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePreviewFile(file)}
+                    title="Vista previa"
+                  >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDownloadFile(file)} title="Descargar">
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownloadFile(file)}
+                    title="Descargar"
+                  >
                     <Download className="w-4 h-4" />
                   </Button>
+
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteFile(file);
+                      e.stopPropagation();
+                      handleDeleteFile(file);
                     }}
                     title="Eliminar"
                     className="text-red-500 hover:text-red-700"
-                    >
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -165,33 +227,38 @@ export function ProjectFilesManager({ projectId, onFilesChange }: ProjectFilesMa
           </div>
         )}
 
-        <AlertDialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
+        {/* Alerta de confirmación */}
+        <AlertDialog
+          open={!!fileToDelete}
+          onOpenChange={(open) => {
+            if (!open && !deleting) setFileToDelete(null);
+          }}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar archivo?</AlertDialogTitle>
               <AlertDialogDescription>
-                ¿Estás seguro de que quieres eliminar el archivo "{fileToDelete?.name}"?
-                Esta acción no se puede deshacer y el archivo se eliminará permanentemente.
+                ¿Seguro que quieres eliminar "{fileToDelete?.name}"?
+                Esta acción no se puede deshacer.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setFileToDelete(null)}>
+              <AlertDialogCancel
+                onClick={() => setFileToDelete(null)}
+                disabled={deleting}
+              >
                 Cancelar
               </AlertDialogCancel>
-              <AlertDialogAction
-  onClick={async (e) => {
-    e.preventDefault(); // ✅ evita cierre automático
-    try {
-      await confirmDeleteFile();
-    } catch (error) {
-      console.error("Error al eliminar archivo:", error);
-      alert("No se pudo eliminar el archivo.");
-    }
-  }}
-  className="bg-red-600 hover:bg-red-700"
->
-  Eliminar
-</AlertDialogAction>
+
+              {/* Button normal: no cierra automáticamente */}
+              <Button
+                type="button"
+                onClick={confirmDeleteFile}
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleting ? "Eliminando..." : "Eliminar"}
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
