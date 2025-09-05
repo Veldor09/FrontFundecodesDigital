@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
+import { ProjectFilesManager } from "./ProjectFilesManager";
+import { Upload } from "lucide-react";
+import { uploadProjectFile, deleteProjectFile, getProjectFiles } from "@/services/projects.service";
 
 /* Opciones predefinidas */
 const CATEGORIES = [
@@ -181,6 +184,8 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [projectFiles, setProjectFiles] = useState<any[]>([]);
+  const [projectId, setProjectId] = useState<number>(initial?.id || 0);
 
   useEffect(() => {
     if (!initial) return;
@@ -196,11 +201,77 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
       status: (initial.status as ProjectStatus | undefined) ?? prev.status,
       published: initial.published ?? prev.published,
     }));
+    setProjectId(initial?.id || 0);
   }, [initial]);
+
+  // Cargar archivos cuando hay un proyecto existente
+  useEffect(() => {
+    if (projectId > 0) {
+      loadProjectFiles();
+    }
+  }, [projectId]);
+
+  const loadProjectFiles = async () => {
+    try {
+      const files = await getProjectFiles(projectId);
+      setProjectFiles(files);
+    } catch (error) {
+      console.error('Error al cargar archivos del proyecto:', error);
+      setProjectFiles([]);
+    }
+  };
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
+
+  // Funciones para manejar archivos
+  const handleFileSelect = (file: File) => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'text/plain'];
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|jpg|jpeg|png|gif|txt)$/i)) {
+      alert('Tipo de archivo no permitido. Use: PDF, JPG, PNG, GIF, TXT');
+      return false;
+    }
+    return true;
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (projectId === 0) {
+      alert('Primero debes guardar el proyecto antes de subir archivos');
+      throw new Error('Proyecto no guardado');
+    }
+
+    try {
+      await uploadProjectFile(projectId, file);
+      await loadProjectFiles();
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(`Error al subir archivo: ${error.message}`);
+      } else {
+        alert('Error desconocido al subir archivo');
+      }
+      throw error;
+    }
+  };
+
+  const handleFilesChange = (files: any[]) => {
+    setProjectFiles(files);
+  };
+
+  const handleDeleteFile = async (file: any) => {
+    if (!confirm(`¿Estás seguro de eliminar el archivo "${file.name}"?`)) return;
+
+    try {
+      await deleteProjectFile(projectId, file.url);
+      await loadProjectFiles();
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(`Error al eliminar archivo: ${error.message}`);
+      } else {
+        alert('Error desconocido al eliminar archivo');
+      }
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -225,6 +296,7 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
     setBusy(true);
     try {
       await onSubmit(payload);
+      // Si es un proyecto nuevo, el ID se actualizará cuando initial cambie
     } finally {
       setBusy(false);
     }
@@ -320,6 +392,31 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
             value={form.content ?? ""}
             onChange={(e) => set("content", e.target.value)}
           />
+        </div>
+
+        {/* ➡️ SECCIÓN COMPLETA: Archivos del Proyecto */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Upload className="w-5 h-5" />
+            Archivos del Proyecto
+          </h3>
+          
+          {projectId === 0 ? (
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="p-4">
+                <p className="text-yellow-800 text-sm">
+                  💡 Primero guarda el proyecto para poder subir archivos
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <ProjectFilesManager 
+                projectId={projectId}
+                onFilesChange={handleFilesChange}
+              />
+            </>
+          )}
         </div>
 
         <div className="flex gap-2 justify-end">

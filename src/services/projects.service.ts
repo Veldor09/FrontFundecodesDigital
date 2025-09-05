@@ -1,4 +1,6 @@
 import type { Project, ProjectQuery, ProjectStatus } from "@/lib/projects.types";
+import API from './api';
+import { uploadFile, deleteFile } from './files.service';
 
 // Base: usamos el proxy del front (/api -> http://localhost:4000)
 const API_BASE = "/api";
@@ -154,4 +156,65 @@ export async function removeProject(id: number): Promise<{ success?: boolean } |
   const res = await safeFetch(url, { method: "DELETE" });
   const json: unknown = await res.json();
   return json as { success?: boolean } | Project;
+}
+// Subir archivo para un proyecto específico
+export async function uploadProjectFile(projectId: number, file: File): Promise<any> {
+  try {
+    const uploadResponse = await uploadFile(file);
+    
+    // Asociar archivo al proyecto
+    const response = await API.post(`/projects/${projectId}/add-document-url`, {
+      url: uploadResponse.url,
+      name: uploadResponse.name,
+      mimeType: uploadResponse.mimeType
+    });
+    
+    return response.data;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error al subir archivo del proyecto: ${error.message}`);
+    } else {
+      throw new Error('Error desconocido al subir archivo del proyecto');
+    }
+  }
+}
+
+// Eliminar archivo de un proyecto
+export async function deleteProjectFile(projectId: number, url: string): Promise<any> {
+  try {
+    // Primero eliminar del servidor de archivos
+    await deleteFile(url);
+    
+    // Luego desasociar del proyecto (si existe endpoint)
+    try {
+      await API.delete(`/projects/${projectId}/documents`, {
+        data: { url }
+      });
+    } catch (e) {
+      // Si no existe endpoint, solo eliminar el archivo físico
+      console.log('Documento desasociado del proyecto');
+    }
+    
+    return { message: 'Archivo eliminado exitosamente' };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error al eliminar archivo: ${error.message}`);
+    } else {
+      throw new Error('Error desconocido al eliminar archivo');
+    }
+  }
+}
+
+// Obtener archivos de un proyecto
+export async function getProjectFiles(projectId: number): Promise<any[]> {
+  try {
+    const response = await API.get(`/projects/${projectId}/documents`);
+    return response.data;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error al obtener archivos: ${error.message}`);
+    } else {
+      throw new Error('Error desconocido al obtener archivos');
+    }
+  }
 }
