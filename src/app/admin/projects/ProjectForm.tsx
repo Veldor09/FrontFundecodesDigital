@@ -254,24 +254,20 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
     }
   };
 
-  const handleFilesChange = (files: any[]) => {
-    setProjectFiles(files);
-  };
+ const handleFilesChange = (files: any[]) => {
+  setProjectFiles(files);
+};
 
-  const handleDeleteFile = async (file: any) => {
-    if (!confirm(`¿Estás seguro de eliminar el archivo "${file.name}"?`)) return;
+const handleDeleteFile = async (file: any) => {
+  if (!confirm(`¿Estás seguro de eliminar el archivo "${file.name}"?`)) return;
 
-    try {
-      await deleteProjectFile(projectId, file.url);
-      await loadProjectFiles();
-    } catch (error) {
-      if (error instanceof Error) {
-        alert(`Error al eliminar archivo: ${error.message}`);
-      } else {
-        alert('Error desconocido al eliminar archivo');
-      }
-    }
-  };
+  try {
+    await deleteProjectFile(projectId, file.url); // ✅ envía la URL completa
+    await loadProjectFiles();                   // ✅ recarga la lista
+  } catch (error: any) {
+    alert(error?.message || 'No se pudo eliminar el archivo');
+  }
+};
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

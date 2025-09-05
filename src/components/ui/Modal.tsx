@@ -13,8 +13,14 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 relative">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Botón cerrar */}
         <button
           onClick={onClose}
@@ -23,11 +29,17 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
           ✕
         </button>
 
+        {/* Header */}
         {title && (
-          <h2 className="text-xl font-bold mb-4 text-[#1e3a8a]">{title}</h2>
+          <div className="px-6 py-4 border-b shrink-0">
+            <h2 className="text-xl font-bold text-[#1e3a8a]">{title}</h2>
+          </div>
         )}
 
-        <div className="text-slate-700">{children}</div>
+        {/* Body: scrolleable */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 text-slate-700">
+          {children}
+        </div>
       </div>
     </div>
   );
