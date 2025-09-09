@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
 import { ProjectFilesManager } from "./ProjectFilesManager";
 import { Upload } from "lucide-react";
-import { uploadProjectFile, deleteProjectFile, getProjectFiles } from "@/services/projects.service";
+import { getProjectFiles } from "@/services/projects.service";
 
 /* Opciones predefinidas */
 const CATEGORIES = [
@@ -75,6 +75,7 @@ type Props = {
   initial?: Partial<Project>;
   onCancel: () => void;
   onSubmit: (payload: ProjectFormInput) => Promise<void>;
+  mode?: "create" | "edit";
 };
 
 function validate(p: ProjectFormInput) {
@@ -180,10 +181,16 @@ function PresetSelectInput({
 }
 
 /* Formulario principal */
-export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
+export default function ProjectForm({
+  initial,
+  onCancel,
+  onSubmit,
+  mode = "create",
+}: Props) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+
   const [projectFiles, setProjectFiles] = useState<any[]>([]);
   const [projectId, setProjectId] = useState<number>(initial?.id || 0);
 
@@ -204,7 +211,6 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
     setProjectId(initial?.id || 0);
   }, [initial]);
 
-  // Cargar archivos cuando hay un proyecto existente
   useEffect(() => {
     if (projectId > 0) {
       loadProjectFiles();
@@ -216,7 +222,7 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
       const files = await getProjectFiles(projectId);
       setProjectFiles(files);
     } catch (error) {
-      console.error('Error al cargar archivos del proyecto:', error);
+      console.error("Error al cargar archivos del proyecto:", error);
       setProjectFiles([]);
     }
   };
@@ -224,50 +230,6 @@ export default function ProjectForm({ initial, onCancel, onSubmit }: Props) {
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
-
-  // Funciones para manejar archivos
-  const handleFileSelect = (file: File) => {
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'text/plain'];
-    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|jpg|jpeg|png|gif|txt)$/i)) {
-      alert('Tipo de archivo no permitido. Use: PDF, JPG, PNG, GIF, TXT');
-      return false;
-    }
-    return true;
-  };
-
-  const handleFileUpload = async (file: File) => {
-    if (projectId === 0) {
-      alert('Primero debes guardar el proyecto antes de subir archivos');
-      throw new Error('Proyecto no guardado');
-    }
-
-    try {
-      await uploadProjectFile(projectId, file);
-      await loadProjectFiles();
-    } catch (error) {
-      if (error instanceof Error) {
-        alert(`Error al subir archivo: ${error.message}`);
-      } else {
-        alert('Error desconocido al subir archivo');
-      }
-      throw error;
-    }
-  };
-
- const handleFilesChange = (files: any[]) => {
-  setProjectFiles(files);
-};
-
-const handleDeleteFile = async (file: any) => {
-  if (!confirm(`¿Estás seguro de eliminar el archivo "${file.name}"?`)) return;
-
-  try {
-    await deleteProjectFile(projectId, file.url); // ✅ envía la URL completa
-    await loadProjectFiles();                   // ✅ recarga la lista
-  } catch (error: any) {
-    alert(error?.message || 'No se pudo eliminar el archivo');
-  }
-};
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -291,8 +253,7 @@ const handleDeleteFile = async (file: any) => {
 
     setBusy(true);
     try {
-      await onSubmit(payload);
-      // Si es un proyecto nuevo, el ID se actualizará cuando initial cambie
+      await onSubmit(payload); // el padre se encarga de abrir el modal de archivos y cerrar este modal
     } finally {
       setBusy(false);
     }
@@ -316,7 +277,6 @@ const handleDeleteFile = async (file: any) => {
             error={errors.category}
             placeholder="Ej. Conservación Marina"
           />
-
           <PresetSelectInput
             label="Lugar *"
             value={form.place}
@@ -325,7 +285,6 @@ const handleDeleteFile = async (file: any) => {
             error={errors.place}
             placeholder="Ej. Parque Nacional Barra Honda"
           />
-
           <PresetSelectInput
             label="Área *"
             value={form.area}
@@ -390,37 +349,34 @@ const handleDeleteFile = async (file: any) => {
           />
         </div>
 
-        {/* ➡️ SECCIÓN COMPLETA: Archivos del Proyecto */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <Upload className="w-5 h-5" />
-            Archivos del Proyecto
-          </h3>
-          
-          {projectId === 0 ? (
-            <Card className="border-yellow-200 bg-yellow-50">
-              <CardContent className="p-4">
-                <p className="text-yellow-800 text-sm">
-                  💡 Primero guarda el proyecto para poder subir archivos
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <ProjectFilesManager 
-                projectId={projectId}
-                onFilesChange={handleFilesChange}
-              />
-            </>
-          )}
-        </div>
+        {/* Archivos del Proyecto: SOLO en edición */}
+        {mode === "edit" && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              Archivos del Proyecto
+            </h3>
+
+            {projectId === 0 ? (
+              <Card className="border-yellow-200 bg-yellow-50">
+                <CardContent className="p-4">
+                  <p className="text-yellow-800 text-sm">
+                    💡 Primero guarda el proyecto para poder subir archivos
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <ProjectFilesManager projectId={projectId} onFilesChange={setProjectFiles} />
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 justify-end">
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancelar
           </Button>
           <Button type="submit" disabled={busy}>
-            {busy ? "Guardando…" : "Guardar"}
+            {busy ? "Guardando…" : mode === "create" ? "Siguiente" : "Guardar"}
           </Button>
         </div>
       </form>

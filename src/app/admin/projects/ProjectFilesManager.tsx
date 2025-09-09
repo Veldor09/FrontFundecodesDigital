@@ -22,7 +22,7 @@ import {
 import { formatFileSize, getFileIcon } from "@/services/files.service";
 
 interface ProjectFile {
-  id?: number; // 👈 necesario para eliminar por ID
+  id?: number; // necesario para eliminar por ID
   url: string;
   name: string;
   mimeType: string;
@@ -63,7 +63,8 @@ export function ProjectFilesManager({
     }
   };
 
-  const handleFileSelect = (file: File) => {
+  // ✅ devuelve boolean por compat con FileUploader
+  const handleFileSelect = (file: File): boolean => {
     const allowedTypes = [
       "application/pdf",
       "image/jpeg",
@@ -71,12 +72,15 @@ export function ProjectFilesManager({
       "image/gif",
       "text/plain",
     ];
-    if (
-      !allowedTypes.includes(file.type) &&
-      !file.name.match(/\.(pdf|jpg|jpeg|png|gif|txt)$/i)
-    ) {
+    const ok =
+      allowedTypes.includes(file.type) ||
+      /\.(pdf|jpg|jpeg|png|gif|txt)$/i.test(file.name);
+
+    if (!ok) {
       alert("Tipo de archivo no permitido. Use: PDF, JPG, PNG, GIF, TXT");
+      return false;
     }
+    return true;
   };
 
   const handleFileUpload = async (file: File) => {
@@ -108,7 +112,7 @@ export function ProjectFilesManager({
     }
     try {
       setDeleting(true);
-      await deleteProjectFile(projectId, Number(fileToDelete.id)); // ✅ por ID
+      await deleteProjectFile(projectId, Number(fileToDelete.id)); // por ID
       await loadProjectFiles();
       setFileToDelete(null); // cierra solo si todo salió bien
     } catch (error: any) {
@@ -129,10 +133,11 @@ export function ProjectFilesManager({
 
   const handlePreviewFile = (file: ProjectFile) => {
     const filename = file.url.split("/").pop() || "";
-    if (
-      file.mimeType.startsWith("image/") ||
-      file.mimeType === "application/pdf"
-    ) {
+    if (!file.mimeType) {
+      alert("Tipo de archivo no reconocido para vista previa");
+      return;
+    }
+    if (file.mimeType.startsWith("image/") || file.mimeType === "application/pdf") {
       window.open(
         `http://localhost:4000/files/preview/${encodeURIComponent(filename)}`,
         "_blank"
@@ -238,8 +243,7 @@ export function ProjectFilesManager({
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar archivo?</AlertDialogTitle>
               <AlertDialogDescription>
-                ¿Seguro que quieres eliminar "{fileToDelete?.name}"?
-                Esta acción no se puede deshacer.
+                ¿Seguro que quieres eliminar "{fileToDelete?.name}"? Esta acción no se puede deshacer.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -250,7 +254,6 @@ export function ProjectFilesManager({
                 Cancelar
               </AlertDialogCancel>
 
-              {/* Button normal: no cierra automáticamente */}
               <Button
                 type="button"
                 onClick={confirmDeleteFile}
@@ -266,3 +269,4 @@ export function ProjectFilesManager({
     </Card>
   );
 }
+export default ProjectFilesManager;
