@@ -1,4 +1,3 @@
-// src/app/components/Header.tsx
 "use client";
 
 import { useState } from "react";
@@ -7,7 +6,6 @@ import { Menu, X, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -61,13 +59,13 @@ export default function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            {/* Icono usuario -> redirige a /admin */}
+            {/* Icono usuario -> redirige a /login */}
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-white/20 rounded-full"
-              onClick={() => router.push("/admin")}
-              aria-label="Ir al panel administrativo"
+              onClick={() => router.push("/login")}
+              aria-label="Ir al inicio de sesión"
             >
               <User className="h-6 w-6" />
             </Button>
