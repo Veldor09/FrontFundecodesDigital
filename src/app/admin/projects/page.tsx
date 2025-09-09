@@ -296,8 +296,12 @@ export default function AdminProjectsPage() {
                   />
                 )}
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold">{p.title}</h3>
+                  {/* 🔧 FIX: El bloque de texto puede encoger y envolver contenido */}
+                  <div className="flex-1 min-w-0">
+                    {/* 🔧 FIX: Evita overflow de títulos largos sin espacios */}
+                    <h3 className="font-semibold break-words hyphens-auto">
+                      {p.title}
+                    </h3>
                     <div className="mt-1 flex gap-2 flex-wrap">
                       {p.place && <Badge>{p.place}</Badge>}
                       {p.category && (
@@ -310,7 +314,8 @@ export default function AdminProjectsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  {/* 🔧 FIX: Botones no se encogen ni se desplazan */}
+                  <div className="flex flex-col gap-2 shrink-0">
                     <Button
                       size="sm"
                       variant="secondary"
