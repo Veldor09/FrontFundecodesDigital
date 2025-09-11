@@ -1,6 +1,12 @@
 "use client";
 
-export default function HeroVideo({ videoUrl }: { videoUrl: string }) {
+type HeroVideoProps = {
+  videoUrl?: string; // <- opcional
+};
+
+export default function HeroVideo({
+  videoUrl = "/videos/VideoFUNDECODES.mp4", // <- valor por defecto
+}: HeroVideoProps) {
   return (
     <section
       id="inicio"
@@ -13,7 +19,7 @@ export default function HeroVideo({ videoUrl }: { videoUrl: string }) {
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
       >
-        <source src={videoUrl || "/videos/VideoFUNDECODES.mp4"} type="video/mp4" />
+        <source src={videoUrl} type="video/mp4" />
         Tu navegador no soporta video HTML5.
       </video>
 
@@ -29,10 +35,7 @@ export default function HeroVideo({ videoUrl }: { videoUrl: string }) {
       </h1>
 
       {/* Separador de olas */}
-      <div
-        className="pointer-events-none absolute bottom-0 left-0 w-full"
-        aria-hidden="true"
-      >
+      <div className="pointer-events-none absolute bottom-0 left-0 w-full" aria-hidden="true">
         <svg
           className="block w-full h-[80px] sm:h-[120px]"
           viewBox="0 0 1440 120"

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { login } from "@/services/auth.service";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +20,6 @@ export default function LoginPage() {
     setCargando(true);
 
     const nuevosErrores: typeof errores = {};
-
     if (!validarEmail(email)) nuevosErrores.email = "Correo inválido";
     if (password.length < 6) nuevosErrores.password = "Mínimo 6 caracteres";
 
@@ -28,15 +29,20 @@ export default function LoginPage() {
       return;
     }
 
-    // 🔥 QUEMADO
-    if (email === "admin@fundecodes.org" && password === "fundecodes2025") {
-      localStorage.setItem("autenticado", "true");
-      router.push("/admin");
-    } else {
-      setErrores({ general: "Correo o contraseña incorrectos" });
-    }
+    try {
+      // Llama a /auth/login vía Axios (interceptor maneja errores y muestra toasts)
+      const user = await login(email, password);
 
-    setCargando(false);
+      if (user) {
+        toast.success(`Bienvenido, ${user.email}`);
+        router.push("/admin");
+      }
+    } catch {
+      // Fallback por si no vino estructura estándar del backend:
+      setErrores({ general: "No se pudo iniciar sesión" });
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -90,7 +96,7 @@ export default function LoginPage() {
           {cargando ? "Entrando…" : "Entrar"}
         </button>
 
-        {/* Enlace a registro → debajo del botón Entrar */}
+        {/* Enlace a registro */}
         <p className="text-center text-sm text-gray-600">
           ¿No tienes una cuenta?{" "}
           <button

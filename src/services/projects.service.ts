@@ -1,7 +1,23 @@
+// src/services/projects.service.ts
+
 import type { Project, ProjectQuery, ProjectStatus } from "@/lib/projects.types";
+import API from "./api";
+import { uploadFile, deleteFile } from "./files.service";
 
 // Base: usamos el proxy del front (/api -> http://localhost:4000)
 const API_BASE = "/api";
+
+// -----------------------------
+// Tipos específicos de documentos
+// -----------------------------
+export type ProjectDocument = {
+  id: number;
+  url: string;
+  name: string;
+  mimeType: string;
+  size?: number;
+  createdAt?: string;
+};
 
 // -----------------------------
 // Utilidades
@@ -86,14 +102,14 @@ function normalizeList(
 }
 
 // -----------------------------
-// API pública
+// API pública (Proyectos)
 // -----------------------------
 
 type ListReturn = {
-  data: Project[];
-  total?: number;
-  page?: number;
-  pageSize?: number;
+  data: Project[],
+  total?: number,
+  page?: number,
+  pageSize?: number
 };
 
 export async function listProjects(params: ProjectQuery = {}): Promise<ListReturn> {
@@ -154,4 +170,108 @@ export async function removeProject(id: number): Promise<{ success?: boolean } |
   const res = await safeFetch(url, { method: "DELETE" });
   const json: unknown = await res.json();
   return json as { success?: boolean } | Project;
+}
+
+// -----------------------------
+// Documentos del Proyecto
+// -----------------------------
+
+/**
+ * Sube archivo: primero al file-server y luego asocia por URL al proyecto.
+ * Endpoint: POST /projects/:id/add-document-url
+ */
+export async function uploadProjectFile(projectId: number, file: File): Promise<ProjectDocument> {
+  try {
+    const uploadResponse = await uploadFile(file); // { url, name, mimeType }
+
+    const response = await API.post(`/projects/${projectId}/add-document-url`, {
+      url: uploadResponse.url,
+      name: uploadResponse.name,
+      mimeType: uploadResponse.mimeType,
+      size: (file as any).size ?? undefined,
+    });
+
+    return response.data as ProjectDocument;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error al subir archivo del proyecto: ${error.message}`);
+    } else {
+      throw new Error("Error desconocido al subir archivo del proyecto");
+    }
+  }
+}
+
+/**
+ * Eliminar documento por **ID** (recomendado).
+ * Endpoint: DELETE /projects/:id/documents/:documentId
+ */
+export async function deleteProjectFile(projectId: number, documentId: number): Promise<{ message: string }> {
+  try {
+    const res = await API.delete(`/projects/${projectId}/documents/${documentId}`);
+    return res.data ?? { message: "Documento eliminado" };
+  } catch (error: any) {
+    const msg = error?.response?.data?.message || error?.message || "Error desconocido en eliminación por ID";
+    throw new Error(`Error al eliminar archivo: ${msg}`);
+  }
+}
+
+/**
+ * (Opcional) Eliminar documento por **URL/nombre** – compatibilidad legacy.
+ * Intenta:
+ *  1) DELETE /projects/:id/documents?name=<encoded>
+ *  2) Si falla, DELETE /projects/:id/documents con body { url }
+ * Además, elimina el archivo físico llamando a deleteFile(url).
+ */
+export async function deleteProjectFileByUrl(projectId: number, url: string): Promise<{ message: string }> {
+  try {
+    // 1) Eliminar en storage (si tu backend no lo hace al desasociar)
+    await deleteFile(url);
+
+    // 2) Intento por query param name
+    const rawName = url.split("/").pop() || "";
+    const decoded = decodeURIComponent(rawName);
+    const encoded = encodeURIComponent(decoded);
+
+    try {
+      const res1 = await API.delete(`/projects/${projectId}/documents`, {
+        params: { name: encoded },
+      });
+      return res1.data ?? { message: "Documento eliminado" };
+    } catch {
+      // 3) Fallback: body { url }
+      const res2 = await API.delete(`/projects/${projectId}/documents`, {
+        data: { url },
+      });
+      return res2.data ?? { message: "Documento eliminado" };
+    }
+  } catch (error: any) {
+    const msg = error?.response?.data?.message || error?.message || "Error desconocido en eliminación por URL";
+    throw new Error(`Error al eliminar archivo: ${msg}`);
+  }
+}
+
+/**
+ * Obtener documentos del proyecto
+ * Endpoint: GET /projects/:id/documents
+ */
+export async function getProjectFiles(projectId: number): Promise<ProjectDocument[]> {
+  try {
+    const response = await API.get(`/projects/${projectId}/documents`);
+    // Aseguramos tipado y estructura consistente
+    const items = Array.isArray(response.data) ? response.data : [];
+    return items.map((d: any) => ({
+      id: Number(d.id),
+      url: String(d.url),
+      name: String(d.name),
+      mimeType: String(d.mimeType ?? "application/octet-stream"),
+      size: typeof d.size === "number" ? d.size : undefined,
+      createdAt: d.createdAt ? String(d.createdAt) : undefined,
+    })) as ProjectDocument[];
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error al obtener archivos: ${error.message}`);
+    } else {
+      throw new Error("Error desconocido al obtener archivos");
+    }
+  }
 }
