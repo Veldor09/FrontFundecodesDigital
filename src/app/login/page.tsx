@@ -28,15 +28,29 @@ export default function LoginPage() {
       return;
     }
 
-    // 🔥 QUEMADO
-    if (email === "admin@fundecodes.org" && password === "fundecodes2025") {
-      localStorage.setItem("autenticado", "true");
-      router.push("/admin");
-    } else {
-      setErrores({ general: "Correo o contraseña incorrectos" });
-    }
+   try {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
 
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const msg = data?.message || "Correo o contraseña incorrectos";
+    setErrores({ general: Array.isArray(msg) ? msg.join(", ") : msg });
     setCargando(false);
+    return;
+  }
+
+  // Cookie httpOnly ya está puesta por el route handler
+  router.push("/admin");
+} catch {
+  setErrores({ general: "No se pudo conectar con el servidor" });
+} finally {
+  setCargando(false);
+}
+
   };
 
   return (
