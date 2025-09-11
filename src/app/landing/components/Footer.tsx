@@ -41,10 +41,10 @@ export default function Footer() {
               <p>
                 📞{" "}
                 <a
-                  href="tel:+506 2659 8061"
+                  href="tel:+506 8670 3535"
                   className="hover:underline text-blue-400"
                 >
-                  2659806
+                  86703535
                 </a>
               </p>
               <p>
