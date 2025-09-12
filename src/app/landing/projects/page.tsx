@@ -232,7 +232,10 @@ export default function ProjectsPublicPage() {
 
                     {/* Contenido */}
                     <div className="p-5">
-                      <h3 className="font-semibold text-slate-900">{p.title}</h3>
+                      {/* 🔧 FIX: Evitar overflow con títulos muy largos sin espacios */}
+                      <h3 className="font-semibold text-slate-900 break-words hyphens-auto">
+                        {p.title}
+                      </h3>
                       {p.summary && (
                         <p className="mt-1 text-sm text-slate-600">{p.summary}</p>
                       )}

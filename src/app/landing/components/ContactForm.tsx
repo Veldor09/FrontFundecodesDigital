@@ -11,9 +11,9 @@ import API from "@/services/api"
 
 /* ===== Límites realistas ===== */
 const LIMITS = {
-  name:   { min: 3,  max: 50 },
-  email:  {        max: 80 },
-  subject:{ min: 3,  max: 80 },
+  name:   { min: 3,  max: 40 },
+  email:  {        max: 50 },
+  subject:{ min: 3,  max: 40 },
   message:{ min: 10, max: 1000 },
 };
 
