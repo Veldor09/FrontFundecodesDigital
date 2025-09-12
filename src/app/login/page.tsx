@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { login } from "@/services/auth.service";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +20,6 @@ export default function LoginPage() {
     setCargando(true);
 
     const nuevosErrores: typeof errores = {};
-
     if (!validarEmail(email)) nuevosErrores.email = "Correo inválido";
     if (password.length < 6) nuevosErrores.password = "Mínimo 6 caracteres";
 
@@ -28,29 +29,20 @@ export default function LoginPage() {
       return;
     }
 
-   try {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+    try {
+      // Llama a /auth/login vía Axios (interceptor maneja errores y muestra toasts)
+      const user = await login(email, password);
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    const msg = data?.message || "Correo o contraseña incorrectos";
-    setErrores({ general: Array.isArray(msg) ? msg.join(", ") : msg });
-    setCargando(false);
-    return;
-  }
-
-  // Cookie httpOnly ya está puesta por el route handler
-  router.push("/admin");
-} catch {
-  setErrores({ general: "No se pudo conectar con el servidor" });
-} finally {
-  setCargando(false);
-}
-
+      if (user) {
+        toast.success(`Bienvenido, ${user.email}`);
+        router.push("/admin");
+      }
+    } catch {
+      // Fallback por si no vino estructura estándar del backend:
+      setErrores({ general: "No se pudo iniciar sesión" });
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -104,7 +96,7 @@ export default function LoginPage() {
           {cargando ? "Entrando…" : "Entrar"}
         </button>
 
-        {/* Enlace a registro → debajo del botón Entrar */}
+        {/* Enlace a registro */}
         <p className="text-center text-sm text-gray-600">
           ¿No tienes una cuenta?{" "}
           <button
