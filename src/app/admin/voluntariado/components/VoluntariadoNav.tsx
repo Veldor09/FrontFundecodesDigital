@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const tabs = ["Voluntarios", "Proyectos","Historial", "Sanciones"] as const;
+const tabs = ["Voluntarios", "Proyectos", "Sanciones"] as const;
 type Tab = typeof tabs[number];
 
 interface Props {
@@ -20,26 +21,23 @@ export default function VoluntariadoNav({ active, onChange }: Props) {
               <Button
                 key={tab}
                 size="sm"
+                onClick={() => onChange(tab)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm ${
                   active === tab
                     ? "bg-blue-600 text-white shadow-md"
                     : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
                 }`}
-                onClick={() => onChange(tab)}
               >
                 {tab}
               </Button>
             ))}
           </nav>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => (window.location.href = "/admin")}
-            className="text-slate-600 hover:text-slate-900"
-          >
-            Salir
-          </Button>
+          <Link href="/admin">
+            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
+              Salir
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
