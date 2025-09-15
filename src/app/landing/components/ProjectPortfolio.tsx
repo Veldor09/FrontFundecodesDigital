@@ -69,8 +69,16 @@ export default function PortafolioProyectos() {
               </div>
 
               <CardContent className="p-5">
-                <h3 className="text-lg font-semibold text-gray-900 font-modern">{p.title}</h3>
-                {p.summary && <p className="text-gray-600 text-sm font-modern mt-1 line-clamp-3">{p.summary}</p>}
+                {/* 🔧 FIX: evita overflow de títulos larguísimos sin espacios */}
+                <h3 className="text-lg font-semibold text-gray-900 font-modern break-words hyphens-auto">
+                  {p.title}
+                </h3>
+
+                {p.summary && (
+                  <p className="text-gray-600 text-sm font-modern mt-1 line-clamp-3">
+                    {p.summary}
+                  </p>
+                )}
 
                 <div className="mt-3 flex gap-2 flex-wrap">
                   {p.place && <Badge>{p.place}</Badge>}
