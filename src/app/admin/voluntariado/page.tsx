@@ -3,7 +3,7 @@
 import { useState } from "react";
 import VoluntariadoNav from "./components/VoluntariadoNav";
 import VoluntarioTable from "./components/VoluntarioTable";
-import ProyectosTable from "./components/ProyectosTable";
+import ProyectosTable from "./components/ProyectoTable";
 import SancionesTable from "./components/SancionesTable";
 
 type Vista = "Voluntarios" | "Proyectos" | "Sanciones";
