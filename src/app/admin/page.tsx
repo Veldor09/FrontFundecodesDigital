@@ -101,7 +101,7 @@ export default function AdminDashboardPage() {
               </Link>
 
               {/* Colaboradores */}
-              <Link href="/admin/colaboradores" className="group">
+              <Link href="/admin/Collaborators" className="group">
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-purple-300">
                   <div className="flex items-center gap-4">
                     <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-purple-50 group-hover:border-purple-200">
