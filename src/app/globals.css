@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import 'react-phone-number-input/style.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -119,4 +120,56 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Ajustes para que el input se vea como shadcn/ui */
+.PhoneInputInput { @apply w-full rounded border px-3 py-2 text-sm; }
+.PhoneInputCountrySelect { @apply bg-white; }
+.PhoneInputCountry { @apply mr-2; }
+
+/* ===== react-phone-number-input: overrides de tamaño y alineación ===== */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;                 /* separa selector e input */
+}
+
+.PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Tamaño de la bandera */
+.PhoneInputCountryIcon,
+.PhoneInputCountryIconImg {
+  width: 16px !important;
+  height: 12px !important;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.08) inset;
+}
+
+/* Estilo del <select> del país para que no sea alto ni ancho */
+.PhoneInputCountrySelect {
+  height: 40px;                /* ~h-10 */
+  font-size: 0.875rem;         /* text-sm */
+  background: #fff;
+  border: 1px solid #e5e7eb;   /* slate-200 */
+  border-radius: 0.5rem;       /* rounded */
+  padding: 0 26px 0 8px;       /* espacio para flecha */
+}
+
+/* Flechita del select (posición) */
+.PhoneInputCountrySelectArrow {
+  margin-left: -22px;
+}
+
+/* Que el input ocupe el resto de la fila */
+.PhoneInputInput {
+  flex: 1;
+  /* si ya tenías estos en globals, mantenlos */
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
 }

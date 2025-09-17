@@ -1,23 +1,22 @@
-export type CollaboratorRol = 'ADMIN' | 'COLABORADOR';
-export type CollaboratorEstado = 'ACTIVO' | 'INACTIVO';
+export type CollaboratorEstado = "ACTIVO" | "INACTIVO";
+export type CollaboratorRol = "ADMIN" | "COLABORADOR";
 
 export type Collaborator = {
   id: number | string;
   fullName: string;
   email: string;
   phone: string;
-  role: CollaboratorRol;        // mapea al campo que devuelva el back
-  status?: CollaboratorEstado;  // idem
-  area?: string;
-  identification: string;       // cédula
-  birthdate?: string;           // ISO
+  role: CollaboratorRol;
+  status?: CollaboratorEstado;
+  identification: string;
+  birthdate?: string;
   createdAt?: string;
 };
 
 export type ListCollaboratorsParams = {
   page?: number;
   pageSize?: number;
-  q?: string; // búsqueda general
+  q?: string;
   rol?: CollaboratorRol;
   estado?: CollaboratorEstado;
 };
@@ -28,3 +27,13 @@ export type Paginated<T> = {
   page: number;
   pageSize: number;
 };
+
+export interface CreateCollaboratorDto {
+  fullName: string;
+  email: string;
+  identification: string;  // cédula (puedes capturar 9 dígitos)
+  birthdate: string;       // YYYY-MM-DD
+  phone: string;           // dígitos o E.164 según back
+  role: CollaboratorRol;   // "ADMIN" | "COLABORADOR"
+  password?: string;       // ⬅️ opcional en el front; el service la genera si falta
+}
