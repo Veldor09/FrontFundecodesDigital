@@ -4,6 +4,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import Pagination from '@/components/ui/Pagination';
 import { Collaborator, CollaboratorEstado, CollaboratorRol } from '@/lib/collaborators.types';
 import { listCollaborators } from '@/services/collaborators.service';
+import AddCollaboratorModal from './AddCollaboratorModal';
 
 const ROLES: CollaboratorRol[] = ['ADMIN', 'COLABORADOR'];
 const ESTADOS: CollaboratorEstado[] = ['ACTIVO', 'INACTIVO'];
@@ -17,6 +18,7 @@ export default function CollaboratorsTable() {
   const [rol, setRol] = useState<CollaboratorRol | ''>('');
   const [estado, setEstado] = useState<CollaboratorEstado | ''>('');
   const [loading, setLoading] = useState(false);
+  const [openAdd, setOpenAdd] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -47,44 +49,24 @@ export default function CollaboratorsTable() {
 
   return (
     <div className="space-y-3">
-      {/* Filtros */}
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="flex-1 min-w-[220px]">
-          <label className="block text-xs mb-1">Búsqueda</label>
-          <input
-            value={q}
-            onChange={(e) => { setPage(1); setQ(e.target.value); }}
-            placeholder="Nombre, correo, cédula…"
-            className="w-full rounded border px-3 py-2"
-          />
+      {/* Barra superior con botón */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-end gap-2">
+          {/* ...tus filtros existentes... */}
         </div>
-        <div>
-          <label className="block text-xs mb-1">Rol</label>
-          <select className="rounded border px-2 py-2 min-w-[160px]" value={rol} onChange={(e) => { setPage(1); setRol(e.target.value as CollaboratorRol | ''); }}>
-            <option value="">Todos</option>
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs mb-1">Estado</label>
-          <select className="rounded border px-2 py-2 min-w-[160px]" value={estado} onChange={(e) => { setPage(1); setEstado(e.target.value as CollaboratorEstado | ''); }}>
-            <option value="">Todos</option>
-            {ESTADOS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs mb-1">Tamaño de página</label>
-          <select className="rounded border px-2 py-2" value={pageSize} onChange={(e) => { setPage(1); setPageSize(Number(e.target.value)); }}>
-            {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
+        <button onClick={() => setOpenAdd(true)} className="px-3 py-2 rounded bg-purple-600 text-white hover:bg-purple-700">
+          + Añadir colaborador
+        </button>
       </div>
 
-      {/* Tabla con orden en cliente */}
       <DataTable columns={columns} data={items} loading={loading} defaultSortKey="fullName" />
-
-      {/* Paginación */}
       <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
+
+      <AddCollaboratorModal
+        open={openAdd}
+        onClose={() => setOpenAdd(false)}
+        onCreated={() => { setPage(1); load(); }}
+      />
     </div>
   );
 }
