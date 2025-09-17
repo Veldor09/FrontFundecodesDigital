@@ -1,12 +1,15 @@
-export const dynamic = 'force-dynamic';
-import CollaboratorsTable from '@/components/Collaborators/CollaboratorsTable';
+"use client";
+
+import ColaboradoresNav from "@/components/collaborators/ColaboradoresNav";
+import CollaboratorsTable from "@/components/collaborators/CollaboratorsTable";
 
 export default function Page() {
   return (
-    <main className="p-4 md:p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Colaboradores</h1>
-      <p className="text-sm text-gray-500">Lista de colaboradores con búsqueda, filtros, orden y paginación.</p>
-      <CollaboratorsTable />
+    <main className="min-h-screen bg-slate-50">
+      <ColaboradoresNav />
+      <div className="p-6 max-w-7xl mx-auto">
+        <CollaboratorsTable />
+      </div>
     </main>
   );
 }
