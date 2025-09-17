@@ -36,7 +36,7 @@ export default function VolunteerForm() {
     }
 
     try {
-      await API.post('/volunteers', payload)
+      await API.post('/volunteers-form', payload)
       alert('✅ ¡Registro enviado con éxito!')
       setFormData({
         fullname: '',
