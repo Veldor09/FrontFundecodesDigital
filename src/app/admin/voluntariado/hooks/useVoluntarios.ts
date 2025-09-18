@@ -1,53 +1,72 @@
-// hooks/useVoluntarios.ts
 "use client";
 
 import useSWR from "swr";
-import {
-  listVoluntarios,
-  createVoluntario,
-  updateVoluntario,
-  toggleVoluntario,
-  deleteVoluntario,
-  VoluntarioCreateDTO,
-} from "../services/voluntarioService";
-import { Voluntario } from "../types/voluntario";
-import { toggleVoluntario as toggleVolService } from "../services/voluntarioService";
+import { Voluntario, VoluntarioCreateDTO, VoluntarioUpdateDTO, Estado } from "../types/voluntario";
 
-export function useVoluntarios(page = 1, search = "", estado?: string) {
-  const key = ["voluntarios", page, search, estado] as const;
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-  const { data, isLoading, mutate, error } = useSWR(key, async () => {
-    const res = await listVoluntarios({ page, limit: 10, search, estado });
-    // res: { data: Voluntario[], total }
-    return {
-      data: Array.isArray(res.data) ? (res.data as Voluntario[]) : [],
-      total: typeof res.total === "number" ? res.total : (res.data?.length ?? 0),
-    };
-  });
+async function handle(res: Response) {
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText} — ${text}`);
+  }
+  return res.json();
+}
 
-  async function save(dto: Omit<Voluntario, "id"> & { id?: number }) {
-    // dto YA debe tener los nombres correctos (tipoDocumento, nombreCompleto, etc.)
-    if (dto.id) {
-      await updateVoluntario({ id: dto.id, ...dto });
-    } else {
-      // adaptamos a DTO de creación
-      const body: VoluntarioCreateDTO = {
-        tipoDocumento: dto.tipoDocumento,
-        numeroDocumento: dto.numeroDocumento,
-        nombreCompleto: dto.nombreCompleto,
-        email: dto.email,
-        telefono: dto.telefono ?? null,
-        fechaNacimiento: dto.fechaNacimiento ?? null,
-        fechaIngreso: dto.fechaIngreso,
-        estado: dto.estado,
-      };
-      await createVoluntario(body);
-    }
-    await mutate();
+const fetcher = (url: string) => fetch(url).then(handle);
+
+export function useVoluntarios() {
+  // Puedes agregar aquí query params reales de paginación si lo deseas
+  const { data, isLoading, error, mutate } = useSWR<{ data: Voluntario[]; total: number }>(
+    `${API}/voluntarios`,
+    fetcher
+  );
+
+  async function createVoluntario(dto: VoluntarioCreateDTO) {
+    const res = await fetch(`${API}/voluntarios`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dto),
+    });
+    return handle(res);
   }
 
-  async function toggle(id: number, next: "ACTIVO" | "INACTIVO") {
-    await toggleVolService(id, next);
+  async function updateVoluntario(id: number, dto: VoluntarioUpdateDTO) {
+    const res = await fetch(`${API}/voluntarios/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dto),
+    });
+    return handle(res);
+  }
+
+  async function toggleVoluntario(id: number, estado: Estado) {
+    const res = await fetch(`${API}/voluntarios/${id}/toggle`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado }),
+    });
+    return handle(res);
+  }
+
+  async function deleteVoluntario(id: number) {
+    const res = await fetch(`${API}/voluntarios/${id}`, { method: "DELETE" });
+    return handle(res);
+  }
+
+  // API que usa el resto del front:
+  async function save(dto: (VoluntarioCreateDTO & { id?: number })) {
+    if (dto.id) {
+      const { id, ...rest } = dto;
+      await updateVoluntario(id, rest);
+    } else {
+      await createVoluntario(dto);
+    }
+    await mutate(); // refresca lista
+  }
+
+  async function toggle(id: number, nuevoEstado: Estado) {
+    await toggleVoluntario(id, nuevoEstado);
     await mutate();
   }
 
@@ -62,7 +81,7 @@ export function useVoluntarios(page = 1, search = "", estado?: string) {
     loading: isLoading,
     error,
     save,
-    toggle,     // <- ahora toggle(id, nextEstado)
+    toggle,
     remove,
     refetch: mutate,
   };

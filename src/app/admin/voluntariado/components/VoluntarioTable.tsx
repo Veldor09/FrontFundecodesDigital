@@ -3,13 +3,6 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Voluntario } from "../types/voluntario";
 import VoluntarioRow from "./VoluntarioRow";
 import VoluntarioForm from "./VoluntarioForm";
@@ -17,6 +10,8 @@ import { useVoluntarios } from "../hooks/useVoluntarios";
 import { Plus, Search } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import AsignacionModal from "./AsignacionModal";
+
+type EstadoFiltro = "TODOS" | "ACTIVO" | "INACTIVO";
 
 export default function VoluntarioTable() {
   const { data: rawData, total: rawTotal, loading, save, toggle, remove } = useVoluntarios();
@@ -35,11 +30,11 @@ export default function VoluntarioTable() {
 
   const [modo, setModo] = useState<"crear" | "editar" | null>(null);
   const [voluntarioEditar, setVoluntarioEditar] = useState<Voluntario | null>(null);
-  const [estadoFiltro, setEstadoFiltro] = useState<"todos" | "activo" | "inactivo">("todos");
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>("TODOS");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  // NUEVO: control del modal de asignación (fuera de la tabla)
+  // Control del modal de asignación (fuera de la tabla)
   const [voluntarioAsignar, setVoluntarioAsignar] = useState<Voluntario | null>(null);
 
   const abrirModalCrear = () => {
@@ -65,7 +60,7 @@ export default function VoluntarioTable() {
   const filtered: Voluntario[] = useMemo(() => {
     return lista
       .filter((v: Voluntario) =>
-        estadoFiltro === "todos" ? true : v.estado.toLowerCase() === estadoFiltro
+        estadoFiltro === "TODOS" ? true : v.estado?.toUpperCase() === estadoFiltro
       )
       .filter((v: Voluntario) =>
         [v.nombreCompleto, v.numeroDocumento, v.email].some((f) =>
@@ -118,21 +113,20 @@ export default function VoluntarioTable() {
           </div>
         </div>
 
-        {/* Filtro por estado */}
+        {/* Filtro por estado — usando <select> nativo para evitar el bug */}
         <div className="w-full sm:w-48">
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Filtrar por estado
           </label>
-          <Select value={estadoFiltro} onValueChange={(v) => setEstadoFiltro(v as typeof estadoFiltro)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="activo">Activo</SelectItem>
-              <SelectItem value="inactivo">Inactivo</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            value={estadoFiltro}
+            onChange={(e) => setEstadoFiltro(e.target.value as EstadoFiltro)}
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="TODOS">Todos</option>
+            <option value="ACTIVO">Activo</option>
+            <option value="INACTIVO">Inactivo</option>
+          </select>
         </div>
       </div>
 
@@ -155,23 +149,23 @@ export default function VoluntarioTable() {
               </tr>
             </thead>
             <tbody>
-  {filtered.map((v, i) => (
-    <VoluntarioRow
-      key={`vol-${v.id ?? "noid"}-${i}`}   // key única y estable
-      voluntario={v}
-      onEdit={() => abrirModalEditar(v)}
-      onToggle={() =>
-        toggle(v.id, v.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO")
-      }
-      onDelete={() => remove(v.id)}
-    />
-  ))}
-</tbody>
+              {filtered.map((v, i) => (
+                <VoluntarioRow
+                  key={`vol-${v.id ?? "noid"}-${i}`}
+                  voluntario={v}
+                  onEdit={() => abrirModalEditar(v)}
+                  onToggle={() =>
+                    toggle(v.id, v.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO")
+                  }
+                  onDelete={() => remove(v.id)}
+                />
+              ))}
+            </tbody>
           </table>
         </div>
       )}
 
-      {/* Modal de asignación: se renderiza FUERA de la tabla (evita <div> dentro de <tbody>) */}
+      {/* Modal de asignación: fuera de la tabla */}
       {voluntarioAsignar && (
         <AsignacionModal
           voluntario={voluntarioAsignar}
