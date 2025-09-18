@@ -1,7 +1,7 @@
 "use client";
 
-import ColaboradoresNav from "@/components/collaborators/ColaboradoresNav";
-import CollaboratorsTable from "@/components/collaborators/CollaboratorsTable";
+import ColaboradoresNav from "@/app/admin/Collaborators/components/ColaboradoresNav";
+import CollaboratorsTable from "@/app/admin/Collaborators/components/CollaboratorsTable";
 
 export default function Page() {
   return (
