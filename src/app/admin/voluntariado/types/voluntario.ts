@@ -1,36 +1,15 @@
-export type Area =
-  | "Vida Silvestre"
-  | "Conservación Marina"
-  | "Conservación de Humedales"
-  | "Restauración Ecológica"
-  | "Turismo Comunitario"
-  | "Turismo Cultural"
-  | "Pesca Artesanal"
-  | "Educación Ambiental"
-  | "Gestión de Datos Ambientales"
-  | "Desarrollo Sostenible"
-  | "Alianzas Público–Privada";
-
-export const areas: Area[] = [
-  "Vida Silvestre",
-  "Conservación Marina",
-  "Conservación de Humedales",
-  "Restauración Ecológica",
-  "Turismo Comunitario",
-  "Turismo Cultural",
-  "Pesca Artesanal",
-  "Educación Ambiental",
-  "Gestión de Datos Ambientales",
-  "Desarrollo Sostenible",
-  "Alianzas Público–Privada",
-];
+// types/voluntario.ts
 
 export interface Voluntario {
-  id: string;
-  nombre: string;
-  cedula: string;
-  email: string;
-  telefono: string;
-  area: Area;
-  estado: "activo" | "inactivo";
+  id: number; // Prisma: Int autoincrement
+  tipoDocumento: string;     // "Cédula costarricense" | "Pasaporte" | "DIMEX"
+  numeroDocumento: string;   // único
+  nombreCompleto: string;
+  email: string;             // único
+  telefono?: string | null;
+  fechaNacimiento?: string | null; // ISO
+  fechaIngreso: string;            // ISO
+  estado: "ACTIVO" | "INACTIVO";
+  createdAt?: string;
+  updatedAt?: string;
 }
