@@ -2,74 +2,83 @@
 
 import { Voluntario } from "../types/voluntario";
 import { Button } from "@/components/ui/button";
-import ConfirmDialog from "./ConfirmDialog";
-import { useState } from "react";
-import { Edit, ToggleLeft, Trash } from "lucide-react";
+import { SquarePen, ToggleLeft, Trash } from "lucide-react";
 
 interface Props {
   voluntario: Voluntario;
   onEdit: () => void;
-  onToggle: () => void;
+  onToggle: () => void;   // cambia ACTIVO <-> INACTIVO
   onDelete: () => void;
 }
 
-export default function VoluntarioRow({ voluntario, onEdit, onToggle, onDelete }: Props) {
-  const [confirmToggle, setConfirmToggle] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+export default function VoluntarioRow({
+  voluntario,
+  onEdit,
+  onToggle,
+  onDelete,
+}: Props) {
+  const isActivo = voluntario.estado === "ACTIVO";
 
   return (
-    <>
-      <tr className="border-b hover:bg-slate-50 transition">
-        <td className="px-4 py-3 text-slate-800 font-medium">{voluntario.nombre}</td>
-        <td className="px-4 py-3 text-slate-600">{voluntario.cedula}</td>
-        <td className="px-4 py-3 text-slate-600">{voluntario.email}</td>
-        <td className="px-4 py-3 text-slate-600">{voluntario.telefono}</td>
-        <td className="px-4 py-3 text-slate-600">{voluntario.area}</td>
-        <td className="px-4 py-3">
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-semibold ${
-              voluntario.estado === "activo"
-                ? "bg-green-100 text-green-700"
-                : "bg-gray-100 text-gray-600"
-            }`}
+    <tr className="border-b border-slate-200">
+      <td className="px-4 py-3">{voluntario.nombreCompleto}</td>
+      <td className="px-4 py-3">{voluntario.numeroDocumento}</td>
+      <td className="px-4 py-3">{voluntario.email}</td>
+      <td className="px-4 py-3">{voluntario.telefono ?? "—"}</td>
+      <td className="px-4 py-3">
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+            isActivo ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-700"
+          }`}
+        >
+          {isActivo ? "Activo" : "Inactivo"}
+        </span>
+      </td>
+
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-4">
+          {/* Editar: icono azul con trazo */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            title="Editar"
+            onClick={onEdit}
+            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
           >
-            {voluntario.estado === "activo" ? "Activo" : "Inactivo"}
-          </span>
-        </td>
-        <td className="px-4 py-3 flex gap-2">
-          <Button size="icon" variant="ghost" onClick={onEdit} className="text-blue-600 hover:text-blue-800">
-            <Edit className="h-4 w-4" />
+            <SquarePen className="h-5 w-5" strokeWidth={2.2} />
           </Button>
-          <Button size="icon" variant="ghost" onClick={() => setConfirmToggle(true)} className="text-amber-600 hover:text-amber-800">
-            <ToggleLeft className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(true)} className="text-red-600 hover:text-red-800">
-            <Trash className="h-4 w-4" />
-          </Button>
-        </td>
-      </tr>
 
-      <ConfirmDialog
-        open={confirmToggle}
-        onOpenChange={setConfirmToggle}
-        title="¿Cambiar estado?"
-        description={`El voluntario pasará a estar ${voluntario.estado === "activo" ? "inactivo" : "activo"}.`}
-        onConfirm={() => {
-          onToggle();
-          setConfirmToggle(false);
-        }}
-      />
+          {/* Cambiar estado: icono toggle ámbar */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            title={isActivo ? "Marcar como inactivo" : "Marcar como activo"}
+            onClick={onToggle}
+            className="h-8 w-8 text-amber-500 hover:bg-amber-50"
+          >
+            <ToggleLeft
+              className={`h-5 w-5 transition-transform ${
+                isActivo ? "" : "rotate-180"
+              }`}
+              strokeWidth={2.2}
+            />
+          </Button>
 
-      <ConfirmDialog
-        open={confirmDelete}
-        onOpenChange={setConfirmDelete}
-        title="¿Eliminar voluntario?"
-        description="Esta acción no se puede deshacer."
-        onConfirm={() => {
-          onDelete();
-          setConfirmDelete(false);
-        }}
-      />
-    </>
+          {/* Eliminar: icono rojo con trazo */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            title="Eliminar"
+            onClick={onDelete}
+            className="h-8 w-8 text-red-600 hover:bg-red-50"
+          >
+            <Trash className="h-5 w-5" strokeWidth={2.2} />
+          </Button>
+        </div>
+      </td>
+    </tr>
   );
 }

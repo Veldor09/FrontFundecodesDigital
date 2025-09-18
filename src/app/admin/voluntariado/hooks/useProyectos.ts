@@ -1,68 +1,32 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import useSWR from "swr";
 import { Proyecto } from "../types/proyecto";
 import {
-  getProyectos,
-  saveProyecto,
-  toggleEstadoProyecto,
-  deleteProyecto,
-  asignarVoluntario,
-  desasignarVoluntario,
-  getAsignacionesByProyecto,
+  listProyectos,
+  assignVolunteerToProject,
+  unassignVolunteerFromProject,
 } from "../services/proyectoService";
 
 export function useProyectos() {
-  const [data, setData] = useState<Proyecto[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const { data, isLoading, mutate, error } = useSWR<Proyecto[]>("proyectos", listProyectos);
 
-  const fetch = async () => {
-    setLoading(true);
-    try {
-      const res = await getProyectos(page, search);
-      setData(res.data);
-      setTotal(res.total);
-    } catch (error) {
-      console.error("Error fetching proyectos:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  async function assign(voluntarioId: number, proyectoId: string | number) {
+    await assignVolunteerToProject(proyectoId, voluntarioId);
+    await mutate();
+  }
 
-  useEffect(() => {
-    fetch();
-  }, [page, search]);
+  async function unassign(voluntarioId: number, proyectoId: string | number) {
+    await unassignVolunteerFromProject(proyectoId, voluntarioId);
+    await mutate();
+  }
 
   return {
-    data,
-    total,
-    loading,
-    page,
-    setPage,
-    search,
-    setSearch,
-    refetch: fetch,
-    save: async (p: Omit<Proyecto, "id" | "voluntariosAsignados"> & { id?: string }) => {
-      await saveProyecto(p);
-      await fetch();
-    },
-    toggle: async (id: string) => {
-      await toggleEstadoProyecto(id);
-      await fetch();
-    },
-    remove: async (id: string) => {
-      await deleteProyecto(id);
-      await fetch();
-    },
-    asignarVoluntario: async (proyectoId: string, voluntarioId: string) => {
-      await asignarVoluntario(proyectoId, voluntarioId);
-      await fetch();
-    },
-    desasignarVoluntario: async (proyectoId: string, voluntarioId: string) => {
-      await desasignarVoluntario(proyectoId, voluntarioId);
-      await fetch();
-    },
-    getAsignaciones: getAsignacionesByProyecto,
+    data: data ?? [],
+    loading: isLoading,
+    error,
+    assign,
+    unassign,
+    refetch: mutate,
   };
 }

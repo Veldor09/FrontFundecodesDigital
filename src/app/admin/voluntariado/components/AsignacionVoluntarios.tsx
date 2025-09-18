@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Search, UserPlus, UserMinus, CheckCircle, X } from "lucide-react";
+import { Search, UserPlus, UserMinus, X } from "lucide-react";
 import { Proyecto } from "../types/proyecto";
 import { Voluntario } from "../types/voluntario";
 import { useVoluntarios } from "../hooks/useVoluntarios";
@@ -19,19 +19,36 @@ interface Props {
   onClose: () => void;
 }
 
-export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasignar, onClose }: Props) {
-  const { data: voluntarios, search, setSearch } = useVoluntarios();
+export default function AsignacionVoluntarios({
+  proyecto,
+  onAsignar,
+  onDesasignar,
+  onClose,
+}: Props) {
+  const { data: voluntariosRaw } = useVoluntarios();
+  const voluntarios: Voluntario[] = (voluntariosRaw as Voluntario[]) ?? [];
+
   const [asignando, setAsignando] = useState(false);
   const [voluntariosAsignados, setVoluntariosAsignados] = useState<Voluntario[]>([]);
-  
-  // Filtrar voluntarios disponibles (no asignados y activos)
-  const voluntariosDisponibles = voluntarios.filter(
-    (v) => v.estado === "activo" && !proyecto.voluntariosAsignados.includes(v.id)
+  const [search, setSearch] = useState("");
+
+  const voluntariosDisponibles: Voluntario[] = useMemo(
+    () =>
+      voluntarios
+        .filter(
+          (v: Voluntario) =>
+            v.estado === "ACTIVO" && !proyecto.voluntariosAsignados.includes(v.id)
+        )
+        .filter((v: Voluntario) =>
+          [v.nombreCompleto, v.email].some((f) =>
+            f?.toLowerCase().includes(search.toLowerCase())
+          )
+        ),
+    [voluntarios, proyecto.voluntariosAsignados, search]
   );
 
-  // Obtener voluntarios asignados
   useEffect(() => {
-    const asignados = voluntarios.filter((v) => 
+    const asignados = voluntarios.filter((v: Voluntario) =>
       proyecto.voluntariosAsignados.includes(v.id)
     );
     setVoluntariosAsignados(asignados);
@@ -64,23 +81,21 @@ export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasigna
   };
 
   return (
-    <Modal 
-      open={true} 
-      onClose={onClose}
-      title="Gestión de Voluntarios"
-      className="max-w-4xl"
-    >
-      <div className="space-y-6">
+    <Modal open={true} onClose={onClose} title="Gestión de Voluntarios">
+      {/* Ancho controlado dentro */}
+      <div className="max-w-4xl w-full space-y-6">
         {/* Info del proyecto */}
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <h3 className="font-semibold text-blue-900">{proyecto.nombre}</h3>
           <p className="text-sm text-blue-700 mt-1">{proyecto.descripcion}</p>
           <div className="flex items-center gap-2 mt-2">
-            <Badge className="bg-blue-100 text-blue-800">
-              Área: {proyecto.area}
-            </Badge>
+            {proyecto.area && (
+              <Badge className="bg-blue-100 text-blue-800">Área: {proyecto.area}</Badge>
+            )}
             <Badge className="bg-gray-100 text-gray-800">
-              {voluntariosAsignados.length} voluntario{voluntariosAsignados.length !== 1 ? 's' : ''} asignado{voluntariosAsignados.length !== 1 ? 's' : ''}
+              {voluntariosAsignados.length} voluntario
+              {voluntariosAsignados.length !== 1 ? "s" : ""} asignado
+              {voluntariosAsignados.length !== 1 ? "s" : ""}
             </Badge>
           </div>
         </div>
@@ -91,7 +106,7 @@ export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasigna
             <UserPlus className="h-4 w-4" />
             Voluntarios Asignados ({voluntariosAsignados.length})
           </h4>
-          
+
           {voluntariosAsignados.length === 0 ? (
             <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
               <UserMinus className="h-8 w-8 mx-auto mb-2 text-slate-400" />
@@ -99,21 +114,19 @@ export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasigna
             </div>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {voluntariosAsignados.map((voluntario) => (
+              {voluntariosAsignados.map((vol: Voluntario) => (
                 <div
-                  key={voluntario.id}
+                  key={vol.id}
                   className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg"
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-green-900">{voluntario.nombre}</div>
-                    <div className="text-sm text-green-700">
-                      {voluntario.email} • {voluntario.area}
-                    </div>
+                    <div className="font-medium text-green-900">{vol.nombreCompleto}</div>
+                    <div className="text-sm text-green-700">{vol.email}</div>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDesasignar(voluntario.id)}
+                    onClick={() => handleDesasignar(String(vol.id))}
                     disabled={asignando}
                     className="text-red-600 border-red-300 hover:bg-red-50"
                   >
@@ -131,7 +144,7 @@ export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasigna
           <h4 className="font-semibold text-slate-900 mb-3">
             Voluntarios Disponibles ({voluntariosDisponibles.length})
           </h4>
-          
+
           <div className="mb-3">
             <Label className="text-sm text-slate-600 mb-1">
               Buscar voluntarios para asignar
@@ -139,7 +152,7 @@ export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasigna
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por nombre, email o área"
+                placeholder="Buscar por nombre o email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -151,28 +164,25 @@ export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasigna
             <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
               <Search className="h-8 w-8 mx-auto mb-2 text-slate-400" />
               <p>
-                {search 
-                  ? "No se encontraron voluntarios disponibles con ese criterio" 
-                  : "No hay voluntarios disponibles para asignar"
-                }
+                {search
+                  ? "No se encontraron voluntarios disponibles con ese criterio"
+                  : "No hay voluntarios disponibles para asignar"}
               </p>
             </div>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {voluntariosDisponibles.map((voluntario) => (
+              {voluntariosDisponibles.map((vol: Voluntario) => (
                 <div
-                  key={voluntario.id}
+                  key={vol.id}
                   className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-slate-900">{voluntario.nombre}</div>
-                    <div className="text-sm text-slate-600">
-                      {voluntario.email} • {voluntario.area}
-                    </div>
+                    <div className="font-medium text-slate-900">{vol.nombreCompleto}</div>
+                    <div className="text-sm text-slate-600">{vol.email}</div>
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => handleAsignar(voluntario.id)}
+                    onClick={() => handleAsignar(String(vol.id))}
                     disabled={asignando}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
@@ -185,13 +195,9 @@ export default function AsignacionVoluntarios({ proyecto, onAsignar, onDesasigna
           )}
         </div>
 
-        {/* Botones de acción */}
+        {/* Cerrar */}
         <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={asignando}
-          >
+          <Button variant="outline" onClick={onClose} disabled={asignando}>
             <X className="h-4 w-4 mr-2" />
             Cerrar
           </Button>
