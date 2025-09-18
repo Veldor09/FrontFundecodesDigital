@@ -1,61 +1,85 @@
-import { Voluntario } from "../types/voluntario";
+// services/voluntarioService.ts
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-let voluntarios: Voluntario[] = [
-  {
-    id: "1",
-    nombre: "María González",
-    cedula: "12345678",
-    email: "maria@email.com",
-    telefono: "5550123",
-    area: "Educación Ambiental",
-    estado: "activo",
-  },
-  {
-    id: "2",
-    nombre: "Carlos Rodríguez",
-    cedula: "87654321",
-    email: "carlos@email.com",
-    telefono: "5550456",
-    area: "Conservación Marina",
-    estado: "inactivo",
-  },
-];
+export type VoluntarioCreateDTO = {
+  tipoDocumento: string;
+  numeroDocumento: string;
+  nombreCompleto: string;
+  email: string;
+  telefono?: string | null;
+  fechaNacimiento?: string | null; // ISO
+  // OJO: NO enviar fechaIngreso ni estado en CREATE (el back los rechaza)
+};
 
-let nextId = 3;
+export type VoluntarioUpdateDTO = Partial<VoluntarioCreateDTO> & {
+  id: number;
+  // En UPDATE sí podrías permitir estado/fechaIngreso si tu back lo soporta
+  estado?: "ACTIVO" | "INACTIVO";
+  fechaIngreso?: string | null; // ISO
+};
 
-export async function getVoluntarios(page = 1, search = ""): Promise<{
-  data: Voluntario[];
-  total: number;
-}> {
-  const filtered = voluntarios.filter(
-    (v) =>
-      v.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      v.cedula.includes(search) ||
-      v.email.toLowerCase().includes(search.toLowerCase())
-  );
-  const start = (page - 1) * 10;
-  return {
-    data: filtered.slice(start, start + 10),
-    total: filtered.length,
-  };
-}
-
-export async function saveVoluntario(
-  data: Omit<Voluntario, "id"> & { id?: string }
-): Promise<void> {
-  if (data.id) {
-    const index = voluntarios.findIndex((v) => v.id === data.id);
-    if (index !== -1) voluntarios[index] = data as Voluntario;
-  } else {
-    voluntarios.push({ ...data, id: String(nextId++) });
+async function handle<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText} — ${text}`);
   }
+  return res.json() as Promise<T>;
 }
 
-export async function toggleEstado(id: string): Promise<void> {
-  const v = voluntarios.find((v) => v.id === id);
-  if (v) v.estado = v.estado === "activo" ? "inactivo" : "activo";
+export async function listVoluntarios(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  estado?: string;
+}) {
+  const q = new URLSearchParams();
+  if (params?.page) q.set("page", String(params.page));
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.search) q.set("search", params.search);
+  if (params?.estado) q.set("estado", params.estado);
+
+  const res = await fetch(`${API}/voluntarios?${q.toString()}`, { cache: "no-store" });
+  return handle<{ data: any[]; total: number }>(res);
 }
 
-export async function deleteVoluntario(id: string): Promise<void> {
-  voluntarios = voluntarios.filter((v) => v.id !== id);
+export async function createVoluntario(dto: VoluntarioCreateDTO) {
+  const res = await fetch(`${API}/voluntarios`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  return handle<any>(res);
+}
+
+export async function updateVoluntario(dto: VoluntarioUpdateDTO) {
+  const { id, ...body } = dto;
+  const res = await fetch(`${API}/voluntarios/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return handle<any>(res);
+}
+
+// services/voluntarioService.ts (solo la parte de toggle; deja el resto igual)
+export async function toggleVoluntario(
+  id: number,
+  nextEstado: "ACTIVO" | "INACTIVO"
+) {
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  const res = await fetch(`${API}/voluntarios/${id}/toggle-status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ estado: nextEstado }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`PATCH /voluntarios/${id}/toggle-status ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+export async function deleteVoluntario(id: number) {
+  const res = await fetch(`${API}/voluntarios/${id}`, { method: "DELETE" });
+  return handle<any>(res);
 }

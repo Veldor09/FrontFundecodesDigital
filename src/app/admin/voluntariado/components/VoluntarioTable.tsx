@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,14 +16,31 @@ import VoluntarioForm from "./VoluntarioForm";
 import { useVoluntarios } from "../hooks/useVoluntarios";
 import { Plus, Search } from "lucide-react";
 import Modal from "@/components/ui/Modal";
+import AsignacionModal from "./AsignacionModal";
 
 export default function VoluntarioTable() {
-  const { data, total, loading, page, setPage, search, setSearch, refetch, save, toggle, remove } =
-    useVoluntarios();
+  const { data: rawData, total: rawTotal, loading, save, toggle, remove } = useVoluntarios();
+
+  // Normalización segura del array
+  const lista: Voluntario[] = useMemo(() => {
+    if (Array.isArray(rawData)) return rawData as Voluntario[];
+    if (rawData && Array.isArray((rawData as any).data)) return (rawData as any).data as Voluntario[];
+    return [];
+  }, [rawData]);
+
+  const total: number = useMemo(() => {
+    if (typeof rawTotal === "number") return rawTotal;
+    return lista.length;
+  }, [rawTotal, lista.length]);
 
   const [modo, setModo] = useState<"crear" | "editar" | null>(null);
   const [voluntarioEditar, setVoluntarioEditar] = useState<Voluntario | null>(null);
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | "activo" | "inactivo">("todos");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+
+  // NUEVO: control del modal de asignación (fuera de la tabla)
+  const [voluntarioAsignar, setVoluntarioAsignar] = useState<Voluntario | null>(null);
 
   const abrirModalCrear = () => {
     setModo("crear");
@@ -40,14 +57,22 @@ export default function VoluntarioTable() {
     setVoluntarioEditar(null);
   };
 
-  const handleGuardar = async (v: Omit<Voluntario, "id"> & { id?: string }) => {
+  const handleGuardar = async (v: Omit<Voluntario, "id"> & { id?: number }) => {
     await save(v);
     cerrarModal();
   };
 
-  const filtered = data.filter((v) =>
-    estadoFiltro === "todos" ? true : v.estado === estadoFiltro
-  );
+  const filtered: Voluntario[] = useMemo(() => {
+    return lista
+      .filter((v: Voluntario) =>
+        estadoFiltro === "todos" ? true : v.estado.toLowerCase() === estadoFiltro
+      )
+      .filter((v: Voluntario) =>
+        [v.nombreCompleto, v.numeroDocumento, v.email].some((f) =>
+          f?.toLowerCase().includes(search.toLowerCase())
+        )
+      );
+  }, [lista, estadoFiltro, search]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-6">
@@ -62,7 +87,7 @@ export default function VoluntarioTable() {
         </Button>
       </div>
 
-      {/* Modal */}
+      {/* Modal de crear/editar */}
       <Modal
         open={modo !== null}
         onClose={cerrarModal}
@@ -76,40 +101,40 @@ export default function VoluntarioTable() {
       </Modal>
 
       {/* Buscador y Filtro */}
-<div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-  {/* Buscador */}
-  <div className="flex-1 max-w-lg">
-    <label className="block text-sm font-medium text-slate-700 mb-1">
-      Buscar por nombre, cédula o email
-    </label>
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-      <Input
-        placeholder="Ej. María Gómez"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="pl-10"
-      />
-    </div>
-  </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+        {/* Buscador */}
+        <div className="flex-1 max-w-lg">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Buscar por nombre, cédula o email
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Ej. María Gómez"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
 
-  {/* Filtro por estado */}
-  <div className="w-full sm:w-48">
-    <label className="block text-sm font-medium text-slate-700 mb-1">
-      Filtrar por estado
-    </label>
-    <Select value={estadoFiltro} onValueChange={(v) => setEstadoFiltro(v as typeof estadoFiltro)}>
-      <SelectTrigger>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="todos">Todos</SelectItem>
-        <SelectItem value="activo">Activo</SelectItem>
-        <SelectItem value="inactivo">Inactivo</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-</div>
+        {/* Filtro por estado */}
+        <div className="w-full sm:w-48">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Filtrar por estado
+          </label>
+          <Select value={estadoFiltro} onValueChange={(v) => setEstadoFiltro(v as typeof estadoFiltro)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="activo">Activo</SelectItem>
+              <SelectItem value="inactivo">Inactivo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {/* Tabla */}
       {loading && <p className="text-sm text-slate-500">Cargando voluntarios...</p>}
@@ -125,27 +150,37 @@ export default function VoluntarioTable() {
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Cédula</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Teléfono</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Área</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Estado</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((v) => (
-                <VoluntarioRow
-                  key={v.id}
-                  voluntario={v}
-                  onEdit={() => abrirModalEditar(v)}
-                  onToggle={() => toggle(v.id)}
-                  onDelete={() => remove(v.id)}
-                />
-              ))}
-            </tbody>
+  {filtered.map((v, i) => (
+    <VoluntarioRow
+      key={`vol-${v.id ?? "noid"}-${i}`}   // key única y estable
+      voluntario={v}
+      onEdit={() => abrirModalEditar(v)}
+      onToggle={() =>
+        toggle(v.id, v.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO")
+      }
+      onDelete={() => remove(v.id)}
+    />
+  ))}
+</tbody>
           </table>
         </div>
       )}
 
-      {/* Paginación */}
+      {/* Modal de asignación: se renderiza FUERA de la tabla (evita <div> dentro de <tbody>) */}
+      {voluntarioAsignar && (
+        <AsignacionModal
+          voluntario={voluntarioAsignar}
+          open={!!voluntarioAsignar}
+          onClose={() => setVoluntarioAsignar(null)}
+        />
+      )}
+
+      {/* Paginación local (opcional) */}
       <div className="flex justify-between items-center text-sm text-slate-600">
         <span>Mostrando {filtered.length} de {total} voluntarios</span>
         <div className="flex gap-2">
