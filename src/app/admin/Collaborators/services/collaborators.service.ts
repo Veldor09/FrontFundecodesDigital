@@ -4,7 +4,7 @@ import type {
   CreateCollaboratorDto,
   ListCollaboratorsParams,
   Paginated,
-} from "@/lib/collaborators.types";
+} from "@/app/admin/Collaborators/types/collaborators.types";
 
 const BASE = "/collaborators";
 
@@ -105,4 +105,23 @@ export async function createCollaborator(input: CreateCollaboratorDto): Promise<
       "Request failed";
     throw new Error(msg);
   }
+}
+
+/* ---------- update ---------- */
+export async function updateCollaborator(
+  id: number | string,
+  input: Partial<CreateCollaboratorDto>
+): Promise<Collaborator> {
+  const { data } = await API.patch(`${BASE}/${id}`, input);
+  return mapItem(data);
+}
+
+/* ---------- toggle status ---------- */
+export async function toggleCollaboratorStatus(id: number | string): Promise<void> {
+  await API.patch(`${BASE}/${id}/toggle-status`);
+}
+
+/* ---------- delete ---------- */
+export async function deleteCollaborator(id: number | string): Promise<void> {
+  await API.delete(`${BASE}/${id}`);
 }
