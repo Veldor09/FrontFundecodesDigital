@@ -1,58 +1,84 @@
+// src/app/admin/Collaborators/components/CollaboratorsTable.tsx
 "use client";
 
-import { useState } from "react";
-import { useCollaborators } from "../hooks/useCollaborators";
-import { Collaborator } from "../types/collaborators.types";
+import { useEffect, useMemo, useState } from "react";
+import { useCollaborators, type Estado } from "../hooks/useCollaborators";
+import type { Collaborator as UiCollaborator } from "../types/collaborators.types";
+
 import AddCollaboratorModal from "./AddCollaboratorModal";
 import CollaboratorsRow from "./CollaboratorsRow";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Plus, Search } from "lucide-react";
+
+/* Debounce simple */
+function useDebouncedValue<T>(value: T, delay = 400) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+/* Adaptador API -> UI (tolera ES/EN) */
+function toUi(x: any): UiCollaborator {
+  return {
+    id: x.id,
+    fullName: x.fullName ?? x.nombreCompleto ?? x.nombre_completo ?? "",
+    email: x.email ?? x.correo ?? "",
+    phone: x.phone ?? x.telefono ?? null,
+    role: x.role ?? x.rol,
+    identification: x.identification ?? x.cedula ?? "",
+    birthdate: x.birthdate ?? x.fechaNacimiento ?? x.fecha_nacimiento ?? null,
+    status: (x.status ?? x.estado) === "INACTIVO" ? "INACTIVO" : "ACTIVO",
+  };
+}
+
+type EstadoFiltroLocal = "TODOS" | Estado;
 
 export default function CollaboratorsTable() {
   const {
-    data: items,
+    data: itemsRaw,
     total,
     loading,
-    page,
-    setPage,
-    search,
-    setSearch,
-    estado,
-    setEstado,
-    save,
-    toggle,
-    remove,
+    page, setPage,
+    pageSize, setPageSize,
+    search, setSearch,
+    estado, setEstado,        // del hook: "ALL" | "ACTIVO" | "INACTIVO"
+    toggle, remove,
   } = useCollaborators();
 
   const [modo, setModo] = useState<"crear" | "editar" | null>(null);
-  const [colaboradorEditar, setColaboradorEditar] = useState<Collaborator | null>(null);
+  const [colaboradorEditar, setColaboradorEditar] = useState<UiCollaborator | null>(null);
 
-  const abrirModalCrear = () => {
-    setModo("crear");
-    setColaboradorEditar(null);
-  };
+  // Estado local para el <select> nativo: "TODOS" | "ACTIVO" | "INACTIVO"
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltroLocal>(
+    estado === "ALL" ? "TODOS" : (estado as Estado)
+  );
 
-  const abrirModalEditar = (c: Collaborator) => {
-    setModo("editar");
-    setColaboradorEditar(c);
-  };
+  // Mantener sincronía si algo externo cambia el filtro del hook
+  useEffect(() => {
+    setEstadoFiltro(estado === "ALL" ? "TODOS" : (estado as Estado));
+  }, [estado]);
 
-  const cerrarModal = () => {
-    setModo(null);
-    setColaboradorEditar(null);
-  };
+  const debouncedSearch = useDebouncedValue(search, 400);
+  useEffect(() => { setPage(1); }, [debouncedSearch, setPage]);
 
-  const handleGuardar = async (c: Omit<Collaborator, "id"> & { id?: number | string }) => {
-    await save(c);
-    cerrarModal();
+  const abrirModalCrear = () => { setModo("crear"); setColaboradorEditar(null); };
+  const abrirModalEditar = (c: UiCollaborator) => { setModo("editar"); setColaboradorEditar(c); };
+  const cerrarModal = () => { setModo(null); setColaboradorEditar(null); };
+
+  const canPrev = useMemo(() => page > 1, [page]);
+  const canNext = useMemo(() => page * pageSize < total, [page, pageSize, total]);
+  const items = useMemo(() => itemsRaw.map(toUi), [itemsRaw]);
+
+  // Manejar cambio del <select> nativo y mapear a "ALL" | "ACTIVO" | "INACTIVO"
+  const handleEstadoChange = (value: EstadoFiltroLocal) => {
+    setEstadoFiltro(value);
+    const mapped = value === "TODOS" ? "ALL" : value; // map a tipo del hook
+    setEstado(mapped as any); // el hook ya hace setPage(1); si no, dejamos el de abajo
+    setPage(1);
   };
 
   return (
@@ -68,12 +94,15 @@ export default function CollaboratorsTable() {
         </Button>
       </div>
 
-      {/* Modal */}
+      {/* Modal crear/editar (key fuerza remount y limpia estados) */}
       <AddCollaboratorModal
+        key={`${modo ?? "cerrado"}-${colaboradorEditar?.id ?? "nuevo"}`}
         open={modo !== null}
+        mode={modo}
+        initial={colaboradorEditar}
         onClose={cerrarModal}
-        onCreated={() => {
-          setPage(1);
+        onSaved={(action) => {
+          if (action === "created") setPage(1);
         }}
       />
 
@@ -94,26 +123,26 @@ export default function CollaboratorsTable() {
           </div>
         </div>
 
+        {/* Filtro por estado — usando <select> nativo para evitar el bug */}
         <div className="w-full sm:w-48">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Filtrar por estado</label>
-          <Select value={estado} onValueChange={(v) => setEstado(v as typeof estado)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
-              <SelectItem value="ACTIVO">Activo</SelectItem>
-              <SelectItem value="INACTIVO">Inactivo</SelectItem>
-            </SelectContent>
-          </Select>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Filtrar por estado
+          </label>
+          <select
+            value={estadoFiltro}
+            onChange={(e) => handleEstadoChange(e.target.value as EstadoFiltroLocal)}
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="TODOS">Todos</option>
+            <option value="ACTIVO">Activo</option>
+            <option value="INACTIVO">Inactivo</option>
+          </select>
         </div>
       </div>
 
       {/* Tabla */}
       {loading && <p className="text-sm text-slate-500">Cargando colaboradores...</p>}
-      {!loading && items.length === 0 && (
-        <p className="text-sm text-slate-500">No se encontraron colaboradores.</p>
-      )}
+      {!loading && items.length === 0 && <p className="text-sm text-slate-500">No se encontraron colaboradores.</p>}
       {!loading && items.length > 0 && (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm border border-slate-200 rounded-lg">
@@ -130,30 +159,45 @@ export default function CollaboratorsTable() {
               </tr>
             </thead>
             <tbody>
-              {items.map((c) => (
-                <CollaboratorsRow
-                  key={c.id}
-                  collaborator={c}
-                  onEdit={() => abrirModalEditar(c)}
-                  onToggle={() => toggle(c.id)}
-                  onDelete={() => remove(c.id)}
-                />
-              ))}
+              {items.map((c) => {
+                const currentEstado: "ACTIVO" | "INACTIVO" =
+                  c.status === "INACTIVO" ? "INACTIVO" : "ACTIVO";
+                return (
+                  <CollaboratorsRow
+                    key={c.id}
+                    collaborator={c}
+                    onEdit={() => abrirModalEditar(c)}
+                    onToggle={() => toggle(c.id, currentEstado)}
+                    onDelete={() => remove(c.id)}
+                  />
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
       {/* Paginación */}
-      <div className="flex justify-between items-center text-sm text-slate-600">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between sm:items-center text-sm text-slate-600">
         <span>Mostrando {items.length} de {total} colaboradores</span>
-        <div className="flex gap-2">
-          <Button size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
-            Anterior
-          </Button>
-          <Button size="sm" disabled={page * 10 >= total} onClick={() => setPage(page + 1)}>
-            Siguiente
-          </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500">Por página</span>
+            <select
+              value={String(pageSize)}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              className="block w-[100px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={!canPrev} onClick={() => setPage(page - 1)}>Anterior</Button>
+            <Button size="sm" disabled={!canNext} onClick={() => setPage(page + 1)}>Siguiente</Button>
+          </div>
         </div>
       </div>
     </div>
