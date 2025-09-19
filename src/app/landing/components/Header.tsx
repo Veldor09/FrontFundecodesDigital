@@ -29,7 +29,7 @@ export default function Header() {
           <div className="flex items-center space-x-3">
             <div className="bg-white rounded-full p-2 shadow-md">
               <Image
-                src="/Imagenes/FUNDECODES_Logo.png"
+                src="/Img/FUNDECODES_Logo.png"
                 alt="Logo Fundación"
                 width={40}
                 height={40}

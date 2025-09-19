@@ -1,22 +1,39 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { IdCard, User, Mail, Calendar, CheckCircle } from "lucide-react";
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
+import { IdCard, User, Mail, Calendar, CheckCircle, Phone } from "lucide-react";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import { getCountryCallingCode, getExampleNumber, isSupportedCountry, parsePhoneNumberFromString } from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile.json";
 import { Voluntario } from "../types/voluntario";
+
+const MAX_NATIONAL_DEFAULT = 15;
+
+function getMaxNationalLength(country?: string): number {
+  if (!country) return MAX_NATIONAL_DEFAULT;
+  try {
+    const ex = getExampleNumber(country as any, examples as any);
+    if (ex?.nationalNumber) return String(ex.nationalNumber).length;
+  } catch {}
+  const map: Record<string, number> = {
+    CR: 8, US: 10, CA: 10, MX: 10, ES: 9, AR: 10, CL: 9, CO: 10, PE: 9, BR: 11,
+    EC: 9, PA: 8, NI: 8, HN: 8, SV: 8, GT: 8, DO: 10, PR: 10,
+  };
+  return map[country] ?? MAX_NATIONAL_DEFAULT;
+}
 
 type TipoDoc = "Cédula costarricense" | "Pasaporte" | "DIMEX";
 type EstadoBackend = "ACTIVO" | "INACTIVO";
 
 interface Props {
   initial?: Voluntario;
-  onSave: (data: any) => Promise<void>; // enviamos DTO correcto al servicio
+  onSave: (data: any) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -26,8 +43,8 @@ type FormValues = {
   nombreCompleto: string;
   email: string;
   telefono?: string;
-  fechaNacimiento?: string; // yyyy-mm-dd
-  fechaIngreso: string;     // yyyy-mm-dd  (requerido)
+  fechaNacimiento?: string;
+  fechaIngreso: string;
   estado: EstadoBackend;
 };
 
@@ -67,8 +84,56 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
   });
 
   const tipoDoc = watch("tipoDoc");
+  const telefono = watch("telefono") ?? "";
+  const [country, setCountry] = useState<string | undefined>("CR");
 
-  // Validaciones por tipo de documento
+  const maxNational = useMemo(() => getMaxNationalLength(country), [country]);
+  const safeCountry = isSupportedCountry(country || "") ? (country as any) : "CR";
+
+  // Validación de número
+  const phoneClean = (telefono || "").replace(/\s+/g, "");
+  const parsed = parsePhoneNumberFromString(phoneClean, safeCountry);
+  const phoneError = telefono && (!parsed || !parsed.isValid())
+    ? `Número inválido para ${safeCountry.toUpperCase()}`
+    : null;
+
+  // Control de escritura / pegado con límite
+  function handlePhoneChange(val: string | undefined) {
+    if (!val) {
+      setValue("telefono", "");
+      return;
+    }
+    const digits = val.replace(/\D/g, "");
+    const cc = getCountryCallingCode(safeCountry);
+    const national = digits.slice(String(cc).length);
+    if (national.length > maxNational) {
+      setValue("telefono", `+${cc}${national.slice(0, maxNational)}`);
+    } else {
+      setValue("telefono", val);
+    }
+  }
+
+  function handlePhoneKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    const key = e.key;
+    if (!/^\d$/.test(key)) return;
+    const input = e.currentTarget;
+    const val = input.value ?? "";
+    const ccLen = String(getCountryCallingCode(safeCountry)).length;
+    const digitsAll = val.replace(/\D/g, "");
+    const natLen = Math.max(0, digitsAll.length - ccLen);
+    if (natLen >= maxNational) e.preventDefault();
+  }
+
+  function handlePhonePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const paste = e.clipboardData.getData("text")?.replace(/\D/g, "") || "";
+    const cc = getCountryCallingCode(safeCountry);
+    const national = paste.slice(String(cc).length);
+    if (national.length > maxNational) {
+      setValue("telefono", `+${cc}${national.slice(0, maxNational)}`);
+      e.preventDefault();
+    }
+  }
+
   const validarIdentificacion = (value: string) => {
     if (!value) return "Requerido";
     if (tipoDoc === "Cédula costarricense") {
@@ -77,7 +142,6 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
     if (tipoDoc === "DIMEX") {
       return /^\d{9,12}$/.test(value) || "DIMEX debe tener entre 9 y 12 dígitos";
     }
-    // Pasaporte (mínimo 6 alfanuméricos)
     if (tipoDoc === "Pasaporte") {
       return /^[A-Za-z0-9]{6,}$/.test(value) || "Pasaporte inválido (mínimo 6 caracteres)";
     }
@@ -86,7 +150,6 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      // Mapeo exacto a lo que espera el backend
       const dto = {
         tipoDocumento: data.tipoDoc,
         numeroDocumento: data.numeroDocumento,
@@ -95,7 +158,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
         telefono: data.telefono || null,
         fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento).toISOString() : null,
         fechaIngreso: new Date(data.fechaIngreso).toISOString(),
-        estado: data.estado, // "ACTIVO" | "INACTIVO"
+        estado: data.estado,
       };
 
       await onSave(dto);
@@ -179,24 +242,41 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
         </div>
       </div>
 
-      {/* Teléfono con flags correctas */}
+      {/* Teléfono con validación igual que Colaboradores */}
       <div>
-        <Label className="text-slate-700">Teléfono (opcional)</Label>
-        <div className="rounded-md border px-2 py-1">
-          <PhoneInput
-            country={"cr"}
-            // estilos para que las banderas sean pequeñas/consistentes
-            buttonClass="!border-0 !bg-transparent"
-            containerClass="!w-full"
-            inputClass="!w-full !h-8 !text-sm !border-0 !shadow-none"
-            dropdownClass="!text-sm"
-            enableSearch
-            value={watch("telefono") || ""}
-            onChange={(val) => setValue("telefono", val || "")}
-          />
-        </div>
-        {/* Tip opcional de formato */}
-        <p className="text-xs text-slate-500 mt-1">Incluye el código de país (ej. +506 8888-8888).</p>
+        <Label className="text-slate-700 flex items-center gap-2">
+          <Phone className="h-4 w-4" />
+          Teléfono (opcional)
+        </Label>
+
+        <PhoneInput
+          international
+          withCountryCallingCode
+          countryCallingCodeEditable={false}
+          defaultCountry="CR"
+          value={telefono}
+          onChange={handlePhoneChange}
+          onCountryChange={(c) => setCountry(c || "CR")}
+          className="PhoneInput"
+          inputClass="!w-full !h-9 !text-sm !border-0 !shadow-none"
+          buttonClass="!border-0 !bg-transparent"
+          dropdownClass="!text-sm"
+          enableSearch
+          limitMaxLength
+          numberInputProps={{
+            onKeyDown: handlePhoneKeyDown,
+            onPaste: handlePhonePaste,
+          }}
+        />
+
+        {phoneError && (
+          <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+        )}
+
+        <p className="text-xs text-slate-500 mt-1">
+          {Math.max(0, (telefono || "").replace(/\D/g, "").length - String(getCountryCallingCode(safeCountry)).length)}
+          /{maxNational} dígitos (sin código)
+        </p>
       </div>
 
       {/* Fechas */}
@@ -222,11 +302,13 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
           )}
         </div>
       </div>
-      {/* Fecha de Ingreso al Programa — OPCIONAL en create */}
 
       {/* Estado */}
       <div>
-        <Label className="text-slate-700">Estado</Label>
+        <Label className="text-slate-700 flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />
+          Estado
+        </Label>
         <select className="w-full border rounded-md h-9 px-2 text-sm" {...register("estado", { required: true })}>
           <option value="ACTIVO">ACTIVO</option>
           <option value="INACTIVO">INACTIVO</option>
