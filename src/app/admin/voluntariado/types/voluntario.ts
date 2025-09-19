@@ -1,15 +1,28 @@
-// types/voluntario.ts
+export type Estado = "ACTIVO" | "INACTIVO";
 
 export interface Voluntario {
-  id: number; // Prisma: Int autoincrement
-  tipoDocumento: string;     // "Cédula costarricense" | "Pasaporte" | "DIMEX"
-  numeroDocumento: string;   // único
+  id: number;
+  tipoDocumento: string;
+  numeroDocumento: string;
   nombreCompleto: string;
-  email: string;             // único
+  email: string;
   telefono?: string | null;
-  fechaNacimiento?: string | null; // ISO
-  fechaIngreso: string;            // ISO
-  estado: "ACTIVO" | "INACTIVO";
-  createdAt?: string;
-  updatedAt?: string;
+  fechaNacimiento?: string | null; // ISO (yyyy-mm-dd) opcional
+  fechaIngreso?: string | null;    // ISO (yyyy-mm-dd) opcional
+  estado: Estado;
 }
+
+export type VoluntarioCreateDTO = {
+  tipoDocumento: string;
+  numeroDocumento: string;
+  nombreCompleto: string;
+  email: string;
+  telefono?: string | null;
+  fechaNacimiento?: string | null;
+  /** En el back es opcional; si no viene, Prisma usa default(now()) */
+  fechaIngreso?: string | null;
+  /** Opcional al crear (default ACTIVO en BD) */
+  estado?: Estado;
+};
+
+export type VoluntarioUpdateDTO = Partial<VoluntarioCreateDTO>;

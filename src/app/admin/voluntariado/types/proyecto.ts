@@ -5,7 +5,7 @@ export interface Proyecto {
   nombre: string;
   descripcion?: string;
   responsable?: string;
-  area?: string;             // el área vive en el proyecto, NO en voluntario
+  area: string;             // el área vive en el proyecto, NO en voluntario
   estado: ProyectoEstado;
   voluntariosAsignados: number[]; // ids numéricos de voluntarios
   createdAt?: string;
