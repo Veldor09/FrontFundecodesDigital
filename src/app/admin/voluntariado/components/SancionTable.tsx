@@ -3,22 +3,18 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Sancion } from "../types/sancion";
-import { Voluntario } from "../types/voluntario";
+import type { Sancion } from "../types/sancion";
+import type { Voluntario } from "../types/voluntario";
 import SancionForm from "./SancionForm";
 import { useSanciones } from "../hooks/useSanciones";
 import { useVoluntarios } from "../hooks/useVoluntarios";
-import { Plus, Search, AlertTriangle, Ban, Clock } from "lucide-react";
+import { Plus, Search, AlertTriangle, Ban } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "./ConfirmDialog";
+
+// NUEVO: filtro por sanciones
+type FiltroSancion = "TODOS" | "CON" | "SIN";
 
 export default function SancionTable() {
   const { data: voluntarios, loading: loadingVoluntarios } = useVoluntarios();
@@ -26,45 +22,40 @@ export default function SancionTable() {
 
   const [voluntarioParaSancion, setVoluntarioParaSancion] = useState<Voluntario | null>(null);
   const [sancionEditar, setSancionEditar] = useState<Sancion | null>(null);
-  const [estadoFiltro, setEstadoFiltro] = useState<"todos" | "con_sanciones" | "sin_sanciones">("todos");
+  const [filtroSancion, setFiltroSancion] = useState<FiltroSancion>("TODOS");
   const [search, setSearch] = useState("");
   const [sancionAEliminar, setSancionAEliminar] = useState<Sancion | null>(null);
   const [sancionARevocar, setSancionARevocar] = useState<Sancion | null>(null);
 
-  // Normalización segura
-  const lista: Voluntario[] = useMemo(() => {
-    if (Array.isArray(voluntarios)) return voluntarios as Voluntario[];
-    return [];
-  }, [voluntarios]);
+  const listaVol: Voluntario[] = useMemo(
+    () => (Array.isArray(voluntarios) ? (voluntarios as Voluntario[]) : []),
+    [voluntarios]
+  );
+  const listaSanciones: Sancion[] = useMemo(
+    () => (Array.isArray(sanciones) ? (sanciones as Sancion[]) : []),
+    [sanciones]
+  );
 
-  const listaSanciones: Sancion[] = useMemo(() => {
-    if (Array.isArray(sanciones)) return sanciones as Sancion[];
-    return [];
-  }, [sanciones]);
-
-  // Combinar voluntarios con sus sanciones activas
-  const voluntariosConSanciones = useMemo(() => {
-    return lista.map(voluntario => {
-      const sancionesActivas = listaSanciones.filter(
-        s => s.voluntarioId === voluntario.id && s.estado === "ACTIVA"
-      );
-      return {
-        ...voluntario,
-        sancionesActivas
-      };
-    });
-  }, [lista, listaSanciones]);
+  // Añadimos las sanciones activas a cada voluntario
+  const voluntariosConSanciones = useMemo(
+    () =>
+      listaVol.map((v) => ({
+        ...v,
+        sancionesActivas: listaSanciones.filter(
+          (s) => s.voluntarioId === v.id && s.estado === "ACTIVA"
+        ),
+      })),
+    [listaVol, listaSanciones]
+  );
 
   const abrirModalNuevaSancion = (voluntario: Voluntario) => {
     setVoluntarioParaSancion(voluntario);
     setSancionEditar(null);
   };
-
   const abrirModalEditarSancion = (sancion: Sancion) => {
     setSancionEditar(sancion);
     setVoluntarioParaSancion(null);
   };
-
   const cerrarModal = () => {
     setVoluntarioParaSancion(null);
     setSancionEditar(null);
@@ -74,69 +65,51 @@ export default function SancionTable() {
     await save(s);
     cerrarModal();
   };
-
   const handleRevocar = async (sancion: Sancion) => {
     await revocar(sancion.id, "Admin");
     setSancionARevocar(null);
   };
-
   const handleEliminar = async (sancion: Sancion) => {
     await remove(sancion.id);
     setSancionAEliminar(null);
   };
 
+  // Filtrado por "Con sanción / Sin sanción" + búsqueda
   const filtered = useMemo(() => {
     return voluntariosConSanciones
       .filter((v) => {
-        if (estadoFiltro === "con_sanciones") return v.sancionesActivas.length > 0;
-        if (estadoFiltro === "sin_sanciones") return v.sancionesActivas.length === 0;
-        return true;
+        const tieneActivas = (v as any).sancionesActivas?.length > 0;
+        if (filtroSancion === "CON") return tieneActivas;
+        if (filtroSancion === "SIN") return !tieneActivas;
+        return true; // TODOS
       })
       .filter((v) =>
-        [v.nombreCompleto, v.numeroDocumento, v.email].some((f) =>
-          f?.toLowerCase().includes(search.toLowerCase())
-        )
+        [v.nombreCompleto, v.numeroDocumento, v.email]
+          .some((f) => f?.toLowerCase().includes(search.toLowerCase()))
       );
-  }, [voluntariosConSanciones, estadoFiltro, search]);
-
-  const formatFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString("es-CR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    });
-  };
-
-  const calcularDiasRestantes = (fechaVencimiento: string | null) => {
-    if (!fechaVencimiento) return null;
-    const hoy = new Date();
-    const vencimiento = new Date(fechaVencimiento);
-    const diffTime = vencimiento.getTime() - hoy.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
-  };
+  }, [voluntariosConSanciones, filtroSancion, search]);
 
   const loading = loadingVoluntarios || loadingSanciones;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <AlertTriangle className="h-6 w-6 text-red-500" />
             Gestión de Sanciones
           </h2>
-          <p className="text-sm text-slate-500">Administrar sanciones disciplinarias por voluntario</p>
+          <p className="text-sm text-slate-500">
+            Administrar sanciones disciplinarias por voluntario
+          </p>
         </div>
       </div>
 
-      {/* Modal de crear/editar sanción */}
+      {/* Modal */}
       <Modal
         open={voluntarioParaSancion !== null || sancionEditar !== null}
         onClose={cerrarModal}
         title={sancionEditar ? "Editar sanción" : "Agregar sanción"}
-        size="lg"
       >
         <SancionForm
           initial={sancionEditar ?? undefined}
@@ -146,7 +119,6 @@ export default function SancionTable() {
         />
       </Modal>
 
-      {/* Filtros */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         {/* Buscador */}
         <div className="flex-1 max-w-lg">
@@ -164,25 +136,23 @@ export default function SancionTable() {
           </div>
         </div>
 
-        {/* Filtro por sanciones */}
+        {/* Filtro por sanción — <select> nativo */}
         <div className="w-full sm:w-56">
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Filtrar por estado
+            Filtrar por sanción
           </label>
-          <Select value={estadoFiltro} onValueChange={(v) => setEstadoFiltro(v as typeof estadoFiltro)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los voluntarios</SelectItem>
-              <SelectItem value="con_sanciones">Con sanciones activas</SelectItem>
-              <SelectItem value="sin_sanciones">Sin sanciones</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            value={filtroSancion}
+            onChange={(e) => setFiltroSancion(e.target.value as FiltroSancion)}
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="TODOS">Todos</option>
+            <option value="CON">Con sanción</option>
+            <option value="SIN">Sin sanción</option>
+          </select>
         </div>
       </div>
 
-      {/* Tabla */}
       {loading && (
         <div className="text-center py-8">
           <div className="inline-flex items-center gap-2 text-slate-500">
@@ -211,24 +181,45 @@ export default function SancionTable() {
             </thead>
             <tbody>
               {filtered.map((voluntario, i) => (
-                <tr key={`vol-${voluntario.id}-${i}`} className="hover:bg-slate-50 border-b border-slate-200">
+                <tr
+                  key={`vol-${voluntario.id}-${i}`}
+                  className="hover:bg-slate-50 border-b border-slate-200"
+                >
                   <td className="px-4 py-3">
                     <div>
-                      <p className="font-medium text-slate-800">{voluntario.nombreCompleto}</p>
-                      {voluntario.sancionesActivas.length > 0 && (
+                      <p className="font-medium text-slate-800">
+                        {voluntario.nombreCompleto}
+                      </p>
+                      {(voluntario as any).sancionesActivas?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {voluntario.sancionesActivas.map(sancion => {
-                            const diasRestantes = calcularDiasRestantes(sancion.fechaVencimiento);
+                          {(voluntario as any).sancionesActivas.map((s: Sancion) => {
+                            const dias = s.fechaVencimiento
+                              ? Math.max(
+                                  0,
+                                  Math.ceil(
+                                    (new Date(s.fechaVencimiento).getTime() -
+                                      new Date().getTime()) /
+                                      (1000 * 60 * 60 * 24)
+                                  )
+                                )
+                              : null;
                             return (
-                              <Badge 
-                                key={sancion.id}
-                                variant="destructive" 
+                              <Badge
+                                key={s.id}
+                                variant="destructive"
                                 className="bg-red-100 text-red-700 text-xs"
+                                title={
+                                  s.fechaVencimiento
+                                    ? `Vence: ${new Date(
+                                        s.fechaVencimiento
+                                      ).toLocaleDateString("es-CR")}`
+                                    : "Permanente"
+                                }
                               >
                                 <AlertTriangle className="h-3 w-3 mr-1" />
-                                {sancion.tipo}
-                                {diasRestantes !== null && diasRestantes > 0 && (
-                                  <span className="ml-1">({diasRestantes}d)</span>
+                                {s.tipo}
+                                {dias !== null && dias > 0 && (
+                                  <span className="ml-1">({dias}d)</span>
                                 )}
                               </Badge>
                             );
@@ -241,15 +232,13 @@ export default function SancionTable() {
                   <td className="px-4 py-3 text-slate-600">{voluntario.email}</td>
                   <td className="px-4 py-3 text-slate-600">{voluntario.telefono || "N/A"}</td>
                   <td className="px-4 py-3">
-                    <Badge 
-                      variant={voluntario.estado === "ACTIVO" ? "default" : "secondary"}
-                      className={
-                        voluntario.estado === "ACTIVO" 
-                          ? "bg-green-100 text-green-700" 
-                          : "bg-gray-100 text-gray-700"
-                      }
+                    <Badge
+                      variant={(voluntario as any).sancionesActivas?.length > 0 ? "destructive" : "secondary"}
+                      className={(voluntario as any).sancionesActivas?.length > 0
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-700"}
                     >
-                      {voluntario.estado === "ACTIVO" ? "Activo" : "Inactivo"}
+                      {(voluntario as any).sancionesActivas?.length > 0 ? "Con sanción" : "Sin sanción"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
@@ -259,17 +248,15 @@ export default function SancionTable() {
                         onClick={() => abrirModalNuevaSancion(voluntario)}
                         className="gap-1 bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1"
                       >
-                        <Plus className="h-3 w-3" />
-                        Agregar Sanción
+                        <Plus className="h-3 w-3" /> Agregar Sanción
                       </Button>
-                      
-                      {/* Mostrar sanciones activas */}
-                      {voluntario.sancionesActivas.map(sancion => (
-                        <div key={sancion.id} className="flex gap-1">
+
+                      {(voluntario as any).sancionesActivas?.map((s: Sancion) => (
+                        <div key={s.id} className="flex gap-1">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => abrirModalEditarSancion(sancion)}
+                            onClick={() => abrirModalEditarSancion(s)}
                             className="text-xs px-2 py-1 border-orange-300 text-orange-600 hover:bg-orange-50"
                           >
                             Editar
@@ -277,11 +264,10 @@ export default function SancionTable() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setSancionARevocar(sancion)}
+                            onClick={() => setSancionARevocar(s)}
                             className="text-xs px-2 py-1 border-blue-300 text-blue-600 hover:bg-blue-50"
                           >
-                            <Ban className="h-3 w-3 mr-1" />
-                            Revocar
+                            <Ban className="h-3 w-3 mr-1" /> Revocar
                           </Button>
                         </div>
                       ))}
@@ -294,32 +280,35 @@ export default function SancionTable() {
         </div>
       )}
 
-      {/* Dialogs de confirmación */}
+      {/* ConfirmDialogs */}
       <ConfirmDialog
-        open={sancionAEliminar !== null}
-        onClose={() => setSancionAEliminar(null)}
-        onConfirm={() => sancionAEliminar && handleEliminar(sancionAEliminar)}
+        open={!!sancionAEliminar}
+        onOpenChange={(open: boolean) => {
+          if (!open) setSancionAEliminar(null);
+        }}
+        onConfirm={() =>
+          sancionAEliminar ? handleEliminar(sancionAEliminar) : Promise.resolve()
+        }
         title="Eliminar Sanción"
         description="¿Está seguro de que desea eliminar permanentemente esta sanción?"
-        confirmText="Eliminar"
-        cancelText="Cancelar"
-        variant="destructive"
       />
 
       <ConfirmDialog
-        open={sancionARevocar !== null}
-        onClose={() => setSancionARevocar(null)}
-        onConfirm={() => sancionARevocar && handleRevocar(sancionARevocar)}
+        open={!!sancionARevocar}
+        onOpenChange={(open: boolean) => {
+          if (!open) setSancionARevocar(null);
+        }}
+        onConfirm={() =>
+          sancionARevocar ? handleRevocar(sancionARevocar) : Promise.resolve()
+        }
         title="Revocar Sanción"
         description="¿Está seguro de que desea revocar esta sanción activa?"
-        confirmText="Revocar"
-        cancelText="Cancelar"
-        variant="default"
       />
 
-      {/* Paginación */}
       <div className="flex justify-between items-center text-sm text-slate-600">
-        <span>Mostrando {filtered.length} de {lista.length} voluntarios</span>
+        <span>
+          Mostrando {filtered.length} de {listaVol.length} voluntarios
+        </span>
       </div>
     </div>
   );

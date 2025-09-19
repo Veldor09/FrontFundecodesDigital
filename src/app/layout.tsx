@@ -1,23 +1,20 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { Open_Sans } from 'next/font/google'
-import { Toaster } from 'react-hot-toast'
+// src/app/layout.tsx  (SERVER COMPONENT — sin "use client")
+import "./globals.css";
+import { Open_Sans } from "next/font/google";
+import Providers from "./providers"; // <- envolverá clientes como Toaster
 
-const openSans = Open_Sans({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'FUNDECODES',
-  description: 'Plataforma administrativa',
-}
+const openSans = Open_Sans({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={openSans.className}>
-        {children}
-        {/* Toaster global para notificaciones */}
-        <Toaster position="top-right" />
+      {/* suppressHydrationWarning por si alguna extensión mete atributos en <body> */}
+      <body className={openSans.className} suppressHydrationWarning>
+        <Providers>{children}</Providers>
       </body>
     </html>
-  )
+  );
 }

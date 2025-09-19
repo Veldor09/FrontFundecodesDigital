@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Voluntario } from "../types/voluntario";
+import type { Voluntario, Estado } from "../types/voluntario";
 import VoluntarioRow from "./VoluntarioRow";
 import VoluntarioForm from "./VoluntarioForm";
 import { useVoluntarios } from "../hooks/useVoluntarios";
@@ -53,14 +53,14 @@ export default function VoluntarioTable() {
   };
 
   const handleGuardar = async (v: Omit<Voluntario, "id"> & { id?: number }) => {
-    await save(v);
+    await save(v as any);
     cerrarModal();
   };
 
   const filtered: Voluntario[] = useMemo(() => {
     return lista
       .filter((v: Voluntario) =>
-        estadoFiltro === "TODOS" ? true : v.estado?.toUpperCase() === estadoFiltro
+        estadoFiltro === "TODOS" ? true : (v.estado?.toUpperCase() as Estado) === estadoFiltro
       )
       .filter((v: Voluntario) =>
         [v.nombreCompleto, v.numeroDocumento, v.email].some((f) =>
@@ -113,7 +113,7 @@ export default function VoluntarioTable() {
           </div>
         </div>
 
-        {/* Filtro por estado — usando <select> nativo para evitar el bug */}
+        {/* Filtro por estado — usando <select> nativo */}
         <div className="w-full sm:w-48">
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Filtrar por estado

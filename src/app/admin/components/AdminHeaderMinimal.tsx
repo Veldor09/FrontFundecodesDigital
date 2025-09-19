@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Open_Sans } from "next/font/google";
+import { User } from "lucide-react";
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -16,16 +17,18 @@ export default function AdminHeaderMinimal() {
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const user = { name: "AshVargas", photoUrl: "" };
+  // En producción reemplaza por datos reales (contexto/auth)
+  const user = { name: "AdminFUNDECODES", email: "admin@fundecodes.org", photoUrl: "" };
 
+  // Cerrar menú con click fuera o Escape
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       const t = e.target as Node;
       if (menuRef.current?.contains(t) || btnRef.current?.contains(t)) return;
-      if (btnRef.current?.contains(t)) return;
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -41,16 +44,15 @@ export default function AdminHeaderMinimal() {
   };
   const signOut = () => {
     setOpen(false);
-    router.push("/");
+    // aquí iría tu logout real (limpiar token, etc.)
+    router.push("/login");
   };
 
   return (
-    <header
-      className={`sticky top-0 z-50 bg-gradient-to-r from-teal-600 to-blue-600 shadow-lg ${openSans.className}`}
-    >
+    <header className={`sticky top-0 z-50 bg-gradient-to-r from-teal-600 to-blue-600 shadow-lg ${openSans.className}`}>
       <div className="mx-auto max-w-7xl px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo + texto */}
           <button
             onClick={goPublic}
             aria-label="Volver a la página informativa"
@@ -58,7 +60,7 @@ export default function AdminHeaderMinimal() {
           >
             <div className="bg-white rounded-full p-2 shadow-md">
               <Image
-                src="/Imagenes/LOGOCODES_Logo.png"
+                src="/Img/FUNDECODES_Logo.png"  // mismo asset que tu otro header
                 alt="Fundecodes"
                 width={40}
                 height={40}
@@ -66,17 +68,21 @@ export default function AdminHeaderMinimal() {
                 priority
               />
             </div>
-            <span className="sr-only">Volver a la página informativa</span>
+            <div className="text-white text-left">
+              <h1 className="text-xl font-bold tracking-wide">Fundecodes</h1>
+              <p className="text-sm text-blue-100 font-medium">Panel administrativo</p>
+            </div>
           </button>
 
-          {/* Avatar + menú */}
+          {/* Perfil (icono + menú) */}
           <div className="relative">
             <button
               ref={btnRef}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen(v => !v)}
               aria-haspopup="menu"
               aria-expanded={open}
               className="flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-2 text-white hover:bg-white/20 transition"
+              title="Cuenta"
             >
               {user.photoUrl ? (
                 <Image
@@ -87,13 +93,9 @@ export default function AdminHeaderMinimal() {
                   className="h-9 w-9 rounded-full object-cover"
                 />
               ) : (
-                <Image
-                  src="/Img/Inicion-Sesion.svg"
-                  alt="Avatar por defecto"
-                  width={36}
-                  height={36}
-                  className="h-9 w-9 rounded-full object-cover"
-                />
+                <span className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <User className="h-5 w-5" />
+                </span>
               )}
             </button>
 
@@ -102,10 +104,13 @@ export default function AdminHeaderMinimal() {
                 ref={menuRef}
                 role="menu"
                 aria-label="Menú de usuario"
-                className="absolute right-0 mt-2 w-60 rounded-2xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden"
+                className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden"
               >
-                <div className="px-5 py-3.5 text-base">
-                  <p className="font-semibold text-slate-900">{user.name}</p>
+                <div className="px-5 py-4">
+                  <p className="font-semibold text-slate-900 leading-tight">{user.name}</p>
+                  {user.email && (
+                    <p className="text-sm text-slate-500 truncate">{user.email}</p>
+                  )}
                 </div>
 
                 <div className="h-px bg-slate-100" />
@@ -113,7 +118,7 @@ export default function AdminHeaderMinimal() {
                 <button
                   role="menuitem"
                   onClick={goProfile}
-                  className="w-full text-left px-5 py-3 text-base text-slate-700 hover:bg-slate-50"
+                  className="w-full text-left px-5 py-3 text-slate-700 hover:bg-slate-50 transition"
                 >
                   Mi perfil
                 </button>
@@ -123,7 +128,7 @@ export default function AdminHeaderMinimal() {
                 <button
                   role="menuitem"
                   onClick={signOut}
-                  className="w-full text-left px-5 py-3 text-base text-red-600 hover:bg-red-50"
+                  className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 transition"
                 >
                   Cerrar sesión
                 </button>

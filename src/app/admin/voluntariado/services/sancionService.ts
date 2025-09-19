@@ -1,107 +1,84 @@
 // services/sancionService.ts
+import type { Sancion, SancionCreateDTO, SancionUpdateDTO } from "../types/sancion";
 
-import { Sancion, SancionCreateDTO, SancionUpdateDTO } from "../types/sancion";
+const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000") + "/api";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-interface ListSancionesParams {
+async function handle<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText} — ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export type ListSancionesParams = {
   page?: number;
   limit?: number;
   search?: string;
-  estado?: string; // "ACTIVA" | "EXPIRADA" | "REVOCADA" | ""
+  estado?: "ACTIVA" | "EXPIRADA" | "REVOCADA";
   voluntarioId?: number;
-}
+};
 
-interface ListSancionesResponse {
+export type ListSancionesResponse = {
   data: Sancion[];
   total: number;
-  page: number;
-  limit: number;
-}
+  page?: number;
+  limit?: number;
+};
 
-// GET /api/sanciones
+// GET /sanciones
 export async function listSanciones(params: ListSancionesParams = {}): Promise<ListSancionesResponse> {
-  const searchParams = new URLSearchParams();
-  
-  if (params.page) searchParams.append("page", params.page.toString());
-  if (params.limit) searchParams.append("limit", params.limit.toString());
-  if (params.search) searchParams.append("search", params.search);
-  if (params.estado) searchParams.append("estado", params.estado);
-  if (params.voluntarioId) searchParams.append("voluntarioId", params.voluntarioId.toString());
+  const q = new URLSearchParams();
+  if (params.page) q.set("page", String(params.page));
+  if (params.limit) q.set("limit", String(params.limit));
+  if (params.search) q.set("search", params.search);
+  if (params.estado) q.set("estado", params.estado);
+  if (params.voluntarioId) q.set("voluntarioId", String(params.voluntarioId));
 
-  const url = `${API_BASE}/sanciones?${searchParams.toString()}`;
-  const res = await fetch(url);
-  
-  if (!res.ok) {
-    throw new Error(`Error ${res.status}: ${res.statusText}`);
-  }
-  
-  return res.json();
+  const res = await fetch(`${API}/sanciones?${q.toString()}`, { cache: "no-store" });
+  return handle<ListSancionesResponse>(res);
 }
 
-// POST /api/sanciones
-export async function createSancion(sancion: SancionCreateDTO): Promise<Sancion> {
-  const res = await fetch(`${API_BASE}/sanciones`, {
+// POST /sanciones
+export async function createSancion(dto: SancionCreateDTO): Promise<Sancion> {
+  const res = await fetch(`${API}/sanciones`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(sancion),
+    body: JSON.stringify(dto),
   });
-  
-  if (!res.ok) {
-    throw new Error(`Error ${res.status}: ${res.statusText}`);
-  }
-  
-  return res.json();
+  return handle<Sancion>(res);
 }
 
-// PUT /api/sanciones/:id
-export async function updateSancion(sancion: SancionUpdateDTO): Promise<Sancion> {
-  const res = await fetch(`${API_BASE}/sanciones/${sancion.id}`, {
+// PUT /sanciones/:id
+export async function updateSancion(dto: SancionUpdateDTO & { id: number }): Promise<Sancion> {
+  const { id, ...body } = dto;
+  const res = await fetch(`${API}/sanciones/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(sancion),
+    body: JSON.stringify(body),
   });
-  
-  if (!res.ok) {
-    throw new Error(`Error ${res.status}: ${res.statusText}`);
-  }
-  
-  return res.json();
+  return handle<Sancion>(res);
 }
 
-// DELETE /api/sanciones/:id
-export async function deleteSancion(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/sanciones/${id}`, {
-    method: "DELETE",
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Error ${res.status}: ${res.statusText}`);
-  }
+// DELETE /sanciones/:id
+export async function deleteSancion(id: number): Promise<{ ok: true }> {
+  const res = await fetch(`${API}/sanciones/${id}`, { method: "DELETE" });
+  return handle<{ ok: true }>(res);
 }
 
-// PUT /api/sanciones/:id/revocar
+// PUT /sanciones/:id/revocar
 export async function revocarSancion(id: number, revocadaPor?: string): Promise<Sancion> {
-  const res = await fetch(`${API_BASE}/sanciones/${id}/revocar`, {
+  const res = await fetch(`${API}/sanciones/${id}/revocar`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ revocadaPor }),
   });
-  
-  if (!res.ok) {
-    throw new Error(`Error ${res.status}: ${res.statusText}`);
-  }
-  
-  return res.json();
+  return handle<Sancion>(res);
 }
 
-// GET /api/sanciones/voluntario/:voluntarioId/activas
-export async function getSancionesActivasVoluntario(voluntarioId: number): Promise<Sancion[]> {
-  const res = await fetch(`${API_BASE}/sanciones/voluntario/${voluntarioId}/activas`);
-  
-  if (!res.ok) {
-    throw new Error(`Error ${res.status}: ${res.statusText}`);
-  }
-  
-  return res.json();
+// GET /sanciones/voluntario/:voluntarioId/activas
+export async function getSancionesActivasPorVoluntario(voluntarioId: number): Promise<Sancion[]> {
+  const res = await fetch(`${API}/sanciones/voluntario/${voluntarioId}/activas`, { cache: "no-store" });
+  return handle<Sancion[]>(res);
 }
