@@ -20,6 +20,11 @@ const TIPOS_SANCION: readonly SancionTipo[] = [
   "EXTREMADAMENTE_GRAVE",
 ] as const;
 
+/** Límites de longitud solicitados */
+const MAX_MOTIVO = 30;        // 20–30 -> usamos 30
+const MAX_DESCRIPCION = 100;  // 80–100 -> usamos 100
+const MAX_CREADA_POR = 50;    // ~50
+
 interface Props {
   initial?: Sancion;
   onSave: (data: any) => Promise<void>;
@@ -32,8 +37,8 @@ type FormValues = {
   tipo: SancionTipo | "";
   motivo: string;
   descripcion?: string;
-  fechaInicio: string;           // yyyy-MM-dd
-  fechaVencimiento?: string;     // yyyy-MM-dd
+  fechaInicio: string;       // yyyy-MM-dd
+  fechaVencimiento?: string; // yyyy-MM-dd
   creadaPor?: string;
   esPermanente: boolean;
 };
@@ -57,7 +62,7 @@ export default function SancionForm({
       ? {
           voluntarioId: initial.voluntarioId,
           tipo: initial.tipo,
-          motivo: initial.motivo,
+          motivo: initial.motivo ?? "",
           descripcion: initial.descripcion || "",
           fechaInicio: initial.fechaInicio
             ? new Date(initial.fechaInicio).toISOString().slice(0, 10)
@@ -82,11 +87,56 @@ export default function SancionForm({
 
   const esPermanente = watch("esPermanente");
 
+  // Para contadores en UI
+  const motivoVal = watch("motivo") ?? "";
+  const descVal = watch("descripcion") ?? "";
+  const creadaPorVal = watch("creadaPor") ?? "";
+
   useEffect(() => {
     if (voluntarioPreseleccionado) {
       setValue("voluntarioId", voluntarioPreseleccionado.id);
     }
   }, [voluntarioPreseleccionado, setValue]);
+
+  // Limitar pegado a un máximo de caracteres
+  function limitPaste(
+    e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    field: keyof FormValues,
+    max: number
+  ) {
+    const pasted = e.clipboardData.getData("text") ?? "";
+    const current = (watch(field) as string) ?? "";
+    const selection = window.getSelection?.();
+    let selectionLen = 0;
+
+    // Intento de calcular selección (no crítico si falla)
+    try {
+      const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+      if (typeof target.selectionStart === "number" && typeof target.selectionEnd === "number") {
+        selectionLen = Math.max(0, target.selectionEnd - target.selectionStart);
+      } else if (selection && selection.toString()) {
+        selectionLen = selection.toString().length;
+      }
+    } catch {}
+
+    // Longitud resultante si pegamos completo
+    const resulting = current.length - selectionLen + pasted.length;
+    if (resulting > max) {
+      e.preventDefault();
+      const room = Math.max(0, max - (current.length - selectionLen));
+      const clipped = pasted.slice(0, room);
+      const valueAfter = (() => {
+        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+        if (typeof target.selectionStart === "number" && typeof target.selectionEnd === "number") {
+          const before = current.slice(0, target.selectionStart);
+          const after = current.slice(target.selectionEnd);
+          return before + clipped + after;
+        }
+        return (current + clipped).slice(0, max);
+      })();
+      setValue(field, valueAfter as any, { shouldValidate: true, shouldDirty: true });
+    }
+  }
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -97,15 +147,15 @@ export default function SancionForm({
       const dto = {
         voluntarioId: data.voluntarioId,
         tipo: data.tipo as SancionTipo,
-        motivo: data.motivo,
-        descripcion: data.descripcion || undefined,
+        motivo: data.motivo.trim(),
+        descripcion: data.descripcion?.trim() || undefined,
         fechaInicio: new Date(data.fechaInicio).toISOString(),
         fechaVencimiento: data.esPermanente
           ? null
           : data.fechaVencimiento
           ? new Date(data.fechaVencimiento).toISOString()
           : null,
-        creadaPor: data.creadaPor || "Sistema",
+        creadaPor: (data.creadaPor || "Sistema").trim(),
       };
 
       await onSave(dto);
@@ -134,8 +184,7 @@ export default function SancionForm({
               {voluntarioPreseleccionado.nombreCompleto}
             </p>
             <p className="text-sm text-blue-700">
-              {voluntarioPreseleccionado.numeroDocumento} •{" "}
-              {voluntarioPreseleccionado.email}
+              {voluntarioPreseleccionado.numeroDocumento} • {voluntarioPreseleccionado.email}
             </p>
           </div>
         ) : (
@@ -181,37 +230,56 @@ export default function SancionForm({
           ))}
         </select>
         {errors.tipo && (
-          <p className="text-red-500 text-xs mt-1">
-            {String(errors.tipo.message)}
-          </p>
+          <p className="text-red-500 text-xs mt-1">{String(errors.tipo.message)}</p>
         )}
       </div>
 
       {/* Motivo */}
       <div>
-        <Label className="text-slate-700 flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Motivo *
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-slate-700 flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Motivo *
+          </Label>
+          <span className="text-xs text-slate-500">
+            {motivoVal.length}/{MAX_MOTIVO}
+          </span>
+        </div>
         <Input
           placeholder="Indique el motivo de la sanción"
-          {...register("motivo", { required: "El motivo es requerido" })}
+          maxLength={MAX_MOTIVO}
+          onPaste={(e) => limitPaste(e, "motivo", MAX_MOTIVO)}
+          {...register("motivo", {
+            required: "El motivo es requerido",
+            minLength: { value: 2, message: "Muy corto" },
+            maxLength: { value: MAX_MOTIVO, message: `Máximo ${MAX_MOTIVO} caracteres` },
+          })}
         />
         {errors.motivo && (
-          <p className="text-red-500 text-xs mt-1">
-            {String(errors.motivo.message)}
-          </p>
+          <p className="text-red-500 text-xs mt-1">{String(errors.motivo.message)}</p>
         )}
       </div>
 
       {/* Descripción */}
       <div>
-        <Label className="text-slate-700">Descripción Detallada</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-slate-700">Descripción Detallada</Label>
+          <span className="text-xs text-slate-500">
+            {descVal.length}/{MAX_DESCRIPCION}
+          </span>
+        </div>
         <Textarea
           placeholder="Proporcione detalles adicionales sobre la sanción..."
           rows={3}
-          {...register("descripcion")}
+          maxLength={MAX_DESCRIPCION}
+          onPaste={(e) => limitPaste(e as React.ClipboardEvent<HTMLTextAreaElement>, "descripcion", MAX_DESCRIPCION)}
+          {...register("descripcion", {
+            maxLength: { value: MAX_DESCRIPCION, message: `Máximo ${MAX_DESCRIPCION} caracteres` },
+          })}
         />
+        {errors.descripcion && (
+          <p className="text-red-500 text-xs mt-1">{String(errors.descripcion.message)}</p>
+        )}
       </div>
 
       {/* Fechas */}
@@ -226,9 +294,7 @@ export default function SancionForm({
             {...register("fechaInicio", { required: "La fecha de inicio es requerida" })}
           />
           {errors.fechaInicio && (
-            <p className="text-red-500 text-xs mt-1">
-              {String(errors.fechaInicio.message)}
-            </p>
+            <p className="text-red-500 text-xs mt-1">{String(errors.fechaInicio.message)}</p>
           )}
         </div>
 
@@ -250,11 +316,7 @@ export default function SancionForm({
               </label>
             </div>
             {!esPermanente && (
-              <Input
-                type="date"
-                {...register("fechaVencimiento")}
-                min={watch("fechaInicio")}
-              />
+              <Input type="date" {...register("fechaVencimiento")} min={watch("fechaInicio")} />
             )}
           </div>
         </div>
@@ -262,8 +324,23 @@ export default function SancionForm({
 
       {/* Creada por */}
       <div>
-        <Label className="text-slate-700">Sanción aplicada por</Label>
-        <Input placeholder="Nombre de quien aplica la sanción" {...register("creadaPor")} />
+        <div className="flex items-center justify-between">
+          <Label className="text-slate-700">Sanción aplicada por</Label>
+          <span className="text-xs text-slate-500">
+            {creadaPorVal.length}/{MAX_CREADA_POR}
+          </span>
+        </div>
+        <Input
+          placeholder="Nombre de quien aplica la sanción"
+          maxLength={MAX_CREADA_POR}
+          onPaste={(e) => limitPaste(e, "creadaPor", MAX_CREADA_POR)}
+          {...register("creadaPor", {
+            maxLength: { value: MAX_CREADA_POR, message: `Máximo ${MAX_CREADA_POR} caracteres` },
+          })}
+        />
+        {errors.creadaPor && (
+          <p className="text-red-500 text-xs mt-1">{String(errors.creadaPor.message)}</p>
+        )}
       </div>
 
       {/* Info voluntario */}
@@ -284,9 +361,7 @@ export default function SancionForm({
               <strong>Estado:</strong>{" "}
               <span
                 className={
-                  voluntarioSeleccionado.estado === "ACTIVO"
-                    ? "text-green-600"
-                    : "text-red-600"
+                  voluntarioSeleccionado.estado === "ACTIVO" ? "text-green-600" : "text-red-600"
                 }
               >
                 {voluntarioSeleccionado.estado}
@@ -301,10 +376,7 @@ export default function SancionForm({
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button
-          type="submit"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-        >
+        <Button type="submit" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
           <CheckCircle className="h-4 w-4" />
           {initial ? "Actualizar" : "Registrar"} Sanción
         </Button>
