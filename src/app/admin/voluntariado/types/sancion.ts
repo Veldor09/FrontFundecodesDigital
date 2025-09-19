@@ -1,20 +1,22 @@
-// types/sancion.ts
+// src/types/sancion.ts
+
+export type SancionTipo = "LEVE" | "GRAVE" | "MUY_GRAVE" | "EXTREMADAMENTE_GRAVE";
+export type SancionEstado = "ACTIVA" | "EXPIRADA" | "REVOCADA";
 
 export interface Sancion {
   id: number;
   voluntarioId: number;
-  tipo: string; // "Amonestación", "Suspensión temporal", "Expulsión", etc.
+  tipo: SancionTipo;
   motivo: string;
   descripcion?: string;
-  fechaInicio: string; // ISO string
-  fechaVencimiento?: string | null; // ISO string, null si es permanente
-  estado: "ACTIVA" | "EXPIRADA" | "REVOCADA";
-  creadaPor?: string; // quien creó la sanción
-  revocadaPor?: string | null; // quien la revocó (si aplica)
+  fechaInicio: string; // ISO
+  fechaVencimiento?: string | null; // ISO | null (permanente)
+  estado: SancionEstado;
+  creadaPor?: string;
+  revocadaPor?: string | null;
   fechaRevocacion?: string | null;
   createdAt?: string;
   updatedAt?: string;
-  // Relación con voluntario
   voluntario?: {
     id: number;
     nombreCompleto: string;
@@ -23,18 +25,22 @@ export interface Sancion {
   };
 }
 
-export type SancionEstado = "ACTIVA" | "EXPIRADA" | "REVOCADA";
-
 export interface SancionCreateDTO {
   voluntarioId: number;
-  tipo: string;
+  tipo: SancionTipo;
   motivo: string;
   descripcion?: string;
-  fechaInicio: string;
-  fechaVencimiento?: string | null;
+  fechaInicio: string; // ISO
+  fechaVencimiento?: string | null; // ISO | null
   creadaPor?: string;
 }
 
-export interface SancionUpdateDTO extends SancionCreateDTO {
-  id: number;
+export interface SancionUpdateDTO {
+  // Solo los campos que el backend permitirá actualizar
+  tipo?: SancionTipo;
+  motivo?: string;
+  descripcion?: string | null;
+  fechaInicio?: string;           // ISO
+  fechaVencimiento?: string | null;
+  creadaPor?: string | null;
 }
