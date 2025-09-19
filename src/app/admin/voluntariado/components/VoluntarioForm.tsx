@@ -157,28 +157,30 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
     }
   }
 
-  const onSubmit = async (data: FormValues) => {
-    try {
-      const dto = {
-        tipoDocumento: data.tipoDoc,
-        numeroDocumento: data.numeroDocumento,
-        nombreCompleto: data.nombreCompleto,
-        email: data.email,
-        telefono: data.telefono || null,
-        fechaNacimiento: data.fechaNacimiento
-          ? new Date(data.fechaNacimiento).toISOString()
-          : null,
-        fechaIngreso: new Date(data.fechaIngreso).toISOString(),
-        estado: data.estado,
-      };
+const onSubmit = async (data: FormValues) => {
+  try {
+    const dto = {
+      // 👇 si estás editando, incluye el id
+      ...(initial?.id ? { id: initial.id } : {}),
+      tipoDocumento: data.tipoDoc,
+      numeroDocumento: data.numeroDocumento,
+      nombreCompleto: data.nombreCompleto,
+      email: data.email,
+      telefono: data.telefono || null,
+      fechaNacimiento: data.fechaNacimiento
+        ? new Date(data.fechaNacimiento).toISOString()
+        : null,
+      fechaIngreso: new Date(data.fechaIngreso).toISOString(),
+      estado: data.estado,
+    };
 
-      await onSave(dto);
-      toast.success(initial ? "Voluntario actualizado" : "Voluntario creado");
-    } catch (e) {
-      console.error(e);
-      toast.error("Error al guardar el voluntario");
-    }
-  };
+    await onSave(dto);
+    toast.success(initial ? "Voluntario actualizado" : "Voluntario creado");
+  } catch (e) {
+    console.error(e);
+    toast.error("Error al guardar el voluntario");
+  }
+};
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
