@@ -9,7 +9,12 @@ import { toast } from "sonner";
 import { IdCard, User, Mail, Calendar, CheckCircle, Phone } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
-import { getCountryCallingCode, getExampleNumber, isSupportedCountry, parsePhoneNumberFromString } from "libphonenumber-js";
+import {
+  getCountryCallingCode,
+  getExampleNumber,
+  isSupportedCountry,
+  parsePhoneNumberFromString,
+} from "libphonenumber-js";
 import examples from "libphonenumber-js/examples.mobile.json";
 import { Voluntario } from "../types/voluntario";
 
@@ -93,9 +98,10 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
   // Validación de número
   const phoneClean = (telefono || "").replace(/\s+/g, "");
   const parsed = parsePhoneNumberFromString(phoneClean, safeCountry);
-  const phoneError = telefono && (!parsed || !parsed.isValid())
-    ? `Número inválido para ${safeCountry.toUpperCase()}`
-    : null;
+  const phoneError =
+    telefono && (!parsed || !parsed.isValid())
+      ? `Número inválido para ${safeCountry.toUpperCase()}`
+      : null;
 
   // Control de escritura / pegado con límite
   function handlePhoneChange(val: string | undefined) {
@@ -156,7 +162,9 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
         nombreCompleto: data.nombreCompleto,
         email: data.email,
         telefono: data.telefono || null,
-        fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento).toISOString() : null,
+        fechaNacimiento: data.fechaNacimiento
+          ? new Date(data.fechaNacimiento).toISOString()
+          : null,
         fechaIngreso: new Date(data.fechaIngreso).toISOString(),
         estado: data.estado,
       };
@@ -204,7 +212,9 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
           })}
         />
         {errors.numeroDocumento && (
-          <p className="text-red-500 text-xs mt-1">{String(errors.numeroDocumento.message)}</p>
+          <p className="text-red-500 text-xs mt-1">
+            {String(errors.numeroDocumento.message)}
+          </p>
         )}
       </div>
 
@@ -220,7 +230,9 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
             {...register("nombreCompleto", { required: "Requerido" })}
           />
           {errors.nombreCompleto && (
-            <p className="text-red-500 text-xs mt-1">{String(errors.nombreCompleto.message)}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {String(errors.nombreCompleto.message)}
+            </p>
           )}
         </div>
         <div>
@@ -237,12 +249,14 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
             })}
           />
           {errors.email && (
-            <p className="text-red-500 text-xs mt-1">{String(errors.email.message)}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {String(errors.email.message)}
+            </p>
           )}
         </div>
       </div>
 
-      {/* Teléfono con validación igual que Colaboradores */}
+      {/* Teléfono (usa PhoneInput de la librería, sin props raras) */}
       <div>
         <Label className="text-slate-700 flex items-center gap-2">
           <Phone className="h-4 w-4" />
@@ -250,31 +264,30 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
         </Label>
 
         <PhoneInput
-          international
-          withCountryCallingCode
-          countryCallingCodeEditable={false}
-          defaultCountry="CR"
-          value={telefono}
-          onChange={handlePhoneChange}
-          onCountryChange={(c) => setCountry(c || "CR")}
-          className="PhoneInput"
-          inputClass="!w-full !h-9 !text-sm !border-0 !shadow-none"
-          buttonClass="!border-0 !bg-transparent"
-          dropdownClass="!text-sm"
-          enableSearch
-          limitMaxLength
-          numberInputProps={{
-            onKeyDown: handlePhoneKeyDown,
-            onPaste: handlePhonePaste,
-          }}
-        />
+  international
+  withCountryCallingCode
+  countryCallingCodeEditable={false}
+  defaultCountry="CR"
+  value={telefono}
+  onChange={handlePhoneChange}
+  onCountryChange={(c) => setCountry(c || "CR")}
+  className="w-full"
+  limitMaxLength
+  numberInputProps={{
+    onKeyDown: handlePhoneKeyDown,
+    onPaste: handlePhonePaste,
+  }}
+/>
 
-        {phoneError && (
-          <p className="text-red-500 text-xs mt-1">{phoneError}</p>
-        )}
+
+        {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
 
         <p className="text-xs text-slate-500 mt-1">
-          {Math.max(0, (telefono || "").replace(/\D/g, "").length - String(getCountryCallingCode(safeCountry)).length)}
+          {Math.max(
+            0,
+            (telefono || "").replace(/\D/g, "").length -
+              String(getCountryCallingCode(safeCountry)).length
+          )}
           /{maxNational} dígitos (sin código)
         </p>
       </div>
@@ -298,7 +311,9 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
             {...register("fechaIngreso", { required: "Requerido" })}
           />
           {errors.fechaIngreso && (
-            <p className="text-red-500 text-xs mt-1">{String(errors.fechaIngreso.message)}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {String(errors.fechaIngreso.message)}
+            </p>
           )}
         </div>
       </div>
@@ -309,7 +324,10 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
           <CheckCircle className="h-4 w-4" />
           Estado
         </Label>
-        <select className="w-full border rounded-md h-9 px-2 text-sm" {...register("estado", { required: true })}>
+        <select
+          className="w-full border rounded-md h-9 px-2 text-sm"
+          {...register("estado", { required: true })}
+        >
           <option value="ACTIVO">ACTIVO</option>
           <option value="INACTIVO">INACTIVO</option>
         </select>

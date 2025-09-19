@@ -1,4 +1,4 @@
-// hooks/useSanciones.ts
+// src/hooks/useSanciones.ts
 "use client";
 
 import useSWR from "swr";
@@ -8,12 +8,18 @@ import {
   updateSancion,
   deleteSancion,
   revocarSancion,
-  getSancionesActivasVoluntario,
-  SancionCreateDTO,
+  getSancionesActivasPorVoluntario, // <-- nombre correcto
 } from "../services/sancionService";
-import { Sancion } from "../types/sancion";
+import type { Sancion, SancionCreateDTO, SancionUpdateDTO } from "../types/sancion";
 
-export function useSanciones(page = 1, search = "", estado?: string, voluntarioId?: number) {
+type EstadoFiltroApi = "ACTIVA" | "EXPIRADA" | "REVOCADA" | undefined;
+
+export function useSanciones(
+  page = 1,
+  search = "",
+  estado?: EstadoFiltroApi,
+  voluntarioId?: number
+) {
   const key = ["sanciones", page, search, estado, voluntarioId] as const;
 
   const { data, isLoading, mutate, error } = useSWR(key, async () => {
@@ -24,18 +30,37 @@ export function useSanciones(page = 1, search = "", estado?: string, voluntarioI
     };
   });
 
-  async function save(dto: Omit<Sancion, "id"> & { id?: number }) {
-    if (dto.id) {
-      await updateSancion({ id: dto.id, ...dto });
+  // Crear / actualizar
+  async function save(input: Omit<Sancion, "id"> & { id?: number }) {
+    if (input.id) {
+      // OJO: no envíes null en strings con ValidationPipe; omite campos no cambiados
+      const payload: SancionUpdateDTO & { id: number } = {
+        id: input.id,
+        tipo: input.tipo,
+        motivo: input.motivo,
+        // Si quieres actualizar descripción, envíala como string; si no, omítela
+        ...(input.descripcion !== undefined ? { descripcion: input.descripcion } : {}),
+        fechaInicio: input.fechaInicio,
+        // Si es permanente, **omitir** el campo para que el back lo trate como null
+        ...(typeof input.fechaVencimiento === "string"
+          ? { fechaVencimiento: input.fechaVencimiento }
+          : {}),
+        ...(input.creadaPor ? { creadaPor: input.creadaPor } : {}),
+      };
+      await updateSancion(payload);
     } else {
       const body: SancionCreateDTO = {
-        voluntarioId: dto.voluntarioId,
-        tipo: dto.tipo,
-        motivo: dto.motivo,
-        descripcion: dto.descripcion,
-        fechaInicio: dto.fechaInicio,
-        fechaVencimiento: dto.fechaVencimiento,
-        creadaPor: dto.creadaPor,
+        voluntarioId: input.voluntarioId,
+        tipo: input.tipo,
+        motivo: input.motivo,
+        // No mandes null: si no hay descripcion, OMITIR
+        ...(input.descripcion ? { descripcion: input.descripcion } : {}),
+        fechaInicio: input.fechaInicio,
+        // Permanente => OMITIR fechaVencimiento para que el back ponga null
+        ...(typeof input.fechaVencimiento === "string"
+          ? { fechaVencimiento: input.fechaVencimiento }
+          : {}),
+        ...(input.creadaPor ? { creadaPor: input.creadaPor } : {}),
       };
       await createSancion(body);
     }
@@ -64,11 +89,13 @@ export function useSanciones(page = 1, search = "", estado?: string, voluntarioI
   };
 }
 
-// Hook específico para obtener sanciones activas de un voluntario
+// Hook específico: sanciones activas por voluntario
 export function useSancionesActivasVoluntario(voluntarioId: number) {
+  const key = voluntarioId ? ["sanciones-activas", voluntarioId] : null;
+
   const { data, isLoading, mutate, error } = useSWR(
-    voluntarioId ? ["sanciones-activas", voluntarioId] : null,
-    () => getSancionesActivasVoluntario(voluntarioId)
+    key,
+    () => getSancionesActivasPorVoluntario(voluntarioId) // <-- nombre correcto
   );
 
   return {
