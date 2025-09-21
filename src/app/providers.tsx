@@ -1,9 +1,13 @@
-// src/app/providers.tsx
+// src/app/providers.tsx  (CLIENT COMPONENT)
 "use client";
 
-import * as React from "react";
-import { ToastProviderCustom } from "@/app/admin/informational-page/Hooks/use-toast";
+import { Toaster } from "sonner";
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  return <ToastProviderCustom>{children}</ToastProviderCustom>;
+export default function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      <Toaster position="top-right" />
+    </>
+  );
 }
