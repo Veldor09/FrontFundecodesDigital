@@ -1,9 +1,129 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/services/auth.service";
 import toast from "react-hot-toast";
+import axios from "axios";
+
+/* ========== Modal Recuperar contraseña ========== */
+
+function RecoverPasswordModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  const EMAIL_RE = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
+  const canSubmit = useMemo(() => EMAIL_RE.test(email.trim()), [EMAIL_RE, email]);
+
+  if (!open) return null;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setOkMsg(null);
+    setErrMsg(null);
+
+    const clean = email.trim().toLowerCase();
+    if (!EMAIL_RE.test(clean)) {
+      setErrMsg("Ingresa un correo válido.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // rewrite: /api-auth -> http://localhost:4000/auth
+      const res = await axios.post(
+        "/api-auth/forgot-password",
+        { email: clean },
+        { headers: { "Content-Type": "application/json" } },
+      );
+      if (res.status >= 200 && res.status < 300) {
+        setOkMsg(
+          "Si el correo está registrado, te enviaremos un enlace de recuperación. Revisa tu bandeja de entrada."
+        );
+      } else {
+        setErrMsg(res.data?.message || "No se pudo procesar la solicitud.");
+      }
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al procesar la solicitud.";
+      setErrMsg(Array.isArray(msg) ? msg.join(", ") : msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Recuperar contraseña</h2>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-slate-500 hover:bg-slate-100"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p className="text-sm text-slate-600 mb-4">
+          Ingresa tu correo electrónico. Si existe una cuenta asociada, te enviaremos un enlace para
+          restablecer tu contraseña.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-sm mb-1">Correo electrónico</label>
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              className="w-full rounded border p-2"
+              placeholder="tu@correo.org"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={!canSubmit || submitting}
+            className={`w-full rounded p-2 text-white ${
+              !canSubmit || submitting
+                ? "bg-emerald-300 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
+          >
+            {submitting ? "Enviando…" : "Enviar enlace"}
+          </button>
+        </form>
+
+        {okMsg && <p className="mt-3 text-sm text-emerald-600">{okMsg}</p>}
+        {errMsg && <p className="mt-3 text-sm text-red-600">{errMsg}</p>}
+
+        <div className="mt-4 text-right">
+          <button onClick={onClose} className="text-sm text-slate-500 hover:underline">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ========== Página de Login ========== */
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +132,7 @@ export default function LoginPage() {
   const [mostrarPass, setMostrarPass] = useState(false); // ← nuevo
   const [errores, setErrores] = useState<{ email?: string; password?: string; general?: string }>({});
   const [cargando, setCargando] = useState(false);
+  const [showRecover, setShowRecover] = useState(false);
 
   const validarEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -124,7 +245,23 @@ export default function LoginPage() {
         >
           {cargando ? "Entrando…" : "Entrar"}
         </button>
+modal-reset-password
+
+        {/* Olvidaste tu contraseña */}
+        <p className="text-center text-sm text-gray-600">
+          <button
+            type="button"
+            onClick={() => setShowRecover(true)}
+            className="text-teal-600 hover:underline font-medium"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </p>
+
+developer
       </form>
+
+      <RecoverPasswordModal open={showRecover} onClose={() => setShowRecover(false)} />
     </main>
   );
 }
