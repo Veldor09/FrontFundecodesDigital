@@ -1,3 +1,4 @@
+// src/app/admin/voluntariado/components/VoluntarioForm.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
@@ -33,7 +34,23 @@ function getMaxNationalLength(country?: string): number {
   return map[country] ?? MAX_NATIONAL_DEFAULT;
 }
 
+// ---------- Helpers para número de identificación ----------
 type TipoDoc = "Cédula costarricense" | "Pasaporte" | "DIMEX";
+function getMaxLen(tipo: TipoDoc) {
+  if (tipo === "Cédula costarricense") return 9;
+  if (tipo === "DIMEX") return 12; // DIMEX 9–12; tope superior 12
+  return 20; // Pasaporte: alfanumérico, mínimo 6; tope razonable
+}
+
+function sanitizeNumeroDocumento(v: string, tipo: TipoDoc) {
+  if (tipo === "Cédula costarricense" || tipo === "DIMEX") {
+    return v.replace(/\D/g, ""); // solo dígitos
+  }
+  // Pasaporte: alfanumérico en mayúsculas
+  return v.replace(/[^a-z0-9]/gi, "").toUpperCase();
+}
+// ----------------------------------------------------------
+
 type EstadoBackend = "ACTIVO" | "INACTIVO";
 
 interface Props {
@@ -95,7 +112,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
   const maxNational = useMemo(() => getMaxNationalLength(country), [country]);
   const safeCountry = isSupportedCountry(country || "") ? (country as any) : "CR";
 
-  // Validación de número
+  // Validación de número telefónico
   const phoneClean = (telefono || "").replace(/\s+/g, "");
   const parsed = parsePhoneNumberFromString(phoneClean, safeCountry);
   const phoneError =
@@ -103,7 +120,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
       ? `Número inválido para ${safeCountry.toUpperCase()}`
       : null;
 
-  // Control de escritura / pegado con límite
+  // Control de escritura / pegado con límite en teléfono
   function handlePhoneChange(val: string | undefined) {
     if (!val) {
       setValue("telefono", "");
@@ -121,7 +138,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
 
   function handlePhoneKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     const key = e.key;
-    if (!/^\d$/.test(key)) return;
+    if (!/^\d$/.test(key)) return; // solo limita cuando escribe dígitos
     const input = e.currentTarget;
     const val = input.value ?? "";
     const ccLen = String(getCountryCallingCode(safeCountry)).length;
@@ -140,42 +157,30 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
     }
   }
 
-  const validarIdentificacion = (value: string) => {
-    if (!value) return "Requerido";
-    if (tipoDoc === "Cédula costarricense") {
-      return /^\d{9}$/.test(value) || "La cédula debe tener 9 dígitos";
-    }
-    if (tipoDoc === "DIMEX") {
-      return /^\d{9,12}$/.test(value) || "DIMEX debe tener entre 9 y 12 dígitos";
-    }
-    if (tipoDoc === "Pasaporte") {
-      return /^[A-Za-z0-9]{6,}$/.test(value) || "Pasaporte inválido (mínimo 6 caracteres)";
-    }
-    return true;
-  };
+const onSubmit = async (data: FormValues) => {
+  try {
+    const dto = {
+      // 👇 si estás editando, incluye el id
+      ...(initial?.id ? { id: initial.id } : {}),
+      tipoDocumento: data.tipoDoc,
+      numeroDocumento: data.numeroDocumento,
+      nombreCompleto: data.nombreCompleto,
+      email: data.email,
+      telefono: data.telefono || null,
+      fechaNacimiento: data.fechaNacimiento
+        ? new Date(data.fechaNacimiento).toISOString()
+        : null,
+      fechaIngreso: new Date(data.fechaIngreso).toISOString(),
+      estado: data.estado,
+    };
 
-  const onSubmit = async (data: FormValues) => {
-    try {
-      const dto = {
-        tipoDocumento: data.tipoDoc,
-        numeroDocumento: data.numeroDocumento,
-        nombreCompleto: data.nombreCompleto,
-        email: data.email,
-        telefono: data.telefono || null,
-        fechaNacimiento: data.fechaNacimiento
-          ? new Date(data.fechaNacimiento).toISOString()
-          : null,
-        fechaIngreso: new Date(data.fechaIngreso).toISOString(),
-        estado: data.estado,
-      };
-
-      await onSave(dto);
-      toast.success(initial ? "Voluntario actualizado" : "Voluntario creado");
-    } catch (e) {
-      console.error(e);
-      toast.error("Error al guardar el voluntario");
-    }
-  };
+    await onSave(dto);
+    toast.success(initial ? "Voluntario actualizado" : "Voluntario creado");
+  } catch (e) {
+    console.error(e);
+    toast.error("Error al guardar el voluntario");
+  }
+};
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -204,11 +209,54 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
               ? "9 dígitos"
               : tipoDoc === "DIMEX"
               ? "9–12 dígitos"
-              : "Pasaporte"
+              : "Pasaporte (alfa-numérico)"
           }
+          maxLength={getMaxLen(tipoDoc)}
+          inputMode={tipoDoc === "Pasaporte" ? "text" : "numeric"}
+          // onPaste va como prop del input (NO dentro de register)
+          onPaste={(e) => {
+            e.preventDefault();
+            const max = getMaxLen(tipoDoc);
+            let v = sanitizeNumeroDocumento(
+              e.clipboardData.getData("text") || "",
+              tipoDoc
+            );
+            if (v.length > max) v = v.slice(0, max);
+            setValue("numeroDocumento", v, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+          }}
           {...register("numeroDocumento", {
             required: "Requerido",
-            validate: validarIdentificacion,
+            validate: (value) => {
+              if (tipoDoc === "Cédula costarricense") {
+                return /^\d{9}$/.test(value) || "La cédula debe tener 9 dígitos";
+              }
+              if (tipoDoc === "DIMEX") {
+                return (
+                  /^\d{9,12}$/.test(value) ||
+                  "DIMEX debe tener entre 9 y 12 dígitos"
+                );
+              }
+              if (tipoDoc === "Pasaporte") {
+                return (
+                  /^[A-Za-z0-9]{6,}$/.test(value) ||
+                  "Pasaporte inválido (mínimo 6 caracteres)"
+                );
+              }
+              return true;
+            },
+            // onChange SÍ va dentro de register
+            onChange: (e) => {
+              const max = getMaxLen(tipoDoc);
+              let v = sanitizeNumeroDocumento(e.target.value, tipoDoc);
+              if (v.length > max) v = v.slice(0, max);
+              setValue("numeroDocumento", v, {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
+            },
           })}
         />
         {errors.numeroDocumento && (
@@ -256,7 +304,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
         </div>
       </div>
 
-      {/* Teléfono (usa PhoneInput de la librería, sin props raras) */}
+      {/* Teléfono */}
       <div>
         <Label className="text-slate-700 flex items-center gap-2">
           <Phone className="h-4 w-4" />
@@ -264,23 +312,23 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
         </Label>
 
         <PhoneInput
-  international
-  withCountryCallingCode
-  countryCallingCodeEditable={false}
-  defaultCountry="CR"
-  value={telefono}
-  onChange={handlePhoneChange}
-  onCountryChange={(c) => setCountry(c || "CR")}
-  className="w-full"
-  limitMaxLength
-  numberInputProps={{
-    onKeyDown: handlePhoneKeyDown,
-    onPaste: handlePhonePaste,
-  }}
-/>
+          international
+          withCountryCallingCode
+          countryCallingCodeEditable={false}
+          defaultCountry="CR"
+          value={telefono}
+          onChange={handlePhoneChange}
+          onCountryChange={(c) => setCountry(c || "CR")}
+          className="w-full"
+          numberInputProps={{
+            onKeyDown: handlePhoneKeyDown,
+            onPaste: handlePhonePaste,
+          }}
+        />
 
-
-        {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
+        {phoneError && (
+          <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+        )}
 
         <p className="text-xs text-slate-500 mt-1">
           {Math.max(
@@ -338,7 +386,10 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" className="flex items-center gap-2 bg-blue-600 text-white">
+        <Button
+          type="submit"
+          className="flex items-center gap-2 bg-blue-600 text-white"
+        >
           <CheckCircle className="h-4 w-4" />
           {initial ? "Actualizar" : "Crear"} Voluntario
         </Button>

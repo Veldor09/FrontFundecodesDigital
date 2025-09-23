@@ -13,26 +13,22 @@ export function DashboardMetrics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadMetrics();
-  }, []);
-
-  const loadMetrics = async () => {
+  async function loadMetrics() {
     try {
       setLoading(true);
       setError(null);
       const metrics = await getDashboardMetrics();
       setData(metrics);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Error desconocido al cargar métricas');
-      }
+      setError(err instanceof Error ? err.message : "Error desconocido al cargar métricas");
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    loadMetrics();
+  }, []);
 
   if (loading) {
     return (
@@ -40,12 +36,12 @@ export function DashboardMetrics() {
         {[...Array(6)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 bg-gray-200 rounded w-24"></div>
-              <div className="h-4 w-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-24" />
+              <div className="h-4 w-4 bg-gray-200 rounded" />
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-20"></div>
+              <div className="h-8 bg-gray-200 rounded w-16 mb-2" />
+              <div className="h-3 bg-gray-200 rounded w-20" />
             </CardContent>
           </Card>
         ))}
@@ -70,11 +66,11 @@ export function DashboardMetrics() {
 
   if (!data) return null;
 
-  const { metrics, quickAccess } = data;
+  const { metrics } = data;
 
   return (
     <div className="space-y-6">
-      {/* Métricas Principales - AHORA INTERACTIVAS */}
+      {/* Métricas Principales */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <MetricCard
           title="Usuarios"
@@ -82,62 +78,61 @@ export function DashboardMetrics() {
           label={metrics.users.label}
           icon={Users}
           color="text-blue-600"
-          href="/admin/colaboradores" // ➡️ CLICK → VA A COLABORADORES
+          href="/admin/Collaborators"  // ← ruta con mayúscula como dijiste
         />
-        
-        <MetricCard
-          title="Proyectos Activos"
-          value={metrics.projects.active}
-          label={`${metrics.projects.active} de ${metrics.projects.total} total`}
-          icon={FolderKanban}
-          color="text-green-600"
-          subtitle={`${metrics.projects.draft} borradores, ${metrics.projects.finished} finalizados`}
-          href="/admin/projects" // ➡️ CLICK → VA A PROYECTOS
-        />
-        
+
+       <MetricCard
+  title="Proyectos Activos"
+  value={metrics.projects.active ?? 0}
+  label={`${metrics.projects.active ?? 0} de ${metrics.projects.total ?? 0} total`}
+  icon={FolderKanban}
+  color="text-green-600"
+  subtitle={`${metrics.projects.draft ?? 0} borradores, ${metrics.projects.finished ?? 0} finalizados`}
+/>
+
         <MetricCard
           title="Archivos"
           value={metrics.files.total}
           label={`${metrics.files.documents} docs, ${metrics.files.images} imgs`}
           icon={FileText}
           color="text-purple-600"
-          subtitle={metrics.files.lastUpload ? 
-            `Último: ${metrics.files.lastUpload.name}` : 
-            'Sin archivos aún'
+          subtitle={
+            metrics.files.lastUpload
+              ? `Último: ${metrics.files.lastUpload.name}`
+              : "Sin archivos aún"
           }
-          href="/admin/proyectos" // ➡️ CLICK → VA A PROYECTOS (DONDE ESTÁN LOS ARCHIVOS)
+          href="/admin/projects"
         />
-        
+
         <MetricCard
           title="Voluntarios"
           value={metrics.volunteering.total}
           label={`+${metrics.volunteering.thisMonth} este mes`}
           icon={Handshake}
           color="text-orange-600"
-          href="/admin/voluntariado" // ➡️ CLICK → VA A VOLUNTARIADO
+          href="/admin/voluntariado"
         />
-        
+
         <MetricCard
           title="Contabilidad"
           value={metrics.accounting.total}
           label={metrics.accounting.label}
           icon={Wallet}
           color="text-red-600"
-          href="/admin/contabilidad" // ➡️ CLICK → VA A CONTABILIDAD
+          href="/admin/contabilidad"
         />
-        
+
         <MetricCard
           title="Facturación"
           value={metrics.billing.total}
           label={metrics.billing.label}
           icon={Receipt}
           color="text-indigo-600"
-          href="/admin/facturacion" // ➡️ CLICK → VA A FACTURACIÓN
+          href="/admin/facturacion"
         />
       </div>
 
-      {/* Resto del contenido igual... */}
-      {/* Recapitulación de Actividades */}
+      {/* Recapitulación */}
       <Card>
         <CardHeader>
           <CardTitle>Recapitulación de Actividades</CardTitle>
@@ -148,54 +143,28 @@ export function DashboardMetrics() {
               <div className="text-2xl font-bold text-blue-600">
                 {data.recap.monthlyActivities}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Actividades este mes
-              </p>
+              <p className="text-sm text-muted-foreground">Actividades este mes</p>
             </div>
-            
+
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
                 {metrics.projects.finished}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Proyectos finalizados
-              </p>
+              <p className="text-sm text-muted-foreground">Proyectos finalizados</p>
             </div>
-            
+
             <div className="text-center">
               <div className="text-lg font-semibold text-purple-600">
-                {data.recap.lastActivity ? 
-                  new Date(data.recap.lastActivity).toLocaleDateString() : 
-                  'Sin actividad'
-                }
+                {data.recap.lastActivity
+                  ? new Date(data.recap.lastActivity).toLocaleDateString()
+                  : "Sin actividad"}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Última actividad
-              </p>
+              <p className="text-sm text-muted-foreground">Última actividad</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Accesos Rápidos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Accesos Rápidos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {quickAccess.map((access) => (
-              <Link key={access.href} href={access.href}>
-                <Button variant="outline" className="w-full justify-start hover:bg-slate-50">
-                  {access.name}
-                </Button>
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Timestamp de actualización */}
       <div className="text-center text-xs text-muted-foreground">
         Última actualización: {new Date(data.timestamp).toLocaleTimeString()}
       </div>

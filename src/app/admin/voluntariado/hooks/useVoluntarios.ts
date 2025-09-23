@@ -1,78 +1,93 @@
 "use client";
 
-import useSWR from "swr";
-import { Voluntario, VoluntarioCreateDTO, VoluntarioUpdateDTO, Estado } from "../types/voluntario";
+import useSWR, { type BareFetcher } from "swr";
+import type {
+  Voluntario,
+  Estado,
+  VoluntarioCreateDTO,
+  VoluntarioUpdateDTO,
+} from "../types/voluntario";
+import {
+  listVoluntarios,
+  createVoluntario as svcCreate,
+  updateVoluntario as svcUpdate,
+  deleteVoluntario as svcDelete,
+  toggleVoluntario as svcToggle,
+} from "../services/voluntarioService";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-
-async function handle(res: Response) {
+// Helper de manejo de respuesta
+async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`${res.status} ${res.statusText} — ${text}`);
   }
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
-const fetcher = (url: string) => fetch(url).then(handle);
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-export function useVoluntarios() {
-  // Puedes agregar aquí query params reales de paginación si lo deseas
-  const { data, isLoading, error, mutate } = useSWR<{ data: Voluntario[]; total: number }>(
-    `${API}/voluntarios`,
-    fetcher
+// 🔧 Tipar el fetcher como BareFetcher del shape que retorna el endpoint
+const fetcher: BareFetcher<{ data: Voluntario[]; total: number }> = (url: string) =>
+  fetch(url, { cache: "no-store" }).then((res) =>
+    handle<{ data: Voluntario[]; total: number }>(res)
   );
 
+export function useVoluntarios(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  estado?: Estado | "TODOS";
+}) {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 10;
+  const search = params?.search ?? "";
+  const estado =
+    params?.estado && params.estado !== "TODOS" ? params.estado : undefined;
+
+  const key = `${API}/voluntarios?page=${page}&limit=${limit}&search=${encodeURIComponent(
+    search
+  )}${estado ? `&estado=${estado}` : ""}`;
+
+  // ✅ Ahora TS reconoce el 2º argumento como fetcher, no como config
+  const { data, isLoading, error, mutate } =
+    useSWR<{ data: Voluntario[]; total: number }>(key, fetcher);
+
   async function createVoluntario(dto: VoluntarioCreateDTO) {
-    const res = await fetch(`${API}/voluntarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dto),
-    });
-    return handle(res);
+    await svcCreate(dto);
+    await mutate();
   }
 
   async function updateVoluntario(id: number, dto: VoluntarioUpdateDTO) {
-    const res = await fetch(`${API}/voluntarios/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dto),
-    });
-    return handle(res);
+    await svcUpdate(id, dto);
+    await mutate();
   }
 
-  async function toggleVoluntario(id: number, estado: Estado) {
-    const res = await fetch(`${API}/voluntarios/${id}/toggle`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado }),
-    });
-    return handle(res);
+  async function toggleVoluntario(id: number, nextEstado: Estado) {
+    await svcToggle(id, nextEstado);
+    await mutate();
   }
 
   async function deleteVoluntario(id: number) {
-    const res = await fetch(`${API}/voluntarios/${id}`, { method: "DELETE" });
-    return handle(res);
+    await svcDelete(id);
+    await mutate();
   }
 
-  // API que usa el resto del front:
-  async function save(dto: (VoluntarioCreateDTO & { id?: number })) {
+  // API consumida por tu UI
+  async function save(dto: VoluntarioCreateDTO & { id?: number }) {
     if (dto.id) {
-      const { id, ...rest } = dto;
+      const { id, ...rest } = dto as any;
       await updateVoluntario(id, rest);
     } else {
       await createVoluntario(dto);
     }
-    await mutate(); // refresca lista
   }
 
   async function toggle(id: number, nuevoEstado: Estado) {
     await toggleVoluntario(id, nuevoEstado);
-    await mutate();
   }
 
   async function remove(id: number) {
     await deleteVoluntario(id);
-    await mutate();
   }
 
   return {
