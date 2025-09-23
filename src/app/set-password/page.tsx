@@ -1,72 +1,138 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import axios from "axios";
+import { useSearchParams } from "next/navigation";
+
+const MIN_LEN = 8;
+const MAX_LEN = 100;
 
 export default function SetPasswordPage() {
+  const searchParams = useSearchParams();
+  const rawToken = searchParams.get("token") ?? "";
+  const token = decodeURIComponent(rawToken).trim();
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const token = new URLSearchParams(window.location.search).get("token");
+  // Usamos el rewrite /api-auth -> http://localhost:4000/auth (o el que tengas)
+  const requestUrl = `/api-auth/set-password`;
+
+  const canSubmit = useMemo(() => {
+    if (!token) return false;
+    if (!newPassword || !confirmPassword) return false;
+    if (newPassword !== confirmPassword) return false;
+    if (newPassword.length < MIN_LEN || newPassword.length > MAX_LEN) return false;
+    return true;
+  }, [token, newPassword, confirmPassword]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
+    setMessage(null);
 
+    if (!token) {
+      setError("Token inválido o ausente. Usa el enlace del correo.");
+      return;
+    }
     if (newPassword !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      setMessage(null);
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+    if (newPassword.length < MIN_LEN || newPassword.length > MAX_LEN) {
+      setError(`La contraseña debe tener entre ${MIN_LEN} y ${MAX_LEN} caracteres.`);
       return;
     }
 
+    setLoading(true);
     try {
-      setError(null);
-      const res = await axios.post("http://localhost:4000/auth/set-password", {
-        token,
-        newPassword,
-        confirmPassword,
-      });
+      // ⚠️ El backend Nest espera EXACTAMENTE estas claves:
+      // { token, newPassword, confirmPassword }
+      const res = await axios.post(
+        requestUrl,
+        { token, newPassword, confirmPassword },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      if (res.data.ok) {
-        setMessage("¡Listo! Tu contraseña fue actualizada. Un administrador debe aprobar tu cuenta.");
+      // Tu AuthService.setPasswordWithToken retorna { ok: true } si todo salió bien
+      const ok = !!res.data?.ok;
+      if (ok) {
+        setMessage("¡Listo! Tu contraseña fue actualizada. Ya puedes iniciar sesión.");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setError(res.data?.message || "No se pudo actualizar la contraseña.");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Error al guardar la contraseña");
+      const backendMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al guardar la contraseña.";
+      setError(Array.isArray(backendMsg) ? backendMsg.join(", ") : backendMsg);
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 border rounded">
       <h3 className="text-lg font-semibold mb-4">Establecer contraseña</h3>
+
+      {!token && (
+        <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Token inválido o ausente. Por favor abre el enlace que te enviamos por correo.
+        </div>
+      )}
+
       <p className="mb-4">Ingresa tu nueva contraseña dos veces para activar tu cuenta.</p>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="password"
-          placeholder="Nueva contraseña"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          required
-          className="w-full mb-2 p-2 border rounded"
-        />
-        <input
-          type="password"
-          placeholder="Confirmar contraseña"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          className="w-full mb-4 p-2 border rounded"
-        />
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <input
+            type="password"
+            placeholder="Nueva contraseña"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            minLength={MIN_LEN}
+            maxLength={MAX_LEN}
+            required
+            className="w-full p-2 border rounded"
+            autoComplete="new-password"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Debe tener entre {MIN_LEN} y {MAX_LEN} caracteres.
+          </p>
+        </div>
+        <div>
+          <input
+            type="password"
+            placeholder="Confirmar contraseña"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            minLength={MIN_LEN}
+            maxLength={MAX_LEN}
+            required
+            className="w-full p-2 border rounded"
+            autoComplete="new-password"
+          />
+        </div>
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          disabled={!canSubmit || loading}
+          className={`w-full p-2 rounded text-white ${
+            !canSubmit || loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+          }`}
         >
-          Guardar contraseña
+          {loading ? "Guardando…" : "Guardar contraseña"}
         </button>
       </form>
 
-      {error && <p className="text-red-500 mt-2">{error}</p>}
-      {message && <p className="text-green-600 mt-2">{message}</p>}
+      {error && <p className="text-red-500 mt-3">{error}</p>}
+      {message && <p className="text-green-600 mt-3">{message}</p>}
     </div>
   );
 }
