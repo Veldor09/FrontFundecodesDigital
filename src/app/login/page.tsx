@@ -245,7 +245,7 @@ export default function LoginPage() {
         >
           {cargando ? "Entrando…" : "Entrar"}
         </button>
-modal-reset-password
+
 
         {/* Olvidaste tu contraseña */}
         <p className="text-center text-sm text-gray-600">
@@ -258,7 +258,7 @@ modal-reset-password
           </button>
         </p>
 
-developer
+
       </form>
 
       <RecoverPasswordModal open={showRecover} onClose={() => setShowRecover(false)} />
