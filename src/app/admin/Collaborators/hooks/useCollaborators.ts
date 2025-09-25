@@ -1,8 +1,8 @@
-// src/app/admin/Collaborators/hooks/useCollaborators.ts
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
 import useSWR from "swr";
+import { API_URL } from "../services/collaborators.api";
 
 export type Estado = "ACTIVO" | "INACTIVO";
 export type EstadoFilter = "ALL" | Estado;
@@ -28,8 +28,31 @@ type ListResponse = {
   totalPages: number;
 };
 
+/** >>> NUEVO: helpers seguros para headers */
+function authHeaders(): HeadersInit {
+  const h: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    const t = localStorage.getItem("token");
+    if (t) h.Authorization = `Bearer ${t}`;
+  }
+  return h;
+}
+function authJsonHeaders(): HeadersInit {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (typeof window !== "undefined") {
+    const t = localStorage.getItem("token");
+    if (t) h.Authorization = `Bearer ${t}`;
+  }
+  return h;
+}
+
+/** >>> MOD: usa siempre headers de tipo Record<string,string> */
 const fetcher = async (url: string) => {
-  const r = await fetch(url, { credentials: "include" });
+  const r = await fetch(url, {
+    headers: authJsonHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
   if (!r.ok) {
     const txt = await r.text().catch(() => "");
     throw new Error(txt || `HTTP ${r.status}`);
@@ -47,11 +70,13 @@ function compact<T extends Record<string, any>>(obj: T): Partial<T> {
 }
 
 export function useCollaborators() {
+  // Estado UI
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [estado, setEstado] = useState<EstadoFilter>("ALL");
 
+  // Querystring para la lista
   const qs = useMemo(() => {
     const p = new URLSearchParams();
     p.set("page", String(page));
@@ -61,12 +86,14 @@ export function useCollaborators() {
     return p.toString();
   }, [page, pageSize, search, estado]);
 
+  // Llamamos DIRECTO al BACKEND
   const { data, error, isLoading, mutate } = useSWR<ListResponse>(
-    `/api/collaborators?${qs}`,
+    `${API_URL}/collaborators?${qs}`,
     fetcher,
     { keepPreviousData: true }
   );
 
+  // Helpers filtros
   const setEstadoAndReset = useCallback((value: EstadoFilter) => {
     setEstado(value);
     setPage(1);
@@ -76,17 +103,23 @@ export function useCollaborators() {
     setPage(1);
   }, []);
 
-  const save = useCallback(
-    async (payload: Partial<Collaborator> & { id?: number | string } & { password?: string }) => {
-      const { id, ...rest } = payload;               // no enviar id en body
-      const body = JSON.stringify(compact(rest));
+  /* ===================== CRUD ===================== */
 
-      const url = id != null ? `/api/collaborators/${id}` : `/api/collaborators`;
+  const save = useCallback(
+    async (
+      payload: Partial<Collaborator> & { id?: number | string } & { password?: string }
+    ) => {
+      const { id, ...rest } = payload;
+      const body = JSON.stringify(compact(rest));
+      const url =
+        id != null
+          ? `${API_URL}/collaborators/${id}`
+          : `${API_URL}/collaborators`;
       const method = id != null ? "PATCH" : "POST";
 
       const r = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: authJsonHeaders(),   // <<< MOD
         body,
         credentials: "include",
       });
@@ -94,7 +127,9 @@ export function useCollaborators() {
         const txt = await r.text().catch(() => "");
         throw new Error(txt || `HTTP ${r.status}`);
       }
+      const json = await r.json().catch(() => ({}));
       await mutate();
+      return json as any;
     },
     [mutate]
   );
@@ -102,15 +137,16 @@ export function useCollaborators() {
   const toggle = useCallback(
     async (id: number | string, currentStatus: Estado) => {
       if (currentStatus === "ACTIVO") {
-        const r = await fetch(`/api/collaborators/${id}/deactivate`, {
+        const r = await fetch(`${API_URL}/collaborators/${id}/deactivate`, {
           method: "PATCH",
+          headers: authHeaders(),      // <<< MOD
           credentials: "include",
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
       } else {
-        const r = await fetch(`/api/collaborators/${id}`, {
+        const r = await fetch(`${API_URL}/collaborators/${id}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: authJsonHeaders(),  // <<< MOD
           body: JSON.stringify({ estado: "ACTIVO" }),
           credentials: "include",
         });
@@ -123,8 +159,9 @@ export function useCollaborators() {
 
   const remove = useCallback(
     async (id: number | string) => {
-      const r = await fetch(`/api/collaborators/${id}`, {
+      const r = await fetch(`${API_URL}/collaborators/${id}`, {
         method: "DELETE",
+        headers: authHeaders(),        // <<< MOD
         credentials: "include",
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -133,6 +170,7 @@ export function useCollaborators() {
     [mutate]
   );
 
+  /* ================ Exponer API del hook ================ */
   return {
     data: data?.items ?? [],
     total: data?.total ?? 0,

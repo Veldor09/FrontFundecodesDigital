@@ -1,4 +1,13 @@
-import API from "@/services/api";
+import {
+  apiListCollaborators,
+  apiGetCollaborator,
+  apiCreateCollaborator,
+  apiUpdateCollaborator,
+  apiDeactivateCollaborator,
+  apiActivateCollaborator,
+  apiDeleteCollaborator,
+} from "./collaborators.api";
+
 import type {
   Collaborator,
   CreateCollaboratorDto,
@@ -32,8 +41,7 @@ function cleanParams(obj: Record<string, any>) {
   for (const [k, v] of Object.entries(obj)) {
     if (v === undefined || v === null) continue;
     if (typeof v === "string" && v.trim() === "") continue;
-    // no enviar estado=ALL al backend
-    if (k === "estado" && v === "ALL") continue;
+    if (k === "estado" && v === "ALL") continue; // no enviar ALL al backend
     out[k] = v;
   }
   return out;
@@ -57,15 +65,13 @@ function genTempPassword(len = 12) {
 export async function listCollaborators(
   params: ListCollaboratorsParams & { estado?: EstadoFiltro } = {}
 ): Promise<Paginated<Collaborator>> {
-  const { data } = await API.get(BASE, {
-    params: cleanParams({
-      page: params.page ?? 1,
-      pageSize: params.pageSize ?? 10,
-      q: params.q,                 // ⚠️ usa la clave 'q' (no 'search') que espera el back
-      estado: params.estado,       // "ALL" | "ACTIVO" | "INACTIVO"
-      rol: (params as any).rol,
-    }),
-  });
+  const data = await apiListCollaborators(cleanParams({
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 10,
+    q: params.q,
+    estado: params.estado,
+    rol: (params as any).rol,
+  }));
 
   const itemsRaw = data.items ?? data.data ?? data.results ?? [];
   const items = Array.isArray(itemsRaw) ? itemsRaw.map(mapItem) : [];
@@ -80,7 +86,7 @@ export async function listCollaborators(
 
 /* ---------- get one ---------- */
 export async function getCollaborator(id: number | string): Promise<Collaborator> {
-  const { data } = await API.get(`${BASE}/${id}`);
+  const data = await apiGetCollaborator(id);
   return mapItem(data);
 }
 
@@ -100,12 +106,11 @@ export async function createCollaborator(input: CreateCollaboratorDto): Promise<
     fechaNacimiento: input.birthdate,
     telefono: input.phone,
     rol: input.role,
-    password,
+    password, // el back puede ignorarlo si usa invitación
   };
 
-  const { data } = await API.post(BASE, payload, {
-    headers: { "Content-Type": "application/json" },
-  });
+  // 👇 ESTE endpoint del backend es el que hace el upsert del USER
+  const data = await apiCreateCollaborator(payload);
   return mapItem(data);
 }
 
@@ -124,9 +129,7 @@ export async function updateCollaborator(
   if (input.password        !== undefined) patch.password        = input.password;
   if (input.status          !== undefined) patch.estado          = input.status;
 
-  const { data } = await API.patch(`${BASE}/${id}`, patch, {
-    headers: { "Content-Type": "application/json" },
-  });
+  const data = await apiUpdateCollaborator(id, patch);
   return mapItem(data);
 }
 
@@ -136,15 +139,13 @@ export async function toggleCollaboratorStatus(
   currentStatus: Estado
 ): Promise<void> {
   if (currentStatus === "ACTIVO") {
-    await API.patch(`${BASE}/${id}/deactivate`);
+    await apiDeactivateCollaborator(id);
   } else {
-    await API.patch(`${BASE}/${id}`, { estado: "ACTIVO" }, {
-      headers: { "Content-Type": "application/json" },
-    });
+    await apiActivateCollaborator(id);
   }
 }
 
 /* ---------- delete ---------- */
 export async function deleteCollaborator(id: number | string): Promise<void> {
-  await API.delete(`${BASE}/${id}`);
+  await apiDeleteCollaborator(id);
 }
