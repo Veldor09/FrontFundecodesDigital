@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Facturación */}
-          <Link href="/admin/facturacion" className="group">
+          <Link href="/admin/Billing" className="group">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-green-300">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-green-50 group-hover:border-green-200">
