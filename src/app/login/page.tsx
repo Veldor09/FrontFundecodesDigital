@@ -46,7 +46,7 @@ function RecoverPasswordModal({
       );
       if (res.status >= 200 && res.status < 300) {
         setOkMsg(
-          "Si el correo está registrado, te enviaremos un enlace de recuperación. Revisa tu bandeja de entrada."
+          "Correo enviado con éxito. Revisa tu bandeja de entrada."
         );
       } else {
         setErrMsg(res.data?.message || "No se pudo procesar la solicitud.");
