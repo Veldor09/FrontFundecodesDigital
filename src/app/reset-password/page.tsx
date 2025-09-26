@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function ResetPasswordPage() {
+  const router = useRouter();
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [token, setToken] = useState<string | null>(null);
@@ -34,7 +37,11 @@ export default function ResetPasswordPage() {
         confirmPassword,
       });
       if (res.data.ok) {
-        setMsg("¡Listo! Tu contraseña fue actualizada. Ya puedes iniciar sesión.");
+        setMsg("¡Listo! Tu contraseña fue actualizada. Redirigiendo a la página principal...");
+        
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
       }
     } catch (e: any) {
       setErr(e?.response?.data?.message || "Error al restablecer la contraseña");

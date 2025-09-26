@@ -2,13 +2,15 @@
 
 import { useState, useMemo } from "react";
 import axios from "axios";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const MIN_LEN = 8;
 const MAX_LEN = 100;
 
 export default function SetPasswordPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+
   const rawToken = searchParams.get("token") ?? "";
   const token = decodeURIComponent(rawToken).trim();
 
@@ -18,7 +20,7 @@ export default function SetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Usamos el rewrite /api-auth -> http://localhost:4000/auth (o el que tengas)
+  // Usamos el rewrite /api-auth -> http://localhost:4000/auth
   const requestUrl = `/api-auth/set-password`;
 
   const canSubmit = useMemo(() => {
@@ -49,20 +51,21 @@ export default function SetPasswordPage() {
 
     setLoading(true);
     try {
-      // ⚠️ El backend Nest espera EXACTAMENTE estas claves:
-      // { token, newPassword, confirmPassword }
       const res = await axios.post(
         requestUrl,
         { token, newPassword, confirmPassword },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Tu AuthService.setPasswordWithToken retorna { ok: true } si todo salió bien
       const ok = !!res.data?.ok;
       if (ok) {
-        setMessage("¡Listo! Tu contraseña fue actualizada. Ya puedes iniciar sesión.");
+        setMessage("¡Listo! Tu contraseña fue actualizada. Redirigiendo a la página principal...");
         setNewPassword("");
         setConfirmPassword("");
+       
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
       } else {
         setError(res.data?.message || "No se pudo actualizar la contraseña.");
       }
