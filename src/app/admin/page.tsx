@@ -1,15 +1,14 @@
 // src/app/admin/page.tsx
-"use client";
+"use client"
 
-import Link from "next/link";
-import { ArrowLeft, Users, Receipt, Handshake, Wallet, BarChart3, Globe, FolderKanban } from "lucide-react";
-import { DashboardMetrics } from "./components/DashboardMetrics";
-import { Button } from "@/components/ui/button";
+import Link from "next/link"
+import { ArrowLeft, Users, Receipt, Handshake, Wallet, BarChart3, Globe, FolderKanban } from "lucide-react"
+import { DashboardMetrics } from "./components/DashboardMetrics"
+import { Button } from "@/components/ui/button"
 
 export default function AdminDashboardPage() {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
       {/* Encabezado de la sección (sin header extra) */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -19,7 +18,7 @@ export default function AdminDashboardPage() {
 
         {/* ← Mueve aquí el botón verde del card */}
         <Link href="/">
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
             Volver al sitio
           </Button>
@@ -37,9 +36,7 @@ export default function AdminDashboardPage() {
                   <Handshake className="h-7 w-7 text-teal-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-teal-700">
-                    Voluntariado
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-teal-700">Voluntariado</h3>
                   <p className="text-sm text-slate-500">Gestión de formularios, estados y participantes</p>
                 </div>
               </div>
@@ -57,9 +54,7 @@ export default function AdminDashboardPage() {
                   <FolderKanban className="h-7 w-7 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-blue-700">
-                    Proyectos
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-blue-700">Proyectos</h3>
                   <p className="text-sm text-slate-500">Gestión de proyectos activos y finalizados</p>
                 </div>
               </div>
@@ -77,9 +72,7 @@ export default function AdminDashboardPage() {
                   <Receipt className="h-7 w-7 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-green-700">
-                    Facturación
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-green-700">Facturación</h3>
                   <p className="text-sm text-slate-500">Consulta y administración de facturas</p>
                 </div>
               </div>
@@ -97,9 +90,7 @@ export default function AdminDashboardPage() {
                   <Users className="h-7 w-7 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-purple-700">
-                    Colaboradores
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-purple-700">Colaboradores</h3>
                   <p className="text-sm text-slate-500">Miembros, roles, permisos y estados</p>
                 </div>
               </div>
@@ -110,16 +101,14 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Contabilidad */}
-          <Link href="/admin/contabilidad" className="group">
+          <Link href="/admin/accounting" className="group">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-orange-300">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-orange-50 group-hover:border-orange-200">
                   <Wallet className="h-7 w-7 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-orange-700">
-                    Contabilidad
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-orange-700">Contabilidad</h3>
                   <p className="text-sm text-slate-500">Ingresos, egresos y reportes financieros</p>
                 </div>
               </div>
@@ -137,9 +126,7 @@ export default function AdminDashboardPage() {
                   <BarChart3 className="h-7 w-7 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-red-700">
-                    Recapitulación
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-red-700">Recapitulación</h3>
                   <p className="text-sm text-slate-500">KPIs, métricas y resúmenes</p>
                 </div>
               </div>
@@ -182,5 +169,5 @@ export default function AdminDashboardPage() {
         <DashboardMetrics />
       </section>
     </main>
-  );
+  )
 }
