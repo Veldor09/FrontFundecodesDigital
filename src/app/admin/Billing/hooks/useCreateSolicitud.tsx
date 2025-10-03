@@ -1,31 +1,33 @@
-// hooks/useCreateSolicitud.ts
-import { useCallback, useState } from "react";
-import { solicitud } from "../types/solicitudes";
-import { createSolicitud } from "../services/solicitudes";
+// src/app/admin/Billing/hooks/useCreateSolicitud.ts
+'use client';
 
-type UseCreateOptions = {
-  onSuccess?: (s: solicitud) => void;
-  onError?: (e: unknown) => void;
+import { useCallback, useState } from "react";
+import { createSolicitud, type CreateSolicitudPayload } from "../services/solicitudes";
+
+type UseCreateOptions<T = any> = {
+  onSuccess?: (created: T) => void;
+  onError?: (e: Error) => void;
 };
 
-export function useCreateSolicitud(opts: UseCreateOptions = {}) {
-  const [data, setData] = useState<solicitud | null>(null);
+export function useCreateSolicitud<T = any>(opts: UseCreateOptions<T> = {}) {
+  const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const create = useCallback(
-    async (payload: solicitud) => {
+    async (payload: CreateSolicitudPayload) => {
       setLoading(true);
       setError(null);
       try {
         const res = await createSolicitud(payload);
         setData(res);
         opts.onSuccess?.(res);
-        return res;
+        return res as T;
       } catch (e) {
-        setError(e);
-        opts.onError?.(e);
-        throw e;
+        const err = e instanceof Error ? e : new Error("Unexpected error");
+        setError(err);
+        opts.onError?.(err);
+        throw err;
       } finally {
         setLoading(false);
       }
