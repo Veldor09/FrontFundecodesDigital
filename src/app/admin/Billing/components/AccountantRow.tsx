@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 export default function AccountantRow({
   req,
   onValidate,
-  onReturnClick, // <- ahora solo abre modal
+  onReturnClick, 
 }: {
   req: { id: number | string; concept?: string; program?: string; amount?: number | null };
   onValidate: () => void;
