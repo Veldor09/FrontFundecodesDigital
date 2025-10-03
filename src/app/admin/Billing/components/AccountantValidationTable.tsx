@@ -1,196 +1,128 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ShieldCheck, Undo2, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { Program } from "../types/billing.types";
+import AccountantRow from "./AccountantRow";
+import TextPromptModal from "./TextPromptModal";
+import {
+  fetchSolicitudes,
+  validateSolicitud,
+  returnSolicitud,
+  type SolicitudListItem,
+} from "../services/solicitudes";
 
-/** Tipo mínimo que la tabla necesita (independiente de PurchaseRequest) */
-type Row = {
-  id: string;
-  concept: string;
-  programId: string;
-  amount: number;
-  currency: "CRC" | "USD";
-  status: "approved" | "validated" | "rejected";
-};
-
-function NoteModal({
-  open,
-  title,
-  placeholder = "Escribe una nota (opcional)",
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  loading = false,
-  onConfirm,
+function LocalAlert({
+  kind,
+  text,
   onClose,
 }: {
-  open: boolean;
-  title: string;
-  placeholder?: string;
-  confirmText?: string;
-  cancelText?: string;
-  loading?: boolean;
-  onConfirm: (note: string) => void;
+  kind: "success" | "error";
+  text: string;
   onClose: () => void;
 }) {
-  const [note, setNote] = useState("");
-  useEffect(() => {
-    if (open) setNote("");
-  }, [open]);
-  if (!open) return null;
+  const base = "flex items-start gap-2 rounded-md border px-3 py-2 text-sm";
+  const styles =
+    kind === "success"
+      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+      : "bg-red-50 border-red-200 text-red-800";
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white shadow-xl border border-slate-200">
-        <div className="p-4 border-b border-slate-200">
-          <h3 className="text-base font-semibold text-slate-800">{title}</h3>
-        </div>
-        <div className="p-4 space-y-3">
-          <textarea
-            className="w-full rounded-md border p-2 text-sm"
-            rows={4}
-            value={note}
-            placeholder={placeholder}
-            onChange={(e) => setNote(e.target.value)}
-          />
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="rounded-md border px-3 py-1.5 text-sm"
-              onClick={onClose}
-              disabled={loading}
-            >
-              {cancelText}
-            </button>
-            <button
-              type="button"
-              className="rounded-md bg-amber-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-              onClick={() => onConfirm(note)}
-              disabled={loading}
-            >
-              {loading ? "Procesando..." : confirmText}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className={`${base} ${styles}`}>
+      <div className="font-medium">{kind === "success" ? "Éxito" : "Error"}</div>
+      <div className="flex-1">{text}</div>
+      <button className="opacity-70 hover:opacity-100" onClick={onClose}>
+        ×
+      </button>
     </div>
   );
 }
 
-/* --- MOCKS --- */
-const MOCK_PROGRAMS: Program[] = [
-  { id: "PRJ-001", name: "Plataforma Hogar de Libros" } as Program,
-  { id: "PRJ-002", name: "Módulo Voluntariado FUNDECODES" } as Program,
-];
-
-const MOCK_REQUESTS: Row[] = [
-  {
-    id: "REQ-001",
-    concept: "Insumos para vivero",
-    programId: "PRJ-001",
-    amount: 150000,
-    currency: "CRC",
-    status: "validated",
-  },
-  {
-    id: "REQ-002",
-    concept: "Capacitación de voluntarios",
-    programId: "PRJ-002",
-    amount: 250,
-    currency: "USD",
-    status: "approved",
-  },
-  {
-    id: "REQ-003",
-    concept: "Herramientas de jardinería",
-    programId: "PRJ-001",
-    amount: 82000,
-    currency: "CRC",
-    status: "rejected",
-  },
-];
+const normalize = (s?: string | null) => (s ?? "").toString().trim().toUpperCase();
 
 export default function AccountantValidationTable() {
-  const [items, setItems] = useState<Row[]>([]);
-  const [programs, setPrograms] = useState<Program[]>([]);
+  // AHORA: solo PENDIENTE (las DEVUELTA ya no se muestran)
+  const ACCOUNTANT_STATES = new Set(["PENDIENTE"]);
+
+  // límites para justificación de devolución
+  const RETURN_MIN = 5;
+  const RETURN_MAX = 300;
+
+  const [items, setItems] = useState<SolicitudListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
 
-  // modal devolver
-  const [returnOpen, setReturnOpen] = useState(false);
-  const [returnId, setReturnId] = useState<string | null>(null);
-  const [returnBusy, setReturnBusy] = useState(false);
+  // modal estado
+  const [showReturn, setShowReturn] = useState(false);
+  const [targetId, setTargetId] = useState<number | null>(null);
 
-  // carga simulada
-  useEffect(() => {
+  const openReturn = (id: number) => { setTargetId(id); setShowReturn(true); };
+  const closeReturn = () => { setShowReturn(false); setTargetId(null); };
+
+  const load = useCallback(async () => {
     setLoading(true);
-    const t = setTimeout(() => {
-      setPrograms(MOCK_PROGRAMS);
-      setItems(MOCK_REQUESTS);
+    try {
+      // pedimos al back ya filtrado (si el back aún no filtra, igual abajo filtramos)
+      const data = await fetchSolicitudes({ estado: "PENDIENTE" });
+      setItems(Array.isArray(data) ? data : []);
+    } catch (e) {
+      // fallback: traer todo y filtrar acá si quieres; por sencillez mostramos error
+      setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cargar." });
+      setItems([]);
+    } finally {
       setLoading(false);
-    }, 300);
-    return () => clearTimeout(t);
+    }
   }, []);
 
-  const programName = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of programs) map.set(p.id, p.name);
-    return (pid?: string) => (pid ? map.get(pid) ?? pid : "—");
-  }, [programs]);
+  useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => {
+  const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((r) =>
-      [r.concept, programName(r.programId)]
-        .filter(Boolean)
-        .some((t) => (t as string).toLowerCase().includes(q))
-    );
-  }, [items, search, programName]);
-
-  // Mantener estados en inglés
-  const validateOne = (id: string) => {
-    setLoadingAction(id);
-    setTimeout(() => {
-      setItems((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "approved" } : r))
+    return items
+      .filter((r) => ACCOUNTANT_STATES.has(normalize(r.estado)))
+      .filter((r) =>
+        q
+          ? [r.titulo, r.descripcion].some((t) => (t ?? "").toLowerCase().includes(q))
+          : true
       );
-      setLoadingAction(null);
-    }, 400);
+  }, [items, search]);
+
+  const handleValidate = async (id: number) => {
+    try {
+      await validateSolicitud(id); // -> VALIDADA
+      await load(); // recarga para que desaparezca de la bandeja
+      setAlert({ kind: "success", text: "Solicitud validada. Pasó a Dirección." });
+    } catch (e) {
+      setAlert({ kind: "error", text: e instanceof Error ? e.message : "Error al validar." });
+    }
   };
 
-  const openReturn = (id: string) => {
-    setReturnId(id);
-    setReturnOpen(true);
-  };
-
-  const doReturn = (_note: string) => {
-    if (!returnId) return;
-    setReturnBusy(true);
-    setTimeout(() => {
-      setItems((prev) =>
-        prev.map((r) => (r.id === returnId ? { ...r, status: "rejected" } : r))
-      );
-      setReturnOpen(false);
-      setReturnId(null);
-      setReturnBusy(false);
-    }, 400);
+  const handleReturnSubmit = async (note: string) => {
+    if (targetId == null) return;
+    try {
+      await returnSolicitud(targetId, note); // -> DEVUELTA
+      await load(); // recarga para que desaparezca de la bandeja
+      setAlert({ kind: "success", text: "Solicitud devuelta con justificación." });
+    } catch (e) {
+      setAlert({ kind: "error", text: e instanceof Error ? e.message : "Error al devolver." });
+    } finally {
+      closeReturn();
+    }
   };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-6">
+      {alert && <LocalAlert {...alert} onClose={() => setAlert(null)} />}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Validación de Solicitudes</h2>
-          <p className="text-sm text-slate-500">Solicitudes pendientes de validación</p>
         </div>
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             className="pl-10"
-            placeholder="Buscar por concepto o programa"
+            placeholder="Buscar por título o descripción"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -199,85 +131,45 @@ export default function AccountantValidationTable() {
 
       {loading ? (
         <p className="text-sm text-slate-500">Cargando…</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-sm text-slate-500">No hay solicitudes.</p>
+      ) : visible.length === 0 ? (
+        <p className="text-sm text-slate-500">No hay solicitudes pendientes.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm border border-slate-200 rounded-lg">
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Concepto</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Programa</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Monto</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Estado</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-3">{r.id}</td>
-                  <td className="px-4 py-3">{r.concept}</td>
-                  <td className="px-4 py-3">{programName(r.programId)}</td>
-                  <td className="px-4 py-3">
-                    {r.currency === "USD"
-                      ? `$${r.amount.toLocaleString()}`
-                      : `₡${r.amount.toLocaleString()}`}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        r.status === "approved"
-                          ? "bg-green-100 text-green-700"
-                          : r.status === "validated"
-                          ? "bg-blue-100 text-blue-700"
-                          : r.status === "rejected"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => validateOne(r.id)}
-                        disabled={loadingAction === r.id}
-                      >
-                        <ShieldCheck className="h-4 w-4 mr-1" />
-                        {loadingAction === r.id ? "Validando..." : "Validar"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-amber-700 border-amber-300 hover:bg-amber-50"
-                        onClick={() => openReturn(r.id)}
-                        disabled={loadingAction === r.id}
-                      >
-                        <Undo2 className="h-4 w-4 mr-1" />
-                        Devolver
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+              {visible.map((r) => (
+                <AccountantRow
+                  key={r.id}
+                  req={{ id: r.id, concept: r.titulo, program: undefined, amount: null }}
+                  onValidate={() => handleValidate(r.id)}
+                  onReturnClick={() => openReturn(r.id)}
+                />
               ))}
             </tbody>
           </table>
         </div>
       )}
 
-      <NoteModal
-        open={returnOpen}
+      {/* Modal de justificación: devolver */}
+      <TextPromptModal
+        open={showReturn}
         title="Devolver solicitud"
-        placeholder="Indique el motivo para devolver la solicitud"
-        confirmText="Devolver"
-        onConfirm={doReturn}
-        onClose={() => setReturnOpen(false)}
-        loading={returnBusy}
+        label="Escribe la justificación de la devolución"
+        placeholder="Ej. Falta documento de soporte, monto no coincide, etc."
+        minLen={RETURN_MIN}
+        maxLen={RETURN_MAX}
+        submitText="Devolver"
+        onSubmit={handleReturnSubmit}
+        onClose={closeReturn}
       />
     </div>
   );
