@@ -16,9 +16,8 @@ export default function Header() {
   const menuItems = [
     { name: "Home", href: "/landing" },
     { name: "Proyectos", href: "#proyectos" },
-    { name: "Aliados", href: "#aliados" },
     { name: "Voluntariado", href: "/PagInfo/Voluntariado" },
-    { name: "Contacto", href: "#footer" },
+    { name: "Contáctenos", href: "/PagInfo/Contactenos" },
   ];
 
   return (
