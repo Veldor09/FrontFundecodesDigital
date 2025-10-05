@@ -1,12 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import ContactForm from "./ContactForm";
 
 export default function Footer() {
-  const [showModal, setShowModal] = useState(false);
-
   return (
     <footer id="footer" className="bg-gray-800 text-white py-8 mt-12">
       <div className="container mx-auto px-4">
@@ -21,13 +17,7 @@ export default function Footer() {
 
           {/* Columna 2 */}
           <div>
-            {/* Botón que abre el modal */}
-              <Button
-                onClick={() => setShowModal(true)}
-                className="text-lg font-semibold font-modern px-4 py-2 rounded-lg border border-transparent text-gray-300 transition-all duration-300 bg-transparent hover:bg-gradient-to-r hover:from-lime-500 hover:to-green-500 hover:text-white shadow-sm"
-                >
-                Contactar
-                </Button>
+            <h3 className="text-lg font-semibold mb-4 font-modern">Contacto</h3>
             <div className="space-y-2 text-gray-300 font-modern">
               <p>
                 📧{" "}
@@ -41,7 +31,7 @@ export default function Footer() {
               <p>
                 📞{" "}
                 <a
-                  href="tel:+506 8670 3535"
+                  href="tel:+50686703535"
                   className="hover:underline text-blue-400"
                 >
                   86703535
@@ -58,17 +48,15 @@ export default function Footer() {
                   Guanacaste, Hojancha, Barrio Alto del Cementerio
                 </a>
               </p>
-
-              
             </div>
           </div>
 
-         {/* Columna 3 */}
+          {/* Columna 3 */}
           <div>
             <h3 className="text-lg font-semibold mb-4 font-modern">Síguenos</h3>
             <div className="flex space-x-4">
               <a
-                href="https://www.facebook.com/profile.php?id=100064332054124&locale=es_LA "
+                href="https://www.facebook.com/profile.php?id=100064332054124&locale=es_LA"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group"
@@ -79,7 +67,7 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://www.instagram.com/hojanchafundecodes?igsh=cGl4aDBtNjY1Mnp1 "
+                href="https://www.instagram.com/hojanchafundecodes?igsh=cGl4aDBtNjY1Mnp1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group"
@@ -90,7 +78,7 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://www.youtube.com "
+                href="https://www.youtube.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group"
@@ -110,32 +98,6 @@ export default function Footer() {
           </p>
         </div>
       </div>
-
-      {/* Modal emergente */}
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-lg"
-            onClick={(e) => e.stopPropagation()} // evita cerrar al clickear dentro
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">Contactar</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-red-600"
-              >
-                ✕
-              </Button>
-            </div>
-            <ContactForm />
-          </div>
-        </div>
-      )}
     </footer>
   );
 }
