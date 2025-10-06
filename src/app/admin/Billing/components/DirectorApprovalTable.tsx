@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DirectorRow from "./DirectorRow";
 import TextPromptModal from "./TextPromptModal";
+import RequestViewModal from "./RequestViewModal";
 import {
   fetchSolicitudes,
   approveSolicitud,
@@ -42,7 +43,6 @@ const normalize = (s?: string) => (s ?? "").toString().trim().toUpperCase();
 export default function DirectorApprovalTable() {
   const DIRECTOR_STATES = new Set(["VALIDADA"]);
 
-  // límites para motivo de rechazo
   const REJECT_MIN = 5;
   const REJECT_MAX = 300;
 
@@ -51,17 +51,24 @@ export default function DirectorApprovalTable() {
   const [alert, setAlert] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
 
-  // modal estado
+  // modal rechazo
   const [showReject, setShowReject] = useState(false);
   const [targetId, setTargetId] = useState<number | null>(null);
+
+  // modal detalle
+  const [openView, setOpenView] = useState(false);
+  const [viewId, setViewId] = useState<number | null>(null);
 
   const openReject = (id: number) => { setTargetId(id); setShowReject(true); };
   const closeReject = () => { setShowReject(false); setTargetId(null); };
 
+  const openDetails = (id: number) => { setViewId(id); setOpenView(true); };
+  const closeDetails = () => { setOpenView(false); setViewId(null); };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchSolicitudes();
+      const data = await fetchSolicitudes(); // traemos todas y filtramos abajo
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cargar." });
@@ -86,7 +93,7 @@ export default function DirectorApprovalTable() {
   const openApprove = async (id: number) => {
     try {
       await approveSolicitud(id);
-      await load();
+      await load(); // desaparece de la bandeja
       setAlert({ kind: "success", text: "Solicitud aprobada." });
     } catch (e) {
       setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo aprobar." });
@@ -97,7 +104,7 @@ export default function DirectorApprovalTable() {
     if (targetId == null) return;
     try {
       await rejectSolicitud(targetId, obs);
-      await load();
+      await load(); // desaparece de la bandeja
       setAlert({ kind: "success", text: "Solicitud rechazada." });
     } catch (e) {
       setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo rechazar." });
@@ -149,6 +156,7 @@ export default function DirectorApprovalTable() {
                   req={{ id: r.id, concept: r.titulo, program: undefined, amount: null }}
                   onApprove={() => openApprove(r.id)}
                   onRejectClick={() => openReject(r.id)}
+                  onViewClick={() => openDetails(r.id)}
                 />
               ))}
             </tbody>
@@ -156,7 +164,7 @@ export default function DirectorApprovalTable() {
         </div>
       )}
 
-      {/* Modal de motivo: rechazo */}
+      {/* Modal motivo: rechazo */}
       <TextPromptModal
         open={showReject}
         title="Rechazar solicitud"
@@ -168,6 +176,11 @@ export default function DirectorApprovalTable() {
         onSubmit={handleRejectSubmit}
         onClose={closeReject}
       />
+
+      {/* Modal de detalle (ver adjuntos, motivo, etc.) */}
+      {openView && viewId != null && (
+        <RequestViewModal open={openView} solicitudId={viewId} onClose={closeDetails} />
+      )}
     </div>
   );
 }

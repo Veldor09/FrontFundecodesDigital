@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import AccountantRow from "./AccountantRow";
 import TextPromptModal from "./TextPromptModal";
+import RequestViewModal from "./RequestViewModal";
 import {
   fetchSolicitudes,
   validateSolicitud,
@@ -40,10 +41,8 @@ function LocalAlert({
 const normalize = (s?: string | null) => (s ?? "").toString().trim().toUpperCase();
 
 export default function AccountantValidationTable() {
-  // AHORA: solo PENDIENTE (las DEVUELTA ya no se muestran)
-  const ACCOUNTANT_STATES = new Set(["PENDIENTE"]);
+  const ACCOUNTANT_STATES = new Set(["PENDIENTE"]); // solo pendientes
 
-  // límites para justificación de devolución
   const RETURN_MIN = 5;
   const RETURN_MAX = 300;
 
@@ -52,21 +51,26 @@ export default function AccountantValidationTable() {
   const [alert, setAlert] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
 
-  // modal estado
+  // modal devolución
   const [showReturn, setShowReturn] = useState(false);
   const [targetId, setTargetId] = useState<number | null>(null);
+
+  // modal detalle
+  const [openView, setOpenView] = useState(false);
+  const [viewId, setViewId] = useState<number | null>(null);
 
   const openReturn = (id: number) => { setTargetId(id); setShowReturn(true); };
   const closeReturn = () => { setShowReturn(false); setTargetId(null); };
 
+  const openDetails = (id: number) => { setViewId(id); setOpenView(true); };
+  const closeDetails = () => { setOpenView(false); setViewId(null); };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // pedimos al back ya filtrado (si el back aún no filtra, igual abajo filtramos)
       const data = await fetchSolicitudes({ estado: "PENDIENTE" });
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
-      // fallback: traer todo y filtrar acá si quieres; por sencillez mostramos error
       setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cargar." });
       setItems([]);
     } finally {
@@ -89,11 +93,10 @@ export default function AccountantValidationTable() {
 
   const handleValidate = async (id: number) => {
     try {
-      await validateSolicitud(id); // -> VALIDADA
-      await load(); // recarga para que desaparezca de la bandeja
+      await validateSolicitud(id);
+    } finally {
+      await load(); // desaparece de la bandeja
       setAlert({ kind: "success", text: "Solicitud validada. Pasó a Dirección." });
-    } catch (e) {
-      setAlert({ kind: "error", text: e instanceof Error ? e.message : "Error al validar." });
     }
   };
 
@@ -101,12 +104,11 @@ export default function AccountantValidationTable() {
     if (targetId == null) return;
     try {
       await returnSolicitud(targetId, note); // -> DEVUELTA
-      await load(); // recarga para que desaparezca de la bandeja
-      setAlert({ kind: "success", text: "Solicitud devuelta con justificación." });
-    } catch (e) {
-      setAlert({ kind: "error", text: e instanceof Error ? e.message : "Error al devolver." });
     } finally {
-      closeReturn();
+      await load(); // desaparece de la bandeja
+      setShowReturn(false);
+      setTargetId(null);
+      setAlert({ kind: "success", text: "Solicitud devuelta con justificación." });
     }
   };
 
@@ -152,6 +154,7 @@ export default function AccountantValidationTable() {
                   req={{ id: r.id, concept: r.titulo, program: undefined, amount: null }}
                   onValidate={() => handleValidate(r.id)}
                   onReturnClick={() => openReturn(r.id)}
+                  onViewClick={() => openDetails(r.id)}
                 />
               ))}
             </tbody>
@@ -171,6 +174,11 @@ export default function AccountantValidationTable() {
         onSubmit={handleReturnSubmit}
         onClose={closeReturn}
       />
+
+      {/* Modal de detalle (ver adjuntos, motivo, etc.) */}
+      {openView && viewId != null && (
+        <RequestViewModal open={openView} solicitudId={viewId} onClose={closeDetails} />
+      )}
     </div>
   );
 }

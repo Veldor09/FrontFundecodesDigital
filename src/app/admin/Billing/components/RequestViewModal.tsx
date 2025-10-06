@@ -43,7 +43,27 @@ function getNiceFileName(a: any, index: number) {
   return `archivo-${a?.id ?? index + 1}`;
 }
 
-/** Acepta null también para evitar TS2345 */
+function getUrl(a: any): string | null {
+  if (typeof a?.url === 'string' && a.url) return a.url;
+  if (typeof a?.path === 'string' && a.path.startsWith('http')) return a.path;
+  return null;
+}
+
+function isPdf(a: any): boolean {
+  const m = (a?.mimetype ?? a?.mime ?? '').toString().toLowerCase();
+  if (m === 'application/pdf') return true;
+  const url = getUrl(a) ?? '';
+  return /\.pdf($|\?|\#)/i.test(url);
+}
+
+function isImage(a: any): boolean {
+  const m = (a?.mimetype ?? a?.mime ?? '').toString().toLowerCase();
+  if (m.startsWith('image/')) return true;
+  const url = getUrl(a) ?? '';
+  return /\.(png|jpe?g|webp)($|\?|\#)/i.test(url);
+}
+
+/** Acepta null también para evitar TS issues */
 function normalize(s?: string | null) {
   return (s ?? '').toString().trim().toUpperCase();
 }
@@ -69,7 +89,6 @@ function extractReasonFromDetail(data: any): string | null {
   );
 }
 
-/** Primer parámetro acepta null | undefined para evitar TS2345 */
 function extractReasonFromHistory(
   estado: string | null | undefined,
   history: HistEvent[]
@@ -77,24 +96,26 @@ function extractReasonFromHistory(
   if (!Array.isArray(history) || history.length === 0) return null;
   const target = normalize(estado);
 
-  // registro más reciente con ese estado y comentario
   const matchByState = history.find(
     (h) => normalize(h.estado ?? null) === target && (h.comentario ?? '').trim()
   );
   if (matchByState?.comentario) return matchByState.comentario.trim();
 
-  // o cualquier comentario más reciente
   const anyComment = history.find((h) => (h.comentario ?? '').trim());
   return anyComment?.comentario?.trim() ?? null;
 }
 
-/** Acepta null también */
 function reasonLabel(estado?: string | null) {
   const e = normalize(estado);
   if (e === 'DEVUELTA') return 'Motivo de devolución';
   if (e === 'RECHAZADA') return 'Motivo de rechazo';
   return 'Observaciones';
 }
+
+type Preview =
+  | { kind: 'image'; name: string; url: string }
+  | { kind: 'pdf'; name: string; url: string }
+  | { kind: 'other'; name: string; url: string | null };
 
 export default function RequestViewModal({ open, solicitudId, onClose }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -105,6 +126,8 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
 
   const [history, setHistory] = useState<HistEvent[] | null>(null);
   const [historyErr, setHistoryErr] = useState<string | null>(null);
+
+  const [preview, setPreview] = useState<Preview | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -120,11 +143,12 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
       setErrorMsg(null);
       setHistory(null);
       setHistoryErr(null);
+      setPreview(null);
       try {
         const d = await fetchSolicitud(solicitudId);
         setData(d);
 
-        const estado = d?.estado ?? null; // <- puede ser null
+        const estado = d?.estado ?? null;
         const hasInlineReason = !!extractReasonFromDetail(d);
         if (!hasInlineReason && (normalize(estado) === 'DEVUELTA' || normalize(estado) === 'RECHAZADA')) {
           try {
@@ -156,12 +180,18 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
     if (e.target === dialogRef.current) onClose();
   };
 
+  const openPreviewFor = (a: any, idx: number) => {
+    const name = getNiceFileName(a, idx);
+    const url = getUrl(a);
+    if (isImage(a) && url) return setPreview({ kind: 'image', name, url });
+    if (isPdf(a) && url) return setPreview({ kind: 'pdf', name, url });
+    return setPreview({ kind: 'other', name, url: url ?? null });
+  };
+
   if (!open) return null;
 
-  const estado = data?.estado ?? null; // <- puede ser null
-  // 1) intentar desde el detalle
+  const estado = data?.estado ?? null;
   let reason = data ? extractReasonFromDetail(data as any) : null;
-  // 2) fallback: desde historial
   if (!reason && history) {
     reason = extractReasonFromHistory(estado, history);
   }
@@ -175,7 +205,7 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
       aria-modal="true"
       role="dialog"
     >
-      <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-lg">
+      <div className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-lg">
         <div className="mb-2 flex items-start justify-between">
           <h2 className="text-lg font-semibold">Detalle de solicitud</h2>
           <button
@@ -195,33 +225,36 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
         ) : !data ? (
           <div className="py-8 text-center text-sm text-slate-600">Sin datos</div>
         ) : (
-          <div className="space-y-4">
-            <div>
-              <div className="text-xs uppercase text-slate-500">Título</div>
-              <div className="text-slate-800">{data.titulo}</div>
+          <div className="space-y-5">
+            {/* datos base */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <div className="text-xs uppercase text-slate-500">Título</div>
+                  <div className="text-slate-800">{data.titulo}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-slate-500">Descripción</div>
+                  <div className="whitespace-pre-wrap text-slate-800">{data.descripcion}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs uppercase text-slate-500">Estado</div>
+                  <div className="text-slate-800">{estado ?? 'PENDIENTE'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-slate-500">Creada</div>
+                  <div className="text-slate-800">{formatDate(data.createdAt)}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-slate-500">Solicitante</div>
+                  <div className="text-slate-800">{data.usuario?.nombre ?? '—'}</div>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <div className="text-xs uppercase text-slate-500">Descripción</div>
-              <div className="whitespace-pre-wrap text-slate-800">{data.descripcion}</div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs uppercase text-slate-500">Estado</div>
-                <div className="text-slate-800">{estado ?? 'PENDIENTE'}</div>
-              </div>
-              <div>
-                <div className="text-xs uppercase text-slate-500">Creada</div>
-                <div className="text-slate-800">{formatDate(data.createdAt)}</div>
-              </div>
-
-              <div>
-                <div className="text-xs uppercase text-slate-500">Solicitante</div>
-                <div className="text-slate-800">{data.usuario?.nombre ?? '—'}</div>
-              </div>
-            </div>
-
+            {/* motivo */}
             {showReason && (
               <div>
                 <div className="text-xs uppercase text-slate-500">{reasonLabel(estado)}</div>
@@ -234,17 +267,26 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
               </div>
             )}
 
+            {/* adjuntos + visor */}
             {Array.isArray((data as any).archivos) && (data as any).archivos.length > 0 && (
-              <div>
+              <div className="space-y-2">
                 <div className="text-xs uppercase text-slate-500">Adjuntos</div>
-                <ul className="mt-1 list-inside list-disc text-sm">
+                <ul className="space-y-1 text-sm">
                   {(data as any).archivos.map((a: any, i: number) => {
                     const name = getNiceFileName(a, i);
-                    const href = a?.url ?? '#';
-                    const downloadable = typeof a?.url === 'string' && !!a.url;
+                    const href = getUrl(a);
+                    const canOpen = isImage(a) || isPdf(a);
                     return (
-                      <li key={`${name}-${i}`}>
-                        {downloadable ? (
+                      <li key={`${name}-${i}`} className="flex items-center gap-2">
+                        {canOpen && href ? (
+                          <button
+                            type="button"
+                            className="text-blue-600 hover:underline"
+                            onClick={() => openPreviewFor(a, i)}
+                          >
+                            {name}
+                          </button>
+                        ) : href ? (
                           <a
                             href={href}
                             target="_blank"
@@ -256,15 +298,75 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
                         ) : (
                           <span>{name}</span>
                         )}
-                        {typeof a?.size === 'number' && (
-                          <span className="ml-2 text-xs text-slate-500">
-                            ({Math.round(a.size / 1024)} KB)
-                          </span>
+                        {href && (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-slate-500 hover:underline"
+                          >
+                            Abrir original ↗
+                          </a>
                         )}
                       </li>
                     );
                   })}
                 </ul>
+
+                {preview && (
+                  <div className="mt-3 rounded-lg border bg-slate-50 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-sm font-medium text-slate-700">
+                        Vista previa: <span className="font-normal">{preview.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-md border px-2 py-1 text-xs hover:bg-white"
+                        onClick={() => setPreview(null)}
+                      >
+                        Cerrar visor
+                      </button>
+                    </div>
+
+                    {preview.kind === 'image' && (
+                      <div className="flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={preview.url}
+                          alt={preview.name}
+                          className="max-h-[60vh] w-auto rounded-md shadow"
+                        />
+                      </div>
+                    )}
+
+                    {preview.kind === 'pdf' && (
+                      <iframe
+                        title={preview.name}
+                        src={`${preview.url}#toolbar=1`}
+                        className="h-[60vh] w-full rounded-md bg-white"
+                      />
+                    )}
+
+                    {preview.kind === 'other' && (
+                      <div className="text-sm text-slate-600">
+                        No hay visor embebido disponible para este tipo de archivo.
+                        {preview.url && (
+                          <>
+                            {' '}
+                            <a
+                              href={preview.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              Abrir original ↗
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
