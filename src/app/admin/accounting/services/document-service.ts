@@ -1,54 +1,83 @@
 import type { Document } from "../types"
 
-// Mock data for documents
-const mockDocumentData: Document[] = [
-  {
-    id: "1",
-    nombre: "Factura_Enero_2024.pdf",
-    programa: "Educación",
-    mes: "Enero",
-    año: 2024,
-    tipo: "PDF",
-    tamaño: 245760,
-    url: "/documents/factura_enero_2024.pdf",
-    fechaSubida: new Date("2024-01-15"),
-  },
-]
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+const monthNameToNumber = (name: string) => MONTHS.indexOf(name) + 1
+
+async function findProjectIdByTitle(title: string): Promise<number> {
+  const res = await fetch(`${API}/projects`, { credentials: "include" })
+  if (!res.ok) throw new Error("No se pudieron obtener proyectos")
+  const projects = await res.json() as Array<{ id: number; title: string }>
+  const match = projects.find(p => (p.title ?? "").toLowerCase() === title.toLowerCase())
+  if (!match) throw new Error("Proyecto no encontrado: " + title)
+  return match.id
+}
+
+function mimeToTipo(mime: string): string {
+  if (mime.includes("pdf")) return "PDF"
+  if (mime.includes("sheet")) return "Excel"
+  if (mime.includes("image")) return "Imagen"
+  return "Archivo"
+}
+
+function mapFromApi(x: any): Document {
+  return {
+    id: x.id,
+    nombre: x.nombre,
+    programa: x.proyecto,                    // UI mantiene "programa"
+    mes: MONTHS[Number(x.mes) - 1] ?? "",
+    año: Number(x.anio),
+    tipo: mimeToTipo(x.tipoMime),
+    tamaño: Number(x.bytes),
+    url: `${API}${x.url}`,                   // asegura descarga correcta desde backend
+    fechaSubida: x.createdAt ? new Date(x.createdAt) : new Date(),
+  }
+}
 
 export class DocumentService {
-  static async getDocuments(filters?: any): Promise<Document[]> {
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    let filteredData = [...mockDocumentData]
-
+  static async getDocuments(filters?: { programa?: string; mes?: string; anio?: number }): Promise<Document[]> {
+    const p = new URLSearchParams()
     if (filters?.programa) {
-      filteredData = filteredData.filter((item) => item.programa.toLowerCase().includes(filters.programa.toLowerCase()))
+      try {
+        const pid = await findProjectIdByTitle(filters.programa)
+        p.set("projectId", String(pid))
+      } catch {/* ignora si no existe */}
     }
+    if (filters?.mes) p.set("mes", String(monthNameToNumber(filters.mes)))
+    if (filters?.anio) p.set("anio", String(filters.anio))
 
-    if (filters?.mes) {
-      filteredData = filteredData.filter((item) => item.mes === filters.mes)
-    }
-
-    return filteredData
+    const res = await fetch(`${API}/contabilidad/documentos?${p.toString()}`, { credentials: "include" })
+    if (!res.ok) throw new Error("Error al obtener documentos")
+    const data = await res.json()
+    return (data as any[]).map(mapFromApi)
   }
 
   static async uploadDocument(
     file: File,
     metadata: Omit<Document, "id" | "url" | "fechaSubida" | "tamaño" | "tipo">,
   ): Promise<Document> {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const projectId = await findProjectIdByTitle(metadata.programa)
+    const form = new FormData()
+    form.append("file", file)
+    form.append("projectId", String(projectId))
+    form.append("proyecto", metadata.programa)            // backend espera "proyecto"
+    form.append("mes", String(monthNameToNumber(metadata.mes)))
+    form.append("anio", String(metadata.año))
 
-    const newDocument: Document = {
-      ...metadata,
-      id: Date.now().toString(),
-      nombre: file.name,
-      tipo: file.type,
-      tamaño: file.size,
-      url: `/documents/${file.name}`,
-      fechaSubida: new Date(),
-    }
+    const res = await fetch(`${API}/contabilidad/documentos/upload`, {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    })
+    if (!res.ok) throw new Error("Error al subir documento")
+    return mapFromApi(await res.json())
+  }
 
-    mockDocumentData.push(newDocument)
-    return newDocument
+  static async deleteDocument(id: string): Promise<void> {
+    const res = await fetch(`${API}/contabilidad/documentos/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+    if (!res.ok) throw new Error("Error al eliminar documento")
   }
 }
