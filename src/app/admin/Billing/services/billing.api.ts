@@ -1,6 +1,6 @@
 // src/app/admin/Billing/services/billing.api.ts
-// Service para MockAPI con SOLO 2 resources: /programs y /requests
-// La factura final (Task 294) se guarda embebida en requests.finalInvoice
+// Service con endpoints reales sin MockAPI
+// Incluye soporte para comentarioContadora y comentarioDirector
 
 import type {
   Program,
@@ -13,8 +13,6 @@ import type {
 /* ===============================
    Config
    =============================== */
-const BASE = "https://68d5f077e29051d1c0b00425.mockapi.io";
-
 const ENDPOINTS = {
   programs: "/programs",
   requests: "/requests",
@@ -33,22 +31,25 @@ async function http<T>(
     query?: Record<string, string | number | boolean | undefined>;
   }
 ): Promise<T> {
-  const url = new URL(BASE + path);
+  const url = new URL(path, window.location.origin); // 🔹 usa tu dominio base actual
   if (opts?.query) {
     Object.entries(opts.query).forEach(([k, v]) => {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
     });
   }
+
   const res = await fetch(url.toString(), {
     method: opts?.method ?? "GET",
     headers: { "Content-Type": "application/json" },
     body: opts?.body ? JSON.stringify(opts.body) : undefined,
     cache: "no-store",
   });
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(text || `HTTP ${res.status} ${res.statusText}`);
   }
+
   return (await res.json()) as T;
 }
 
@@ -65,17 +66,18 @@ function toUiRequest(x: any): PurchaseRequest {
     amount: Number(x.amount ?? 0),
     concept: x.concept ?? "",
     programId: x.programId ?? "",
-    reason: x.reason ?? "",
     draftInvoiceUrl: x.draftInvoiceUrl ?? undefined,
     status: (x.status as RequestStatus) ?? "pending",
     createdBy: x.createdBy ?? "me",
     history: Array.isArray(x.history) ? x.history : [],
+    comentarioContadora: x.comentarioContadora ?? "",
+    comentarioDirector: x.comentarioDirector ?? "",
   };
 }
 
 function toUiInvoiceFromRequest(x: any): FinalInvoice {
   return {
-    id: String(x.id), // usamos el id de la solicitud como id lógico de la factura
+    id: String(x.id),
     requestId: String(x.id),
     number: x.finalInvoice.number,
     date: x.finalInvoice.date,
@@ -87,18 +89,18 @@ function toUiInvoiceFromRequest(x: any): FinalInvoice {
 }
 
 function fromUiRequest(input: Partial<PurchaseRequest>) {
-  // No enviamos null para draftInvoiceUrl (solo incluimos si viene)
   return {
     amount: input.amount,
     concept: input.concept,
     programId: input.programId,
-    reason: input.reason,
     ...(input.draftInvoiceUrl !== undefined && {
       draftInvoiceUrl: input.draftInvoiceUrl,
     }),
     status: input.status,
     createdBy: input.createdBy,
     history: input.history ?? [],
+    comentarioContadora: input.comentarioContadora ?? "",
+    comentarioDirector: input.comentarioDirector ?? "",
   };
 }
 
@@ -112,14 +114,15 @@ export const BillingApi = {
     return data.map(toUiProgram);
   },
 
-  /* ---------- Solicitudes (Backlog #1) ---------- */
+  /* ---------- Solicitudes ---------- */
   async createPurchaseRequest(input: {
     amount: number;
     concept: string;
     programId: string;
-    reason: string;
-    draftInvoiceUrl?: string; // opcional (adjunto preliminar)
-    createdBy?: string;       // para "Mis solicitudes"
+    draftInvoiceUrl?: string;
+    createdBy?: string;
+    comentarioContadora?: string;
+    comentarioDirector?: string;
   }): Promise<PurchaseRequest> {
     const payload = fromUiRequest({
       ...input,
@@ -133,6 +136,7 @@ export const BillingApi = {
         },
       ],
     });
+
     const created = await http<any>(ENDPOINTS.requests, {
       method: "POST",
       body: payload,
@@ -140,7 +144,6 @@ export const BillingApi = {
     return toUiRequest(created);
   },
 
-  // Robusto: si el filtro por query falla, hace fallback a traer todo y filtrar en cliente
   async listMyRequests(params?: { createdBy?: string }): Promise<PurchaseRequest[]> {
     const by = params?.createdBy;
     try {
@@ -155,7 +158,6 @@ export const BillingApi = {
     }
   },
 
-  // Robusto: intenta ?status=... y si falla, trae todo y filtra
   async listRequestsByStatus(status: RequestStatus): Promise<PurchaseRequest[]> {
     try {
       const data = await http<any[]>(ENDPOINTS.requests, { query: { status } });
@@ -167,17 +169,20 @@ export const BillingApi = {
     }
   },
 
-  // Contadora
+  // ---------- Contadora ----------
   async accountantValidate(id: string, note?: string): Promise<PurchaseRequest> {
     const r = await http<any>(`${ENDPOINTS.requests}/${id}`);
     const history = Array.isArray(r.history) ? r.history : [];
-    const patch = {
+
+    const patch: any = {
       status: "validated",
+      comentarioContadora: note ?? "",
       history: [
         ...history,
         { at: new Date().toISOString(), by: "accountant", action: "validated", note },
       ],
     };
+
     const updated = await http<any>(`${ENDPOINTS.requests}/${id}`, {
       method: "PATCH",
       body: patch,
@@ -188,13 +193,16 @@ export const BillingApi = {
   async accountantReturn(id: string, note: string): Promise<PurchaseRequest> {
     const r = await http<any>(`${ENDPOINTS.requests}/${id}`);
     const history = Array.isArray(r.history) ? r.history : [];
-    const patch = {
+
+    const patch: any = {
       status: "pending",
+      comentarioContadora: note,
       history: [
         ...history,
         { at: new Date().toISOString(), by: "accountant", action: "returned", note },
       ],
     };
+
     const updated = await http<any>(`${ENDPOINTS.requests}/${id}`, {
       method: "PATCH",
       body: patch,
@@ -202,17 +210,20 @@ export const BillingApi = {
     return toUiRequest(updated);
   },
 
-  // Director
+  // ---------- Director ----------
   async directorApprove(id: string, note?: string): Promise<PurchaseRequest> {
     const r = await http<any>(`${ENDPOINTS.requests}/${id}`);
     const history = Array.isArray(r.history) ? r.history : [];
-    const patch = {
+
+    const patch: any = {
       status: "approved",
+      comentarioDirector: note ?? "",
       history: [
         ...history,
         { at: new Date().toISOString(), by: "director", action: "approved", note },
       ],
     };
+
     const updated = await http<any>(`${ENDPOINTS.requests}/${id}`, {
       method: "PATCH",
       body: patch,
@@ -223,13 +234,16 @@ export const BillingApi = {
   async directorReject(id: string, note?: string): Promise<PurchaseRequest> {
     const r = await http<any>(`${ENDPOINTS.requests}/${id}`);
     const history = Array.isArray(r.history) ? r.history : [];
-    const patch = {
+
+    const patch: any = {
       status: "rejected",
+      comentarioDirector: note ?? "",
       history: [
         ...history,
         { at: new Date().toISOString(), by: "director", action: "rejected", note },
       ],
     };
+
     const updated = await http<any>(`${ENDPOINTS.requests}/${id}`, {
       method: "PATCH",
       body: patch,
@@ -237,14 +251,11 @@ export const BillingApi = {
     return toUiRequest(updated);
   },
 
-  /* ---------- Factura final (Task 294) embebida en /requests ---------- */
-
-  // Suministra solicitudes aprobadas (para elegir al cargar factura)
+  /* ---------- Factura final ---------- */
   async listApprovedRequests(): Promise<PurchaseRequest[]> {
     return this.listRequestsByStatus("approved");
   },
 
-  // Agrega/actualiza finalInvoice en la solicitud
   async uploadFinalInvoice(input: FinalInvoiceInput): Promise<FinalInvoice> {
     const r = await http<any>(`${ENDPOINTS.requests}/${input.requestId}`);
     const history = Array.isArray(r.history) ? r.history : [];
@@ -255,10 +266,8 @@ export const BillingApi = {
         date: input.date,
         total: input.total,
         currency: input.currency,
-        isValid: true, // temporal; ajusta cuando tengas validación real
-        // url: "https://...", // cuando tengas storage real
+        isValid: true,
       },
-      // opcional: deja traza en el historial (puedes cambiar "approved" por "invoiced" si prefieres)
       history: [
         ...history,
         { at: new Date().toISOString(), by: "system", action: "approved" },
@@ -276,14 +285,12 @@ export const BillingApi = {
     return toUiInvoiceFromRequest(updated);
   },
 
-  // Deriva "facturas" desde /requests que tengan finalInvoice
   async listInvoices(): Promise<FinalInvoice[]> {
     const data = await http<any[]>(ENDPOINTS.requests);
     const withInvoice = data.filter((x) => x.finalInvoice != null);
     return withInvoice.map(toUiInvoiceFromRequest);
   },
 
-  // Eliminar "factura": limpia finalInvoice en la solicitud
   async deleteInvoice(requestId: string): Promise<void> {
     await http<void>(`${ENDPOINTS.requests}/${requestId}`, {
       method: "PATCH",

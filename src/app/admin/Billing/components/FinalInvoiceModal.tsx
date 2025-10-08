@@ -6,69 +6,43 @@ import FileUpload from "./FileUpload";
 import MoneyInput from "./MoneyInput";
 
 /* ===========================
-   Catálogo QUEMADO de proyectos
+   Tipos
    =========================== */
-type Project = { id: string; name: string };
+type Project = {
+  id: string;
+  name: string;
+};
 
-const PROJECTS: Project[] = [
-  { id: "P-001", name: "Reforestación Nicoya 2025" },
-  { id: "P-002", name: "Educación Ambiental Comunidades" },
-  { id: "P-003", name: "Senderos y Señalética" },
-  { id: "P-004", name: "Vivero Forestal Regional" },
-  { id: "P-005", name: "Monitoreo de Fauna" },
-];
-
-/* ===========================
-   Datos QUEMADOS: solicitudes aprobadas
-   =========================== */
 type ApprovedRequest = {
   id: string;
   projectId: string;
   concept: string;
   amount: number;
-  currency: Currency; // "CRC" | "USD"
+  currency: Currency;
 };
 
-const APPROVED_REQUESTS: ApprovedRequest[] = [
-  {
-    id: "REQ-1001",
-    projectId: "P-001",
-    concept: "Compra de sustratos",
-    amount: 150000,
-    currency: "CRC",
-  },
-  {
-    id: "REQ-1002",
-    projectId: "P-002",
-    concept: "Material didáctico",
-    amount: 300,
-    currency: "USD",
-  },
-  {
-    id: "REQ-1003",
-    projectId: "P-004",
-    concept: "Bolsas para vivero",
-    amount: 85000,
-    currency: "CRC",
-  },
-];
-
-/* ===========================
-   Componente principal
-   =========================== */
 type Props = {
   open: boolean;
   onClose: () => void;
   onSaved?: () => void;
+  projects: Project[];                 // ✅ antes: Project
+  approvedRequests: ApprovedRequest[]; // ✅ ok
 };
 
-export default function FinalInvoiceModal({ open, onClose, onSaved }: Props) {
-  // Estado de datos (mock)
-  const [approvedRequests, setApprovedRequests] = useState<ApprovedRequest[]>([]);
+/* ===========================
+   Componente principal
+   =========================== */
+export default function FinalInvoiceModal({
+  open,
+  onClose,
+  onSaved,
+  projects,
+  approvedRequests,
+}: Props) {
   const [loadingData, setLoadingData] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Form
+  // Formulario
   const [projectId, setProjectId] = useState<string>("");
   const [requestId, setRequestId] = useState("");
   const [number, setNumber] = useState("");
@@ -77,18 +51,6 @@ export default function FinalInvoiceModal({ open, onClose, onSaved }: Props) {
   const [currency, setCurrency] = useState<Currency>("CRC");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // Cargar solicitudes aprobadas (mock) al abrir
-  useEffect(() => {
-    if (!open) return;
-    setErrorMsg(null);
-    setLoadingData(true);
-    const t = setTimeout(() => {
-      setApprovedRequests(APPROVED_REQUESTS);
-      setLoadingData(false);
-    }, 250); // simula carga
-    return () => clearTimeout(t);
-  }, [open]);
 
   // Filtrar solicitudes por proyecto seleccionado
   const filteredRequests = useMemo(() => {
@@ -130,11 +92,10 @@ export default function FinalInvoiceModal({ open, onClose, onSaved }: Props) {
 
       setSubmitting(true);
 
-      // 🚫 Sin llamadas a API: simulamos éxito
-      // Aquí podrías notificar al padre que “se guardó”
-      onSaved?.();
+      // 🔹 Aquí se conecta al backend cuando exista endpoint.
+      // const fd = new FormData(); ...
 
-      // cerrar y limpiar
+      onSaved?.();
       resetForm();
       onClose();
     } catch (err: any) {
@@ -168,7 +129,6 @@ export default function FinalInvoiceModal({ open, onClose, onSaved }: Props) {
               onChange={(e) => {
                 const id = e.target.value;
                 setProjectId(id);
-                // si la solicitud seleccionada no pertenece al proyecto, limpiar
                 setRequestId((prev) => {
                   const req = approvedRequests.find((r) => r.id === prev);
                   return req && req.projectId === id ? prev : "";
@@ -177,7 +137,7 @@ export default function FinalInvoiceModal({ open, onClose, onSaved }: Props) {
               disabled={loadingData}
             >
               <option value="">Seleccione proyecto</option>
-              {PROJECTS.map((p) => (
+              {projects.map((p: Project) => (  // ✅ tipado explícito
                 <option key={p.id} value={p.id}>
                   {p.id} — {p.name}
                 </option>
@@ -267,7 +227,7 @@ export default function FinalInvoiceModal({ open, onClose, onSaved }: Props) {
           {/* Archivo */}
           <div>
             <label className="block text-sm font-medium">Archivo (PDF/imagen)</label>
-            <FileUpload onChange={setFile} />
+            <FileUpload multiple={false} maxSizeMB={10} onChange={setFile} />
             <p className="mt-1 text-xs text-slate-500">
               (Demo) Aquí no se suben binarios; cuando conectes storage, guarda la URL.
             </p>
