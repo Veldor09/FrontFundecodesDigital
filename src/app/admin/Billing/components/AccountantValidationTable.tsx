@@ -1,3 +1,4 @@
+// src/app/admin/Billing/components/AccountantValidationTable.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -11,7 +12,7 @@ import {
   validateSolicitud,
   returnSolicitud,
   type SolicitudListItem,
-} from "../services/solicitudes";
+} from "../services/solicitudes.api";
 
 function LocalAlert({
   kind,
@@ -78,16 +79,17 @@ export default function AccountantValidationTable() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items
-      .filter((r) => ACCOUNTANT_STATES.has(normalize(r.estado)))
+      // ✅ Filtramos por el estado de CONTADORA (no por r.estado)
+      .filter((r) => ACCOUNTANT_STATES.has(normalize((r as any).estadoContadora)))
       .filter((r) =>
-        q
-          ? [r.titulo, r.descripcion].some((t) => (t ?? "").toLowerCase().includes(q))
-          : true
+        q ? [r.titulo, r.descripcion].some((t) => (t ?? "").toLowerCase().includes(q)) : true
       );
   }, [items, search]);
 
@@ -119,6 +121,9 @@ export default function AccountantValidationTable() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Validación de Solicitudes</h2>
+          <p className="text-xs text-slate-500">
+            Bandeja de contabilidad — solo solicitudes <span className="font-semibold">PENDIENTE</span>.
+          </p>
         </div>
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -137,14 +142,15 @@ export default function AccountantValidationTable() {
         <p className="text-sm text-slate-500">No hay solicitudes pendientes.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-slate-200 rounded-lg">
+          {/* ✅ table-fixed para que títulos larguísimos no rompan el layout */}
+          <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">ID</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-20">ID</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Programa</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Monto</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Acciones</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-36">Programa</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-28">Monto</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-56">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -162,7 +168,7 @@ export default function AccountantValidationTable() {
         </div>
       )}
 
-      {/* Modal de justificación: devolver */}
+      {/* Modal de justificación: devolver (CONTADORA => DEVUELTA) */}
       <TextPromptModal
         open={showReturn}
         title="Devolver solicitud"

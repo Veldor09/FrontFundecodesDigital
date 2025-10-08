@@ -1,3 +1,4 @@
+// src/app/admin/Billing/components/DirectorApprovalTable.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -11,7 +12,7 @@ import {
   approveSolicitud,
   rejectSolicitud,
   type SolicitudListItem,
-} from "../services/solicitudes";
+} from "../services/solicitudes.api";
 
 function LocalAlert({
   kind,
@@ -82,7 +83,10 @@ export default function DirectorApprovalTable() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items
-      .filter((r) => DIRECTOR_STATES.has(normalize(r.estado)))
+      // ✅ Validadas por contabilidad…
+      .filter((r) => DIRECTOR_STATES.has(normalize((r as any).estadoContadora)))
+      // ✅ …y pendientes de decisión del director
+      .filter((r) => normalize((r as any).estadoDirector ?? "PENDIENTE") === "PENDIENTE")
       .filter((r) =>
         q
           ? [r.titulo, r.descripcion].some((t) => (t ?? "").toLowerCase().includes(q))
@@ -139,14 +143,15 @@ export default function DirectorApprovalTable() {
         <p className="text-sm text-slate-500">No hay solicitudes validadas.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-slate-200 rounded-lg">
+          {/* ✅ table-fixed para impedir desbordes por textos eternos */}
+          <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">ID</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-20">ID</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Programa</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Monto</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Acciones</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-36">Programa</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-28">Monto</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-56">Acciones</th>
               </tr>
             </thead>
             <tbody>

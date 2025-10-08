@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import FileUpload from './FileUpload';
 import { useCreateSolicitud } from '../hooks/useCreateSolicitud';
-import type { CreateSolicitudPayload } from '../services/solicitudes';
+import type { CreateSolicitudPayload } from '../services/solicitudes.api';
 
 type Props = { open: boolean; onClose: () => void; onSaved?: () => void };
 

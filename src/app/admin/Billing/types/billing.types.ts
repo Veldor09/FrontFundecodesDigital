@@ -20,7 +20,8 @@ export interface PurchaseRequest {
   amount: number;        // monto solicitado/aprobado
   concept: string;
   programId: string;
-  reason: string;        // <-- faltaba
+  comentarioContadora?: string;  
+  comentarioDirector?: string;   
   draftInvoiceUrl?: string;
   status: RequestStatus;
   createdBy: string;     // <-- útil para "mis solicitudes"
