@@ -1,7 +1,22 @@
+// src/app/admin/Billing/components/RequestsRow.tsx
 'use client';
 
 import React from 'react';
-import type { SolicitudListItem } from '../services/solicitudes';
+
+/** 
+ * Este tipo local acepta exactamente lo que le manda RequestsTable:
+ * - id (requerido)
+ * - titulo/descripcion (opcionales)
+ * - estado (string derivado: APROBADA | RECHAZADA | VALIDADA | DEVUELTA | PENDIENTE)
+ * - createdAt (ISO opcional)
+ */
+type RowItem = {
+  id: number;
+  titulo?: string | null;
+  descripcion?: string | null;
+  estado?: string | null;
+  createdAt?: string | null;
+};
 
 function statusClasses(estado?: string) {
   const e = (estado ?? '').toUpperCase();
@@ -14,7 +29,7 @@ function statusClasses(estado?: string) {
   return 'bg-slate-100 text-slate-700';
 }
 
-function formatDate(iso?: string) {
+function formatDate(iso?: string | null) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
@@ -22,23 +37,36 @@ function formatDate(iso?: string) {
 }
 
 type Props = {
-  item?: SolicitudListItem | null;     // <- ahora opcional/nullable
+  item?: RowItem | null;       // seguro ante null/undefined
   onView?: (id: number) => void;
 };
 
 export default function RequestsRow({ item, onView }: Props) {
-  // Si por cualquier motivo llega undefined/null, render seguro
   const id = (item?.id ?? null) as number | null;
   const estado = item?.estado ?? 'PENDIENTE';
   const titulo = item?.titulo ?? '—';
   const descripcion = item?.descripcion ?? '—';
-  const createdAt = item?.createdAt;
+  const createdAt = item?.createdAt ?? null;
 
   return (
     <tr className="border-t">
       <td className="px-4 py-3">
-        <div className="font-medium text-slate-800">{titulo}</div>
-        <div className="text-xs text-slate-500 line-clamp-1">{descripcion}</div>
+        <div className="min-w-0">
+          {/* ✅ Igual que en contadora/director: elipsis con anchos máximos por breakpoint */}
+          <div
+            className="max-w-[18rem] sm:max-w-[26rem] md:max-w-[32rem] truncate font-medium text-slate-800"
+            title={titulo}
+          >
+            {titulo}
+          </div>
+          {/* Descripción en una línea con elipsis y mismo ancho para alinear */}
+          <div
+            className="max-w-[18rem] sm:max-w-[26rem] md:max-w-[32rem] text-xs text-slate-500 line-clamp-1"
+            title={descripcion ?? undefined}
+          >
+            {descripcion}
+          </div>
+        </div>
       </td>
 
       {/* Solicitante (reservado por ahora) */}

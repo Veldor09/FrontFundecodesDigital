@@ -9,7 +9,8 @@ export interface solicitud {
   concept: string;       // Concepto (ej. "Insumos para vivero")
   projectId: string;     // ID del proyecto
   projectName?: string;  // Nombre del proyecto (opcional)
-  reason: string;        // Motivo / necesidad
+  comentarioContadora?: string;  
+  comentarioDirector?: string;  
   attachmentUrl?: string;// URL a archivo PDF/imagen
   requesterId?: string;  // ID del solicitante (opcional)
   requesterName?: string;// Nombre del solicitante (opcional)

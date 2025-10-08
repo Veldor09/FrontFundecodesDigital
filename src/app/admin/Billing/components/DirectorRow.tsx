@@ -1,14 +1,17 @@
+// src/app/admin/Billing/components/DirectorRow.tsx
 "use client";
 import { Button } from "@/components/ui/button";
 
 export default function DirectorRow({
   req,
   onApprove,
-  onRejectClick, // <- ahora solo abre modal
+  onRejectClick,
+  onViewClick, // nuevo
 }: {
   req: { id: number | string; concept?: string; program?: string; amount?: number | null };
   onApprove: () => void;
   onRejectClick: () => void;
+  onViewClick: () => void;
 }) {
   const safeAmount =
     typeof req.amount === "number" ? `₡${req.amount.toLocaleString()}` : "—";
@@ -22,11 +25,10 @@ export default function DirectorRow({
       <td className="px-4 py-3">{safeProgram}</td>
       <td className="px-4 py-3">{safeAmount}</td>
       <td className="px-4 py-3 flex flex-col gap-2 sm:flex-row">
-        <Button
-          size="sm"
-          onClick={onApprove}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-        >
+        <Button size="sm" variant="secondary" onClick={onViewClick}>
+          Ver
+        </Button>
+        <Button size="sm" onClick={onApprove} className="bg-emerald-600 hover:bg-emerald-700 text-white">
           Aprobar
         </Button>
         <Button size="sm" variant="destructive" onClick={onRejectClick}>

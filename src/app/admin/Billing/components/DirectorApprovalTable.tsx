@@ -1,3 +1,4 @@
+// src/app/admin/Billing/components/DirectorApprovalTable.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -5,12 +6,13 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DirectorRow from "./DirectorRow";
 import TextPromptModal from "./TextPromptModal";
+import RequestViewModal from "./RequestViewModal";
 import {
   fetchSolicitudes,
   approveSolicitud,
   rejectSolicitud,
   type SolicitudListItem,
-} from "../services/solicitudes";
+} from "../services/solicitudes.api";
 
 function LocalAlert({
   kind,
@@ -42,7 +44,6 @@ const normalize = (s?: string) => (s ?? "").toString().trim().toUpperCase();
 export default function DirectorApprovalTable() {
   const DIRECTOR_STATES = new Set(["VALIDADA"]);
 
-  // límites para motivo de rechazo
   const REJECT_MIN = 5;
   const REJECT_MAX = 300;
 
@@ -51,17 +52,24 @@ export default function DirectorApprovalTable() {
   const [alert, setAlert] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
 
-  // modal estado
+  // modal rechazo
   const [showReject, setShowReject] = useState(false);
   const [targetId, setTargetId] = useState<number | null>(null);
+
+  // modal detalle
+  const [openView, setOpenView] = useState(false);
+  const [viewId, setViewId] = useState<number | null>(null);
 
   const openReject = (id: number) => { setTargetId(id); setShowReject(true); };
   const closeReject = () => { setShowReject(false); setTargetId(null); };
 
+  const openDetails = (id: number) => { setViewId(id); setOpenView(true); };
+  const closeDetails = () => { setOpenView(false); setViewId(null); };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchSolicitudes();
+      const data = await fetchSolicitudes(); // traemos todas y filtramos abajo
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cargar." });
@@ -75,7 +83,10 @@ export default function DirectorApprovalTable() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items
-      .filter((r) => DIRECTOR_STATES.has(normalize(r.estado)))
+      // ✅ Validadas por contabilidad…
+      .filter((r) => DIRECTOR_STATES.has(normalize((r as any).estadoContadora)))
+      // ✅ …y pendientes de decisión del director
+      .filter((r) => normalize((r as any).estadoDirector ?? "PENDIENTE") === "PENDIENTE")
       .filter((r) =>
         q
           ? [r.titulo, r.descripcion].some((t) => (t ?? "").toLowerCase().includes(q))
@@ -86,7 +97,7 @@ export default function DirectorApprovalTable() {
   const openApprove = async (id: number) => {
     try {
       await approveSolicitud(id);
-      await load();
+      await load(); // desaparece de la bandeja
       setAlert({ kind: "success", text: "Solicitud aprobada." });
     } catch (e) {
       setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo aprobar." });
@@ -97,7 +108,7 @@ export default function DirectorApprovalTable() {
     if (targetId == null) return;
     try {
       await rejectSolicitud(targetId, obs);
-      await load();
+      await load(); // desaparece de la bandeja
       setAlert({ kind: "success", text: "Solicitud rechazada." });
     } catch (e) {
       setAlert({ kind: "error", text: e instanceof Error ? e.message : "No se pudo rechazar." });
@@ -132,14 +143,15 @@ export default function DirectorApprovalTable() {
         <p className="text-sm text-slate-500">No hay solicitudes validadas.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-slate-200 rounded-lg">
+          {/* ✅ table-fixed para impedir desbordes por textos eternos */}
+          <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">ID</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-20">ID</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Programa</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Monto</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Acciones</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-36">Programa</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-28">Monto</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-56">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -149,6 +161,7 @@ export default function DirectorApprovalTable() {
                   req={{ id: r.id, concept: r.titulo, program: undefined, amount: null }}
                   onApprove={() => openApprove(r.id)}
                   onRejectClick={() => openReject(r.id)}
+                  onViewClick={() => openDetails(r.id)}
                 />
               ))}
             </tbody>
@@ -156,7 +169,7 @@ export default function DirectorApprovalTable() {
         </div>
       )}
 
-      {/* Modal de motivo: rechazo */}
+      {/* Modal motivo: rechazo */}
       <TextPromptModal
         open={showReject}
         title="Rechazar solicitud"
@@ -168,6 +181,11 @@ export default function DirectorApprovalTable() {
         onSubmit={handleRejectSubmit}
         onClose={closeReject}
       />
+
+      {/* Modal de detalle (ver adjuntos, motivo, etc.) */}
+      {openView && viewId != null && (
+        <RequestViewModal open={openView} solicitudId={viewId} onClose={closeDetails} />
+      )}
     </div>
   );
 }
