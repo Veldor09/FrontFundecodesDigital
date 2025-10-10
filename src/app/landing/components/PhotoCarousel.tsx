@@ -21,10 +21,9 @@ export default function PhotoCarousel({ photos }: { photos?: CarouselPhoto[] }) 
   return (
     <section className="bg-gradient-to-b from-gray-50 to-white py-16 lg:py-20 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-4xl lg:text-5xl font-bold text-green-600 mb-12 text-center tracking-tight">
+      <h2 className="text-2xl lg:text-3xl font-bold text-green-600 mb-12 text-center tracking-tight">
           NUESTROS ALIADOS
         </h2>
-
         {/* Carrusel infinito */}
         <div className="relative">
           <div className="flex animate-scroll gap-8">
