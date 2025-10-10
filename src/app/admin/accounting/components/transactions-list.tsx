@@ -4,10 +4,10 @@ import type React from "react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { TransactionService } from "../services/transaction-service"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,6 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Trash2, Edit } from "lucide-react"
-import { TransactionService } from "../services/transaction-service"
 
 interface TransactionUI {
   id: string
@@ -32,6 +31,7 @@ interface TransactionUI {
   descripcion: string
   programa: string
   monto: number
+  moneda: "CRC" | "USD" | "EUR"
   fechaCreacion: string
 }
 
@@ -57,11 +57,11 @@ export function TransactionsList() {
     descripcion: "",
     monto: 0,
     programa: "",
+    moneda: "CRC",
   })
 
   async function load() {
     const data = await TransactionService.getTransactions()
-    // map a la interfaz local (fecha string YYYY-MM-DD)
     setTransactions(
       data.map((t) => ({
         id: t.id,
@@ -70,6 +70,7 @@ export function TransactionsList() {
         descripcion: t.descripcion,
         programa: t.programa ?? "",
         monto: t.monto,
+        moneda: t.moneda || "CRC",
         fecha: new Date(t.fecha).toISOString().slice(0, 10),
         fechaCreacion: new Date(t.fechaCreacion).toISOString(),
       })),
@@ -91,13 +92,24 @@ export function TransactionsList() {
 
   const totals = filteredTransactions.reduce(
     (acc, t) => {
-      if (t.tipo === "ingreso") acc.ingresos += t.monto
-      else acc.egresos += t.monto
-      acc.balance = acc.ingresos - acc.egresos
+      const currency = t.moneda || "CRC"
+      if (!acc[currency]) {
+        acc[currency] = { ingresos: 0, egresos: 0, balance: 0 }
+      }
+      if (t.tipo === "ingreso") {
+        acc[currency].ingresos += t.monto
+      } else {
+        acc[currency].egresos += t.monto
+      }
+      acc[currency].balance = acc[currency].ingresos - acc[currency].egresos
       return acc
     },
-    { ingresos: 0, egresos: 0, balance: 0 },
+    {} as Record<string, { ingresos: number; egresos: number; balance: number }>,
   )
+
+  const activeCurrencies = Object.keys(totals).filter(c => totals[c].ingresos > 0 || totals[c].egresos > 0)
+  const allCurrencies = ["CRC", "USD", "EUR"]
+  const displayCurrencies = activeCurrencies.length > 0 ? activeCurrencies : allCurrencies
 
   const validateForm = () => {
     const errors: Record<string, string> = {}
@@ -106,6 +118,7 @@ export function TransactionsList() {
     if (!newTransaction.programa?.trim()) errors.programa = "El programa es requerido"
     if (!newTransaction.monto || newTransaction.monto <= 0) errors.monto = "El monto debe ser mayor a 0"
     if (!newTransaction.fecha) errors.fecha = "La fecha es requerida"
+    if (!newTransaction.moneda) errors.moneda = "La moneda es requerida"
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -122,6 +135,7 @@ export function TransactionsList() {
         monto: Number(newTransaction.monto!),
         fecha: newTransaction.fecha!,
         programa: newTransaction.programa!,
+        moneda: newTransaction.moneda!,
       } as any)
     } else {
       await TransactionService.createTransaction({
@@ -129,8 +143,9 @@ export function TransactionsList() {
         categoria: newTransaction.categoria!,
         descripcion: newTransaction.descripcion!,
         monto: Number(newTransaction.monto!),
-        fecha: newTransaction.fecha!, // YYYY-MM-DD
+        fecha: newTransaction.fecha!,
         programa: newTransaction.programa!,
+        moneda: newTransaction.moneda!,
       } as any)
     }
 
@@ -139,7 +154,7 @@ export function TransactionsList() {
     setIsEditing(false)
     setEditingId(null)
     setFormErrors({})
-    setNewTransaction({ tipo: "ingreso", fecha: new Date().toISOString().split("T")[0], categoria: "", descripcion: "", monto: 0, programa: "" })
+    setNewTransaction({ tipo: "ingreso", fecha: new Date().toISOString().split("T")[0], categoria: "", descripcion: "", monto: 0, programa: "", moneda: "CRC" })
   }
 
   const handleEdit = (t: TransactionUI) => {
@@ -154,12 +169,20 @@ export function TransactionsList() {
     await load()
   }
 
-  const formatCurrency = (amount: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(amount)
+  const formatCurrency = (amount: number, currency: string = "CRC") => {
+    const currencyConfig = {
+      CRC: { locale: "es-CR", currency: "CRC" },
+      USD: { locale: "en-US", currency: "USD" },
+      EUR: { locale: "es-ES", currency: "EUR" }
+    }
+    const config = currencyConfig[currency as keyof typeof currencyConfig] || currencyConfig.CRC
+    return new Intl.NumberFormat(config.locale, { style: "currency", currency: config.currency }).format(amount)
+  }
+
   const formatDate = (dateString: string) => new Intl.DateTimeFormat("es-ES").format(new Date(dateString))
 
   return (
     <Card>
-      {/* JSX intacto */}
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Gestión de Transacciones</CardTitle>
@@ -171,7 +194,7 @@ export function TransactionsList() {
                 setIsEditing(false)
                 setEditingId(null)
                 setFormErrors({})
-                setNewTransaction({ tipo: "ingreso", fecha: new Date().toISOString().split("T")[0], categoria: "", descripcion: "", monto: 0, programa: "" })
+                setNewTransaction({ tipo: "ingreso", fecha: new Date().toISOString().split("T")[0], categoria: "", descripcion: "", monto: 0, programa: "", moneda: "CRC" })
               }
             }}
           >
@@ -221,12 +244,28 @@ export function TransactionsList() {
                   {formErrors.programa && <p className="text-red-500 text-sm mt-1">{formErrors.programa}</p>}
                 </div>
 
-                <div>
-                  <Label htmlFor="monto">Monto (€)</Label>
-                  <Input type="number" min="0" step="0.01" value={newTransaction.monto}
-                         onChange={(e) => setNewTransaction({ ...newTransaction, monto: Number(e.target.value) })}
-                         className={formErrors.monto ? "border-red-500" : ""} placeholder="0.00" />
-                  {formErrors.monto && <p className="text-red-500 text-sm mt-1">{formErrors.monto}</p>}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="moneda">Moneda</Label>
+                    <select 
+                      className={`w-full border rounded-md h-9 px-2 text-sm ${formErrors.moneda ? "border-red-500" : ""}`}
+                      value={newTransaction.moneda}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, moneda: e.target.value as "CRC" | "USD" | "EUR" })}
+                    >
+                      <option value="CRC">₡ Colones</option>
+                      <option value="USD">$ Dólares</option>
+                      <option value="EUR">€ Euros</option>
+                    </select>
+                    {formErrors.moneda && <p className="text-red-500 text-sm mt-1">{formErrors.moneda}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="monto">Monto</Label>
+                    <Input type="number" min="0" step="0.01" value={newTransaction.monto}
+                           onChange={(e) => setNewTransaction({ ...newTransaction, monto: Number(e.target.value) })}
+                           className={formErrors.monto ? "border-red-500" : ""} placeholder="0.00" />
+                    {formErrors.monto && <p className="text-red-500 text-sm mt-1">{formErrors.monto}</p>}
+                  </div>
                 </div>
 
                 <div>
@@ -244,7 +283,6 @@ export function TransactionsList() {
           </Dialog>
         </div>
 
-        {/* filtros */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label>Tipo</Label>
@@ -273,92 +311,112 @@ export function TransactionsList() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-            <div className="text-sm text-green-600 font-medium">Total Ingresos</div>
-            <div className="text-2xl font-bold text-green-700">{new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(totals.ingresos)}</div>
-          </div>
-          <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-            <div className="text-sm text-red-600 font-medium">Total Egresos</div>
-            <div className="text-2xl font-bold text-red-700">{new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(totals.egresos)}</div>
-          </div>
-          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="text-sm text-blue-600 font-medium">Balance Neto</div>
-            <div className={`text-2xl font-bold ${totals.balance >= 0 ? "text-blue-700" : "text-red-700"}`}>
-              {new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(totals.balance)}
-            </div>
-          </div>
+        <div className="space-y-4 mt-4">
+          {displayCurrencies.map((currency) => {
+            const data = totals[currency] || { ingresos: 0, egresos: 0, balance: 0 }
+            
+            return (
+              <div key={currency}>
+                <div className="text-sm font-semibold text-gray-700 mb-2">
+                  {currency === "CRC" ? "₡ Colones (CRC)" : currency === "USD" ? "$ Dólares (USD)" : "€ Euros (EUR)"}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-sm text-green-600 font-medium">Total Ingresos</div>
+                    <div className="text-2xl font-bold text-green-700">{formatCurrency(data.ingresos, currency)}</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="text-sm text-red-600 font-medium">Total Egresos</div>
+                    <div className="text-2xl font-bold text-red-700">{formatCurrency(data.egresos, currency)}</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-600 font-medium">Balance Neto</div>
+                    <div className={`text-2xl font-bold ${data.balance >= 0 ? "text-blue-700" : "text-red-700"}`}>
+                      {formatCurrency(data.balance, currency)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         <div className="text-sm text-gray-600 mt-2">Mostrando {filteredTransactions.length} de {transactions.length} transacciones</div>
       </CardHeader>
 
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Categoría</TableHead>
-              <TableHead>Programa</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead>Monto</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredTransactions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">No se encontraron transacciones con los filtros aplicados</TableCell>
-              </TableRow>
-            ) : (
-              filteredTransactions.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium">{formatDate(t.fecha)}</TableCell>
-                  <TableCell>
-                    <Badge variant={t.tipo === "ingreso" ? "default" : "destructive"} className="capitalize">{t.tipo}</Badge>
-                  </TableCell>
-                  <TableCell>{t.categoria}</TableCell>
-                  <TableCell>{t.programa}</TableCell>
-                  <TableCell className="max-w-xs truncate" title={t.descripcion}>{t.descripcion}</TableCell>
-                  <TableCell className={`font-semibold ${t.tipo === "ingreso" ? "text-green-600" : "text-red-600"}`}>
-                    {formatCurrency(t.monto)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(t)} className="h-8 w-8 p-0">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 bg-transparent">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Se eliminará permanentemente la transacción:
-                              <br />
-                              <strong>{t.descripcion}</strong> por {formatCurrency(t.monto)}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(t.id)} className="bg-red-600 hover:bg-red-700">
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-3 font-medium">Fecha</th>
+                <th className="text-left p-3 font-medium">Tipo</th>
+                <th className="text-left p-3 font-medium">Categoría</th>
+                <th className="text-left p-3 font-medium">Programa</th>
+                <th className="text-left p-3 font-medium">Descripción</th>
+                <th className="text-left p-3 font-medium">Monto</th>
+                <th className="text-left p-3 font-medium">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-500">No se encontraron transacciones con los filtros aplicados</td>
+                </tr>
+              ) : (
+                filteredTransactions.map((t) => (
+                  <tr key={t.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3 font-medium">{formatDate(t.fecha)}</td>
+                    <td className="p-3">
+                      <Badge 
+                        variant={t.tipo === "ingreso" ? "default" : "destructive"} 
+                        className={`capitalize ${t.tipo === "ingreso" ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+                      >
+                        {t.tipo}
+                      </Badge>
+                    </td>
+                    <td className="p-3">{t.categoria}</td>
+                    <td className="p-3">{t.programa}</td>
+                    <td className="p-3 max-w-xs truncate" title={t.descripcion}>{t.descripcion}</td>
+                    <td className={`p-3 font-semibold ${t.tipo === "ingreso" ? "text-green-600" : "text-red-600"}`}>
+                      {formatCurrency(t.monto, t.moneda)}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(t)} className="h-8 w-8 p-0">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 bg-transparent">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Se eliminará permanentemente la transacción:
+                                <br />
+                                <strong>{t.descripcion}</strong> por {formatCurrency(t.monto, t.moneda)}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(t.id)} className="bg-red-600 hover:bg-red-700">
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   )

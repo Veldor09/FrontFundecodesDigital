@@ -14,12 +14,13 @@ async function findProjectIdByTitle(title: string): Promise<number> {
 function mapFromApi(x: any): Transaction {
   return {
     id: x.id,
-    fecha: new Date(x.fecha),                  // tipos del front usan Date
+    fecha: new Date(x.fecha),
     tipo: x.tipo,
     categoria: x.categoria,
     descripcion: x.descripcion,
     monto: Number(x.monto),
-    programa: x.proyecto,                      // UI nombre legible
+    moneda: x.moneda || "CRC",
+    programa: x.proyecto,
     fechaCreacion: x.createdAt ? new Date(x.createdAt) : new Date(),
   }
 }
@@ -55,6 +56,7 @@ export class TransactionService {
       categoria: t.categoria,
       descripcion: t.descripcion,
       monto: t.monto,
+      moneda: t.moneda || "CRC",
       fecha: (t.fecha instanceof Date ? t.fecha : new Date(t.fecha as any)).toISOString().slice(0, 10),
       projectId,
       proyecto: t.programa,
@@ -78,6 +80,7 @@ export class TransactionService {
     if (t.categoria) body.categoria = t.categoria
     if (t.descripcion) body.descripcion = t.descripcion
     if (t.monto != null) body.monto = t.monto
+    if (t.moneda) body.moneda = t.moneda
     if (t.fecha) body.fecha = (t.fecha instanceof Date ? t.fecha : new Date(t.fecha as any)).toISOString().slice(0, 10)
     if (t.programa) body.proyecto = t.programa
 
