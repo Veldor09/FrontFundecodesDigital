@@ -27,12 +27,24 @@ export default function HeroVideo({
       <div className="absolute inset-0 bg-black/50" />
 
       {/* Texto principal */}
-      <h1
-        className="relative z-10 text-white text-center leading-none tracking-tight font-extrabold text-[clamp(4rem,14vw,10rem)] drop-shadow-md"
-        style={{ fontFamily: "Anton, sans-serif", letterSpacing: "-0.04em" }}
-      >
-        FUNDECODES
-      </h1>
+      <div className="relative z-10 text-white text-center px-4">
+        <h1
+          className="leading-none tracking-tight font-bold text-[clamp(3rem,12vw,8rem)] drop-shadow-2xl"
+          style={{ fontFamily: "'Open Sans', sans-serif", letterSpacing: "0.02em" }}
+        >
+          Fundecodes
+        </h1>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <div className="h-px w-12 sm:w-16 bg-gradient-to-r from-transparent to-green-400"></div>
+          <p 
+            className="text-lg sm:text-xl md:text-2xl font-light tracking-[0.15em] drop-shadow-lg uppercase"
+            style={{ fontFamily: "'Open Sans', sans-serif" }}
+          >
+            Equilibrio entre conservación y desarrollo
+          </p>
+          <div className="h-px w-12 sm:w-16 bg-gradient-to-l from-transparent to-green-400"></div>
+        </div>
+      </div>
 
       {/* Separador de olas */}
       <div className="pointer-events-none absolute bottom-0 left-0 w-full" aria-hidden="true">

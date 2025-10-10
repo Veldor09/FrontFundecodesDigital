@@ -218,6 +218,7 @@ export function BudgetTable() {
             </div>
           </div>
 
+          {/* Modal de AGREGAR */}
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -230,7 +231,6 @@ export function BudgetTable() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Proyecto *</label>
-                  {/* Select igual al de Mes/Año */}
                   <select
                     className="w-full border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={newBudgetForm.proyecto}
@@ -282,6 +282,66 @@ export function BudgetTable() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Modal de EDITAR */}
+          <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader><DialogTitle>Editar Presupuesto</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Proyecto *</label>
+                  <select
+                    className="w-full border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={editForm.proyecto}
+                    onChange={(e)=>setEditForm({...editForm, proyecto: e.target.value})}
+                  >
+                    <option value="">Seleccionar proyecto</option>
+                    {projectTitles.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  {formErrors.proyecto && <p className="text-sm text-red-600">{formErrors.proyecto}</p>}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Mes *</label>
+                  <select className="w-full border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={editForm.mes}
+                          onChange={(e)=>setEditForm({...editForm, mes: e.target.value})}>
+                    <option value="">Seleccionar mes</option>
+                    {MESES.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  {formErrors.mes && <p className="text-sm text-red-600">{formErrors.mes}</p>}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Año *</label>
+                  <select className="w-full border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={editForm.año}
+                          onChange={(e)=>setEditForm({...editForm, año: e.target.value})}>
+                    <option value="">Seleccionar año</option>
+                    {todosAños.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                  {formErrors.año && <p className="text-sm text-red-600">{formErrors.año}</p>}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Monto Asignado (€) *</label>
+                  <Input type="number" min="0" step="0.01" placeholder="0.00"
+                         value={editForm.montoAsignado}
+                         onChange={(e)=>setEditForm({...editForm, montoAsignado: e.target.value})}/>
+                  {formErrors.montoAsignado && <p className="text-sm text-red-600">{formErrors.montoAsignado}</p>}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Monto Ejecutado (€) *</label>
+                  <Input type="number" min="0" step="0.01" placeholder="0.00"
+                         value={editForm.montoEjecutado}
+                         onChange={(e)=>setEditForm({...editForm, montoEjecutado: e.target.value})}/>
+                  {formErrors.montoEjecutado && <p className="text-sm text-red-600">{formErrors.montoEjecutado}</p>}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleCloseEditModal}>Cancelar</Button>
+                <Button onClick={handleSubmitEdit} className="bg-blue-600 hover:bg-blue-700">Actualizar</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
         </div>
 
         <div className="text-sm text-muted-foreground">
