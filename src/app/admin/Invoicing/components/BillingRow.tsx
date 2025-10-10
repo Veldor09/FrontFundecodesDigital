@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { Eye, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FinalInvoice } from "../types/billing.types";
+import { BillingInvoice } from "../types/billing.types";
 
 interface Props {
-  invoice: FinalInvoice;
+  invoice: BillingInvoice;
   onView: () => void;
   onDelete: () => void | Promise<void>;
 }

@@ -3,33 +3,29 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-/** Tabs embebidos en el mismo archivo */
-export const billingTabs = [
-  "Solicitudes",
-  "Contadora",
-  "Director",
-  "Facturas",
-] as const;
-
-export type BillingTab = typeof billingTabs[number];
+const tabs = ["Solicitudes", "Validación Contable", "Aprobación Dirección"] as const;
+export type RequestTab = typeof tabs[number];
 
 interface Props {
-  active: BillingTab;
-  onChange: (tab: BillingTab) => void;
+  active: RequestTab;
+  onChange: (tab: RequestTab) => void;
 }
 
-export default function BillingNav({ active, onChange }: Props) {
+export default function RequestNav({ active, onChange }: Props) {
   return (
     <div className="w-full bg-white border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Título principal */}
+        {/* ====== Título principal ====== */}
         <div className="text-center py-6">
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
-            Área de Facturación
+            Gestión de Solicitudes
           </h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Crea, revisa, valida y aprueba solicitudes antes de pasar a facturación.
+          </p>
         </div>
 
-        {/* Navegación */}
+        {/* ====== Navegación ====== */}
         <div className="relative flex items-center justify-center h-16">
           <Link href="/admin" className="absolute left-0">
             <Button
@@ -40,8 +36,8 @@ export default function BillingNav({ active, onChange }: Props) {
             </Button>
           </Link>
 
-          <nav className="flex flex-wrap gap-2 justify-center">
-            {billingTabs.map((tab) => (
+          <nav className="flex gap-2">
+            {tabs.map((tab) => (
               <Button
                 key={tab}
                 size="sm"

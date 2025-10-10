@@ -1,27 +1,27 @@
-// src/app/admin/Billing/page.tsx
 "use client";
 
 import { useState } from "react";
-import BillingNav, { type BillingTab } from "./components/BillingNav";
+import RequestNav, { type RequestTab } from "./components/RequestNav";
+
+// Importar las vistas del módulo
 import RequestsTable from "./components/RequestsTable";
 import AccountantValidationTable from "./components/AccountantValidationTable";
 import DirectorApprovalTable from "./components/DirectorApprovalTable";
-import BillingTable from "./components/BillingTable";
-import { ToastProvider } from "./hooks/useToast"; // <-- importa el provider
 
-export default function BillingPage() {
-  const [tab, setTab] = useState<BillingTab>("Solicitudes");
+export default function RequestPage() {
+  const [vista, setVista] = useState<RequestTab>("Solicitudes");
 
   return (
-    <ToastProvider>
-      <div className="space-y-6">
-        <BillingNav active={tab} onChange={setTab} />
+    <>
+      <RequestNav active={vista} onChange={setVista} />
 
-        {tab === "Solicitudes" && <RequestsTable />}
-        {tab === "Contadora" && <AccountantValidationTable />}
-        {tab === "Director" && <DirectorApprovalTable />}
-        {tab === "Facturas" && <BillingTable />}
-      </div>
-    </ToastProvider>
+      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          {vista === "Solicitudes" && <RequestsTable />}
+          {vista === "Validación Contable" && <AccountantValidationTable />}
+          {vista === "Aprobación Dirección" && <DirectorApprovalTable />}
+        </div>
+      </main>
+    </>
   );
 }
