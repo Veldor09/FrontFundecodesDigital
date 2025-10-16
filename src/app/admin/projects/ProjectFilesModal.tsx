@@ -49,6 +49,7 @@ export default function ProjectFilesModal({ open, onOpenChange, projectId }: Pro
               onOpenChange(false);
               setClosing(false);
             }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             Finalizar
           </Button>

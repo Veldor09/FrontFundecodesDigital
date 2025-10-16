@@ -338,7 +338,9 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
           {/* Acciones */}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Guardando…" : cta}</Button>
+            <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {loading ? "Guardando…" : cta}
+            </Button>
           </div>
         </form>
       </div>

@@ -531,7 +531,7 @@ export default function ProjectForm({
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy} className="bg-blue-600 hover:bg-blue-700 text-white">
             {busy ? "Guardando…" : mode === "create" ? "Siguiente" : "Guardar"}
           </Button>
         </div>

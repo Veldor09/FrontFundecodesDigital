@@ -17,6 +17,17 @@ import { Badge } from "@/components/ui/badge";
 import ProjectForm from "@/app/admin/projects/ProjectForm";
 import Modal from "@/components/ui/Modal";
 import ProjectFilesModal from "./ProjectFilesModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Tipos de payload
 export type ProjectCreateInput = {
@@ -110,7 +121,7 @@ export default function AdminProjectsPage() {
   async function handleCreate(payload: ProjectCreateInput): Promise<void> {
     // 1) Abrir modal de archivos y cerrar el de crear
     setFilesModalOpen(true);
-    setNewProjectId(null); // mostrará “Guardando…”
+    setNewProjectId(null); // mostrará "Guardando…"
     setMode({ kind: "none" });
 
     // 2) Crear el proyecto
@@ -134,7 +145,6 @@ export default function AdminProjectsPage() {
   }
 
   async function handleRemove(id: number): Promise<void> {
-    if (!confirm("¿Dar de baja/eliminar este proyecto?")) return;
     await removeProject(id);
     await load(page);
   }
@@ -173,6 +183,7 @@ export default function AdminProjectsPage() {
             </Button>
             <Button
               size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => {
                 setMode({ kind: "create" });
               }}
@@ -255,6 +266,7 @@ export default function AdminProjectsPage() {
 
           <div className="flex gap-2">
             <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => {
                 setPage(1);
                 load(1);
@@ -303,14 +315,38 @@ export default function AdminProjectsPage() {
                       {p.title}
                     </h3>
                     <div className="mt-1 flex gap-2 flex-wrap">
-                      {p.place && <Badge>{p.place}</Badge>}
-                      {p.category && (
-                        <Badge variant="secondary">{p.category}</Badge>
+                      {p.place && (
+                        <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                          {p.place}
+                        </Badge>
                       )}
-                      {p.area && <Badge variant="outline">{p.area}</Badge>}
-                      {p.status && <Badge variant="outline">{p.status}</Badge>}
+                      {p.category && (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                          {p.category}
+                        </Badge>
+                      )}
+                      {p.area && (
+                        <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                          {p.area}
+                        </Badge>
+                      )}
+                      {p.status && (
+                        <Badge
+                          className={
+                            p.status === "FINALIZADO"
+                              ? "bg-green-100 text-green-800 border-green-200"
+                              : p.status === "EN_PROCESO"
+                              ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                              : "bg-red-100 text-red-800 border-red-200"
+                          }
+                        >
+                          {p.status}
+                        </Badge>
+                      )}
                       {p.published && (
-                        <Badge variant="outline">Publicado</Badge>
+                        <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+                          Publicado
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -323,13 +359,32 @@ export default function AdminProjectsPage() {
                     >
                       Editar
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleRemove(p.id)}
-                    >
-                      Dar de baja
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive">
+                          Dar de baja
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminará
+                            permanentemente el registro del proyecto &quot;
+                            {p.title}&quot;.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleRemove(p.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </Card>
