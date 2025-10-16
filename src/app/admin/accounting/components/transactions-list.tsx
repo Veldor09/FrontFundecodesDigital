@@ -568,17 +568,13 @@ const TransactionsList = () => {
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(t)} className="h-8 w-8 p-0">
-                          <Edit className="h-4 w-4" />
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleEdit(t)}>
+                          Editar
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 bg-transparent"
-                            >
-                              <Trash2 className="h-4 w-4" />
+                            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+                              Eliminar
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>

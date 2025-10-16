@@ -381,13 +381,13 @@ export function BudgetTable() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEditClick(item)}>
-                          <Edit2 className="h-4 w-4" />
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleEditClick(item)}>
+                          Editar
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-transparent">
-                              <Trash2 className="h-4 w-4" />
+                            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+                              Eliminar
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>

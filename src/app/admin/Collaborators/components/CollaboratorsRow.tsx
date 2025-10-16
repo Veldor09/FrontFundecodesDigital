@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Edit, ToggleLeft, ToggleRight, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ConfirmDialog from "./ConfirmDialog";
 import { Collaborator } from "@/app/admin/Collaborators/types/collaborators.types";
@@ -43,30 +42,34 @@ export default function CollaboratorsRow({
   return (
     <>
       <tr
-        className={`border-b hover:bg-slate-50 transition ${
+        className={`border-b transition ${
           busy !== "none" ? "opacity-60 pointer-events-none" : ""
         }`}
         data-busy={busy !== "none"}
       >
-        <td className="px-4 py-3 text-slate-800 font-medium">
+        <td className="px-4 py-4 text-slate-800 font-medium whitespace-nowrap">
           {collaborator.fullName}
         </td>
-        <td className="px-4 py-3 text-slate-600">{collaborator.email}</td>
-        <td className="px-4 py-3 text-slate-600">
+        <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
+          {collaborator.email}
+        </td>
+        <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
           {collaborator.phone ?? "—"}
         </td>
-        <td className="px-4 py-3 text-slate-600">{collaborator.role}</td>
-        <td className="px-4 py-3 text-slate-600">
+        <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
+          {collaborator.role}
+        </td>
+        <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
           {collaborator.identification}
         </td>
-        <td className="px-4 py-3 text-slate-600">
+        <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
           {collaborator.birthdate
             ? new Date(collaborator.birthdate).toLocaleDateString()
             : "—"}
         </td>
-        <td className="px-4 py-3">
+        <td className="px-4 py-4 whitespace-nowrap">
           <span
-            className={`px-2 py-1 rounded-full text-xs font-semibold ${
+            className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
               isActive
                 ? "bg-green-100 text-green-700"
                 : "bg-gray-100 text-gray-600"
@@ -76,51 +79,43 @@ export default function CollaboratorsRow({
           </span>
         </td>
 
-        <td className="px-4 py-3 flex gap-2">
-          {/* Editar */}
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onEdit}
-            title="Editar colaborador"
-            aria-label="Editar"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
+        <td className="px-2 py-4 whitespace-nowrap">
+          <div className="flex gap-1">
+            {/* Editar */}
+            <Button
+              variant="default"
+              onClick={onEdit}
+              title="Editar colaborador"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 h-auto"
+            >
+              Editar
+            </Button>
 
-          {/* Activar/Inactivar */}
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setConfirmToggle(true)}
-            title={isActive ? "Inactivar colaborador" : "Activar colaborador"}
-            aria-label={isActive ? "Inactivar" : "Activar"}
-            className={
-              isActive
-                ? "text-amber-600 hover:text-amber-800"
-                : "text-green-600 hover:text-green-800"
-            }
-            disabled={busy !== "none"}
-          >
-            {isActive ? (
-              <ToggleRight className="h-4 w-4" />
-            ) : (
-              <ToggleLeft className="h-4 w-4" />
-            )}
-          </Button>
+            {/* Activar/Inactivar */}
+            <Button
+              onClick={() => setConfirmToggle(true)}
+              title={isActive ? "Inactivar colaborador" : "Activar colaborador"}
+              disabled={busy !== "none"}
+              className={`text-xs px-3 py-1 h-auto text-white ${
+                isActive
+                  ? "bg-amber-500 hover:bg-amber-600"
+                  : "bg-green-500 hover:bg-green-600"
+              }`}
+            >
+              {isActive ? "Desactivar" : "Activar"}
+            </Button>
 
-          {/* Eliminar */}
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setConfirmDelete(true)}
-            title="Eliminar colaborador"
-            aria-label="Eliminar"
-            className="text-red-600 hover:text-red-800"
-            disabled={busy !== "none"}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
+            {/* Eliminar */}
+            <Button
+              variant="destructive"
+              onClick={() => setConfirmDelete(true)}
+              title="Eliminar colaborador"
+              disabled={busy !== "none"}
+              className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 h-auto"
+            >
+              Eliminar
+            </Button>
+          </div>
         </td>
       </tr>
 
@@ -143,9 +138,10 @@ export default function CollaboratorsRow({
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="¿Eliminar colaborador?"
-        description="Esta acción no se puede deshacer."
+        title="¿Estás seguro?"
+        description={`Esta acción no se puede deshacer. Se eliminará permanentemente el registro del colaborador "${collaborator.fullName}".`}
         confirmVariant="destructive"
+        confirmText="Eliminar"
         onConfirm={() => {
           setConfirmDelete(false);
           exec("delete", onDelete);

@@ -2,7 +2,17 @@
 
 import { Voluntario } from "../types/voluntario";
 import { Button } from "@/components/ui/button";
-import { SquarePen, ToggleLeft, Trash } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   voluntario: Voluntario;
@@ -36,47 +46,54 @@ export default function VoluntarioRow({
       </td>
 
       <td className="px-4 py-3">
-        <div className="flex items-center gap-4">
-          {/* Editar: icono azul con trazo */}
+        <div className="flex items-center gap-2">
+          {/* Editar: botón azul */}
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
-            title="Editar"
+            size="sm"
             onClick={onEdit}
-            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
-            <SquarePen className="h-5 w-5" strokeWidth={2.2} />
+            Editar
           </Button>
 
-          {/* Cambiar estado: icono toggle ámbar */}
+          {/* Cambiar estado: botón ámbar */}
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
-            title={isActivo ? "Marcar como inactivo" : "Marcar como activo"}
+            size="sm"
             onClick={onToggle}
-            className="h-8 w-8 text-amber-500 hover:bg-amber-50"
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+            title={isActivo ? "Marcar como inactivo" : "Marcar como activo"}
           >
-            <ToggleLeft
-              className={`h-5 w-5 transition-transform ${
-                isActivo ? "" : "rotate-180"
-              }`}
-              strokeWidth={2.2}
-            />
+            {isActivo ? "Desactivar" : "Activar"}
           </Button>
 
-          {/* Eliminar: icono rojo con trazo */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            title="Eliminar"
-            onClick={onDelete}
-            className="h-8 w-8 text-red-600 hover:bg-red-50"
-          >
-            <Trash className="h-5 w-5" strokeWidth={2.2} />
-          </Button>
+          {/* Eliminar: botón rojo con diálogo de confirmación */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Eliminar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción no se puede deshacer. Se eliminará permanentemente el registro del voluntario <strong>{voluntario.nombreCompleto}</strong>.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete} className="bg-red-600 hover:bg-red-700">
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </td>
     </tr>
