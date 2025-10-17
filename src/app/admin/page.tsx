@@ -9,14 +9,13 @@ import { Button } from "@/components/ui/button"
 export default function AdminDashboardPage() {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Encabezado de la sección (sin header extra) */}
+      {/* Encabezado de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Módulos del Sistema</h1>
           <p className="text-slate-500">Gestiona cada área de la organización</p>
         </div>
 
-        {/* ← Mueve aquí el botón verde del card */}
         <Link href="/">
           <Button variant="outline" size="sm" className="gap-2 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
@@ -118,7 +117,7 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
 
-          {/* Recapitulación */}
+          {/* Recapitulación - AHORA CONECTADO */}
           <Link href="/admin/recapitulacion" className="group">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-red-300">
               <div className="flex items-center gap-4">
@@ -136,7 +135,7 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
 
-          {/* Página Informativa (full width en lg) */}
+          {/* Página Informativa */}
           <Link href="/admin/informational-page" className="group lg:col-span-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-indigo-300">
               <div className="flex items-center gap-4">
