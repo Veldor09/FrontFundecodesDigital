@@ -1,7 +1,9 @@
 // src/app/admin/Billing/components/RequestsRow.tsx
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getBillingStatusForSolicitud } from '../services/billing.api';
 
 /** 
  * Este tipo local acepta exactamente lo que le manda RequestsTable:
@@ -20,6 +22,7 @@ type RowItem = {
 
 function statusClasses(estado?: string) {
   const e = (estado ?? '').toUpperCase();
+  if (e === 'PAGADA') return 'bg-emerald-100 text-emerald-800';
   if (e === 'APROBADA') return 'bg-green-100 text-green-700';
   if (e === 'RECHAZADA') return 'bg-red-100 text-red-700';
   if (e === 'VALIDADA') return 'bg-blue-100 text-blue-700';
@@ -43,10 +46,23 @@ type Props = {
 
 export default function RequestsRow({ item, onView }: Props) {
   const id = (item?.id ?? null) as number | null;
-  const estado = item?.estado ?? 'PENDIENTE';
   const titulo = item?.titulo ?? '—';
   const descripcion = item?.descripcion ?? '—';
   const createdAt = item?.createdAt ?? null;
+
+  // Trae el estado de billing (PAID) para esta solicitud
+  const { data: billingStatus } = useQuery({
+    queryKey: ['billingStatus', id],
+    queryFn: () => getBillingStatusForSolicitud(id as number),
+    enabled: id != null,
+    staleTime: 60 * 1000,
+  });
+
+  // Estado final: si billing dice PAID -> PAGADA, si no usa el estado original
+  const estado = useMemo(() => {
+    if ((billingStatus ?? '').toUpperCase() === 'PAID') return 'PAGADA';
+    return item?.estado ?? 'PENDIENTE';
+  }, [billingStatus, item?.estado]);
 
   return (
     <tr className="border-t">

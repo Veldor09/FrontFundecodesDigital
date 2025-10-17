@@ -186,7 +186,7 @@ const onSubmit = async (data: FormValues) => {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Tipo de documento */}
       <div>
-        <Label className="text-slate-700 flex items-center gap-2">
+        <Label className="text-slate-700 flex items-center gap-2 font-bold pb-1">
           <IdCard className="h-4 w-4" />
           Tipo de documento
         </Label>
