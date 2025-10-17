@@ -1,28 +1,27 @@
-// src/app/admin/Invoicing/components/PaymentForm.tsx
+// src/app/admin/BillingRequest/components/PaymentForm.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   PaymentFormModel,
   Currency,
-  ProgramOption,
   toNumberSafe,
 } from "../types/billing.types";
-import {
-  useCreatePayment,
-  usePrograms,
-  useRequest,
-  formatApiError,
-} from "../hooks/billing.hooks";
+import { useCreatePayment, formatApiError } from "../hooks/useBilling";
+import { ensureBillingRequestFromSolicitud } from "../services/billing.api";
+import { listProjects } from "@/services/projects.service";
+import type { Project } from "@/lib/projects.types";
 
-/**
- * Este formulario registra un pago y, al completar con éxito,
- * el backend cambia el estado del Request a PAID.
- *
- * Puedes usarlo de dos formas:
- *  - Pasando requestId y projectId (bloquea el programa)
- *  - Solo con requestId (autocarga el Request y bloquea proyecto)
- */
+/* ===== Límites UI ===== */
+const AMOUNT_MAX_CHARS = 14; // "9999999999.99" ~ 13-14
+const REF_MIN = 3;
+const REF_MAX = 40;
+const METHOD_MAX = 30;
+
+/* ===== Opciones de método ===== */
+const METHOD_OPTIONS = ["Transferencia", "SINPE", "Tarjeta", "Efectivo", "Otro"] as const;
+
 type Props =
   | {
       className?: string;
@@ -41,63 +40,139 @@ type Props =
 
 const initial: PaymentFormModel = {
   requestId: 0,
-  projectId: 0,
+  projectId: undefined,
   amount: "",
   currency: "CRC",
   date: "",
   reference: "",
-  method: "", // frontend-only
+  method: "",
 };
+
+/** Limpia el input de monto: solo dígitos, 1 separador y máx 2 decimales */
+function sanitizeMoneyInput(raw: string): string {
+  let s = raw.replace(/[^\d.,]/g, ""); // solo dígitos/coma/punto
+  s = s.replace(/,/g, "."); // normaliza coma a punto
+  const firstDot = s.indexOf(".");
+  if (firstDot !== -1) {
+    // quita puntos extra y no numéricos después del primero
+    s =
+      s.slice(0, firstDot + 1) +
+      s
+        .slice(firstDot + 1)
+        .replace(/\./g, "")
+        .replace(/[^0-9]/g, "");
+  }
+  // límite 2 decimales
+  if (s.includes(".")) {
+    const [int, dec] = s.split(".");
+    return `${int}${dec !== undefined ? "." + dec.slice(0, 2) : ""}`;
+  }
+  return s;
+}
 
 export default function PaymentForm(props: Props) {
   const [model, setModel] = useState<PaymentFormModel>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
-  const { data: programs, isLoading: loadingPrograms } = usePrograms();
-  // Si solo viene requestId, cargamos el Request para conocer el projectId
-  const { data: reqData } = useRequest(props.requestId, { enabled: !!props.requestId });
+  const [projects, setProjects] = useState<Array<Pick<Project, "id" | "title">>>([]);
+  const [loadingProjects, setLoadingProjects] = useState<boolean>(true);
 
-  // Sincroniza valores iniciales
+  // hoy en formato YYYY-MM-DD para usar en el input date y validaciones
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  /* ===== Cargar proyectos (select) ===== */
   useEffect(() => {
-    const projectId = props.projectId ?? (reqData?.projectId ?? 0);
+    let mounted = true;
+    (async () => {
+      try {
+        setLoadingProjects(true);
+        const { data } = await listProjects({ page: 1, pageSize: 1000 });
+        if (!mounted) return;
+        const rows = Array.isArray(data) ? data : [];
+        setProjects(
+          rows.map((p: any) => ({
+            id: Number(p.id),
+            title: String(p.title ?? `Proyecto #${p.id}`),
+          }))
+        );
+      } catch {
+        if (mounted) setProjects([]);
+      } finally {
+        if (mounted) setLoadingProjects(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* ===== Inicialización ===== */
+  useEffect(() => {
     setModel((m) => ({
       ...m,
       requestId: props.requestId,
-      projectId,
+      projectId: (props as any).projectId ?? m.projectId,
       currency: props.defaultCurrency ?? "CRC",
+      date: m.date || today,
     }));
-  }, [props.requestId, props.projectId, props.defaultCurrency, reqData?.projectId]);
-
-  const createPayment = useCreatePayment();
-
-  const validators = useMemo(
-    () => ({
-      requestId: (v: number) => (v > 0 ? "" : "Request inválido"),
-      projectId: (v: number) => (v > 0 ? "" : "Programa inválido"),
-      amount: (v: string) => {
-        if (!v) return "Ingresa el monto";
-        const n = toNumberSafe(v);
-        if (!Number.isFinite(n) || n <= 0) return "Monto inválido";
-        if (!/^\d+(\.\d{1,2})?$/.test(v.replace(",", "."))) return "Usa máximo 2 decimales";
-        return "";
-      },
-      currency: (v: string) => (v === "CRC" || v === "USD" ? "" : "Moneda inválida"),
-      date: (v: string) =>
-        /^\d{4}-\d{2}-\d{2}$/.test(v) ? "" : "Fecha inválida (YYYY-MM-DD)",
-      reference: (v: string) =>
-        v.trim().length >= 3 ? "" : "Referencia muy corta (mín. 3 caracteres)",
-      method: (v: string) => (v && v.trim().length < 2 ? "Método inválido" : ""), // opcional
-    }),
-    []
-  );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.requestId, (props as any).projectId, props.defaultCurrency, today]);
 
   function setField<K extends keyof PaymentFormModel>(key: K, value: PaymentFormModel[K]) {
     setModel((m) => ({ ...m, [key]: value }));
     setErrors((e) => ({ ...e, [key]: "" }));
   }
 
+  const createPayment = useCreatePayment();
+
+  /* ===== Validaciones ===== */
+  const validators = useMemo(
+    () => ({
+      requestId: (v: number) => (v > 0 ? "" : "Solicitud inválida"),
+      projectId: (v?: number) =>
+        typeof v === "number" && v > 0 ? "" : "Selecciona un proyecto",
+      amount: (v: string) => {
+        if (!v) return "Ingresa el monto";
+        const trimmed = v.replace(",", ".");
+        if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return "Usa máximo 2 decimales";
+        const n = toNumberSafe(trimmed);
+        if (!Number.isFinite(n) || n <= 0) return "Monto inválido";
+        return "";
+      },
+      currency: (v: string) => (v === "CRC" || v === "USD" ? "" : "Moneda inválida"),
+      date: (v: string) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "Fecha inválida (YYYY-MM-DD)";
+        if (v > today) return "La fecha no puede ser futura";
+        return "";
+      },
+      reference: (v: string) => {
+        const t = v.trim();
+        if (t.length < REF_MIN) return `Referencia muy corta (mín. ${REF_MIN} caracteres)`;
+        if (t.length > REF_MAX) return `Máximo ${REF_MAX} caracteres`;
+        return "";
+      },
+      // método opcional; si lo llenan, validar largo
+      method: (v: string) => {
+        const t = (v ?? "").trim();
+        if (!t) return ""; // opcional
+        if (t.length > METHOD_MAX) return `Máximo ${METHOD_MAX} caracteres`;
+        if (t.length < 2) return "Método inválido";
+        return "";
+      },
+    }),
+    [today]
+  );
+
+  const projectInvalid = !!validators.projectId(model.projectId);
+  const amountInvalid = !!validators.amount(model.amount);
+  const dateInvalid = !!validators.date(model.date);
+  const refInvalid = !!validators.reference(model.reference);
+
+  /* ===== Submit ===== */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setTriedSubmit(true);
 
     const next: Record<string, string> = {};
     next.requestId = validators.requestId(model.requestId);
@@ -113,159 +188,282 @@ export default function PaymentForm(props: Props) {
     if (Object.keys(next).length > 0) return;
 
     try {
+      await ensureBillingRequestFromSolicitud({
+        solicitudId: model.requestId,
+        projectId: Number(model.projectId),
+        fallbackAmount: toNumberSafe(model.amount),
+      });
+
       const payment = await createPayment.mutateAsync({
         requestId: model.requestId,
-        projectId: model.projectId,
+        projectId: Number(model.projectId),
         amount: toNumberSafe(model.amount),
         currency: model.currency,
         date: model.date,
-        // Puedes concatenar el método de pago para conservarlo:
         reference: model.method?.trim()
           ? `${model.reference.trim()} — Método: ${model.method.trim()}`
           : model.reference.trim(),
       });
 
-      // Reset & callback
-      setModel((m) => ({
+      toast.success("Pago registrado");
+
+      // Reset
+      setModel({
         ...initial,
         requestId: props.requestId,
-        projectId: props.projectId ?? (reqData?.projectId ?? 0),
+        projectId: (props as any).projectId ?? undefined,
         currency: props.defaultCurrency ?? "CRC",
-      }));
+        date: today,
+      });
       setErrors({});
-      if (props.onPaid) props.onPaid(payment.id);
+      setTriedSubmit(false);
+
+      props.onPaid?.(payment.id);
     } catch (err) {
-      // Posibles errores: "El pago no corresponde al mismo proyecto del request"
       setErrors((e) => ({ ...e, _server: formatApiError(err) }));
     }
   }
 
-  const busy = createPayment.isPending || loadingPrograms;
+  const busy = createPayment.isPending || loadingProjects;
 
-  // Para mostrar el nombre del programa en cabecera
-  const programName =
-    programs?.find((p: ProgramOption) => Number(p.id) === model.projectId)?.name ??
-    (model.projectId ? `#${model.projectId}` : "-");
+  const selectedProjectName = useMemo(() => {
+    const pid = Number(model.projectId ?? 0);
+    const p = projects.find((x) => x.id === pid);
+    return p?.title ?? (pid ? `Proyecto #${pid}` : "");
+  }, [projects, model.projectId]);
+
+  const disableSubmit =
+    busy ||
+    !!validators.requestId(model.requestId) ||
+    !!validators.projectId(model.projectId) ||
+    !!validators.amount(model.amount) ||
+    !!validators.currency(model.currency) ||
+    !!validators.date(model.date) ||
+    !!validators.reference(model.reference) ||
+    !!validators.method(model.method ?? "");
 
   return (
     <form
       onSubmit={handleSubmit}
-      className={`w-full max-w-2xl mx-auto bg-white rounded-2xl shadow p-4 sm:p-6 md:p-8 flex flex-col gap-4 ${
+      className={`w-full max-w-2xl mx-auto bg-white rounded-2xl shadow flex flex-col max-h-[80vh] ${
         (props as any).className ?? ""
       }`}
     >
-      <h2 className="text-lg sm:text-xl font-semibold">Registrar pago</h2>
-
-      {/* Contexto */}
-      <div className="rounded-lg bg-gray-50 border p-3 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-600">Solicitud #{props.requestId}</span>
-          <span className="text-gray-600">Programa: {programName}</span>
-        </div>
-        <p className="text-gray-600 mt-1">
-          Al registrar el pago, la solicitud pasará al estado <strong>PAID</strong>.
+      {/* Header compacto (no título duplicado) */}
+      <div className="px-5 py-3 border-b bg-white sticky top-0 z-10">
+        <p className="text-xs text-slate-500">
+          Solicitud <span className="font-semibold">#{props.requestId}</span>
+          {selectedProjectName ? (
+            <>
+              {" "}
+              • Proyecto: <span className="font-medium">{selectedProjectName}</span>
+            </>
+          ) : null}
         </p>
       </div>
 
-      {/* Monto y Moneda */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Monto</label>
-          <input
-            inputMode="decimal"
-            placeholder="0.00"
-            value={model.amount}
-            onChange={(e) => setField("amount", e.target.value)}
-            className="border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-gray-500">Máximo 2 decimales.</p>
-          {errors.amount && <p className="text-red-600 text-xs mt-1">{errors.amount}</p>}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Moneda</label>
+      {/* Contenido scrollable */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 pt-4 space-y-4">
+        {/* Proyecto */}
+        <div>
+          <label className="text-sm font-medium">
+            Proyecto <span className="text-red-600">*</span>
+          </label>
           <select
-            value={model.currency}
-            onChange={(e) => setField("currency", e.target.value as Currency)}
-            className="border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            value={model.projectId ?? 0}
+            onChange={(e) => setField("projectId", Number(e.target.value) || undefined)}
+            className={`mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 ${
+              triedSubmit && projectInvalid ? "ring-red-500" : "ring-blue-500"
+            } focus:ring-2`}
+            disabled={busy || typeof (props as any).projectId === "number"}
+            required
           >
-            <option value="CRC">CRC</option>
-            <option value="USD">USD</option>
+            <option value={0} disabled>
+              {loadingProjects ? "Cargando proyectos…" : "Selecciona un proyecto"}
+            </option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
           </select>
-          {errors.currency && <p className="text-red-600 text-xs mt-1">{errors.currency}</p>}
+          {triedSubmit && projectInvalid && (
+            <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+              {validators.projectId(model.projectId)}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Fecha */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium">Fecha</label>
-        <input
-          type="date"
-          value={model.date}
-          onChange={(e) => setField("date", e.target.value)}
-          className="border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {errors.date && <p className="text-red-600 text-xs mt-1">{errors.date}</p>}
-      </div>
+        {/* Monto y Moneda */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium">
+              Monto <span className="text-red-600">*</span>
+            </label>
+            <input
+              inputMode="decimal"
+              placeholder="0.00"
+              value={model.amount}
+              onChange={(e) => {
+                const cleaned = sanitizeMoneyInput(
+                  e.target.value.slice(0, AMOUNT_MAX_CHARS)
+                );
+                setField("amount", cleaned);
+              }}
+              onBlur={() => {
+                const n = Number(model.amount.replace(",", "."));
+                if (Number.isFinite(n) && n > 0) {
+                  setField("amount", n.toFixed(2));
+                }
+              }}
+              maxLength={AMOUNT_MAX_CHARS}
+              className={`mt-1 w-full rounded-md border p-2 outline-none focus:ring-2 ${
+                triedSubmit && amountInvalid ? "ring-red-500" : "ring-blue-500"
+              }`}
+              required
+            />
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span className={triedSubmit && amountInvalid ? "text-red-600" : "text-slate-500"}>
+                Máximo 2 decimales.
+              </span>
+              <span className="text-slate-500">
+                {model.amount.length}/{AMOUNT_MAX_CHARS}
+              </span>
+            </div>
+            {triedSubmit && amountInvalid && (
+              <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+                {validators.amount(model.amount)}
+              </div>
+            )}
+          </div>
 
-      {/* Referencia y Método de pago */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Referencia</label>
+          <div>
+            <label className="text-sm font-medium">
+              Moneda <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={model.currency}
+              onChange={(e) => setField("currency", e.target.value as Currency)}
+              className="mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="CRC">CRC</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Fecha (no futura) */}
+        <div>
+          <label className="text-sm font-medium">
+            Fecha <span className="text-red-600">*</span>
+          </label>
           <input
-            type="text"
-            value={model.reference}
-            onChange={(e) => setField("reference", e.target.value)}
-            placeholder="Transacción #ABC123"
-            className="border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            type="date"
+            value={model.date}
+            max={today}
+            onChange={(e) => setField("date", e.target.value)}
+            className={`mt-1 w-full rounded-md border p-2 outline-none focus:ring-2 ${
+              triedSubmit && dateInvalid ? "ring-red-500" : "ring-blue-500"
+            }`}
+            required
           />
-          {errors.reference && <p className="text-red-600 text-xs mt-1">{errors.reference}</p>}
+          {triedSubmit && dateInvalid && (
+            <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+              {validators.date(model.date)}
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Método de pago (opcional)</label>
-          <input
-            type="text"
-            value={model.method ?? ""}
-            onChange={(e) => setField("method", e.target.value)}
-            placeholder="Transferencia / Sinpe / Tarjeta / Efectivo"
-            className="border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {errors.method && <p className="text-red-600 text-xs mt-1">{errors.method}</p>}
+        {/* Referencia y Método */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium">
+              Referencia <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              value={model.reference}
+              onChange={(e) => setField("reference", e.target.value.slice(0, REF_MAX))}
+              maxLength={REF_MAX}
+              placeholder="Transacción #ABC123"
+              className={`mt-1 w-full rounded-md border p-2 outline-none focus:ring-2 ${
+                triedSubmit && refInvalid ? "ring-red-500" : "ring-blue-500"
+              }`}
+              required
+            />
+            <div className="mt-1 flex items-center justify-end text-xs text-slate-500">
+              {model.reference.length}/{REF_MAX}
+            </div>
+            {triedSubmit && refInvalid && (
+              <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+                {validators.reference(model.reference)}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Método de pago (opcional)</label>
+            <select
+              value={model.method ?? ""}
+              onChange={(e) => setField("method", e.target.value.slice(0, METHOD_MAX))}
+              className="mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Selecciona un método</option>
+              {METHOD_OPTIONS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <div className="mt-1 flex items-center justify-end text-xs text-slate-500">
+              {(model.method ?? "").length}/{METHOD_MAX}
+            </div>
+            {errors.method && (
+              <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+                {errors.method}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Error del servidor */}
+        {errors._server && (
+          <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+            {errors._server}
+          </div>
+        )}
       </div>
 
-      {/* Errores del servidor */}
-      {errors._server && (
-        <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-          {errors._server}
-        </div>
-      )}
+      {/* Footer fijo */}
+      <div className="border-t bg-white px-5 py-3 sticky bottom-0">
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setModel({
+                ...initial,
+                requestId: props.requestId,
+                projectId: (props as any).projectId ?? undefined,
+                currency: props.defaultCurrency ?? "CRC",
+                date: today,
+              });
+              setErrors({});
+              setTriedSubmit(false);
+            }}
+            className="rounded-md border px-4 py-2 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Limpiar
+          </button>
 
-      {/* Acciones */}
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={busy || !model.requestId || !model.projectId}
-          className="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 font-medium disabled:opacity-60"
-        >
-          {busy ? "Registrando..." : "Registrar pago"}
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() =>
-            setModel((m) => ({
-              ...initial,
-              requestId: props.requestId,
-              projectId: props.projectId ?? (reqData?.projectId ?? 0),
-              currency: props.defaultCurrency ?? "CRC",
-            }))
-          }
-          className="inline-flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 font-medium disabled:opacity-60"
-        >
-          Limpiar
-        </button>
+          <button
+            type="submit"
+            disabled={disableSubmit}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50"
+          >
+            {busy ? "Registrando…" : "Registrar pago"}
+          </button>
+        </div>
       </div>
     </form>
   );

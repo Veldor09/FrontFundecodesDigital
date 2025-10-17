@@ -1,9 +1,17 @@
+// src/app/admin/BillingRequest/components/RequestNav.tsx
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const tabs = ["Solicitudes", "Validación Contable", "Aprobación Dirección"] as const;
+const tabs = [
+  "Solicitudes",
+  "Validación Contable",
+  "Aprobación Dirección",
+  "Pendientes de pago", // NUEVO
+  "Historial",          // NUEVO
+] as const;
+
 export type RequestTab = typeof tabs[number];
 
 interface Props {
@@ -21,7 +29,7 @@ export default function RequestNav({ active, onChange }: Props) {
             Gestión de Solicitudes
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Crea, revisa, valida y aprueba solicitudes antes de pasar a facturación.
+            Crea, valida y aprueba solicitudes. Administra pagos y consulta el historial.
           </p>
         </div>
 
@@ -36,7 +44,7 @@ export default function RequestNav({ active, onChange }: Props) {
             </Button>
           </Link>
 
-          <nav className="flex gap-2">
+          <nav className="flex flex-wrap gap-2 justify-center">
             {tabs.map((tab) => (
               <Button
                 key={tab}

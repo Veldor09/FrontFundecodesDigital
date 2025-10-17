@@ -63,38 +63,20 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
 
-          {/* Facturación */}
-          <Link href="/admin/Invoicing" className="group">
+          {/* Solicitudes y Facturación */}
+          <Link href="/admin/BillingRequest" className="group">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-green-300">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-green-50 group-hover:border-green-200">
                   <Receipt className="h-7 w-7 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-green-700">Facturación</h3>
-                  <p className="text-sm text-slate-500">Consulta y administración de facturas</p>
-                </div>
-              </div>
-              <div className="mt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                Ver facturas →
-              </div>
-            </div>
-          </Link>
-
-          {/* Solicitudes */}
-          <Link href="/admin/Request" className="group">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-green-300">
-              <div className="flex items-center gap-4">
-                <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-green-50 group-hover:border-green-200">
-                  <Receipt className="h-7 w-7 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-green-700">Solicitudes</h3>
+                  <h3 className="text-lg font-semibold text-slate-800 group-hover:text-green-700">Solicitudes y Facturación</h3>
                   <p className="text-sm text-slate-500">Consulta y administración de Solicitudes</p>
                 </div>
               </div>
               <div className="mt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                Ver solicitudes →
+                Ver Solicitudes →
               </div>
             </div>
           </Link>

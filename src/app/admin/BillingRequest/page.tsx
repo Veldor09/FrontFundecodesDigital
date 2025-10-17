@@ -1,12 +1,16 @@
+// src/app/admin/BillingRequest/page.tsx
 "use client";
 
 import { useState } from "react";
 import RequestNav, { type RequestTab } from "./components/RequestNav";
 
-// Importar las vistas del módulo
 import RequestsTable from "./components/RequestsTable";
 import AccountantValidationTable from "./components/AccountantValidationTable";
 import DirectorApprovalTable from "./components/DirectorApprovalTable";
+
+// PAGO + HISTORIAL
+import PaymentTable from "./components/PaymentTable";
+import HistoryTable from "./components/HistoryTable"; // ⬅️ nuevo
 
 export default function RequestPage() {
   const [vista, setVista] = useState<RequestTab>("Solicitudes");
@@ -20,6 +24,9 @@ export default function RequestPage() {
           {vista === "Solicitudes" && <RequestsTable />}
           {vista === "Validación Contable" && <AccountantValidationTable />}
           {vista === "Aprobación Dirección" && <DirectorApprovalTable />}
+
+          {vista === "Pendientes de pago" && <PaymentTable />}
+          {vista === "Historial" && <HistoryTable />} {/* ⬅️ reemplazo */}
         </div>
       </main>
     </>
