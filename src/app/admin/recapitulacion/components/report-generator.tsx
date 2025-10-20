@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -8,63 +7,52 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { FileText, Download, AlertCircle, Loader2, X, FileSpreadsheet, CheckCircle2, Calendar } from "lucide-react"
+import { useReportGenerator } from "../hooks/use-report-generator"
+import ReportPreview from "./report-preview"
 
 export default function ReportGenerator() {
-  const [dateMode, setDateMode] = useState<"year" | "range">("year")
-  const [year, setYear] = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const [reportType, setReportType] = useState("")
-  const [department, setDepartment] = useState("")
-  const [status, setStatus] = useState<"idle" | "generating" | "success" | "error">("idle")
-  const [progress, setProgress] = useState(0)
+  const {
+    dateMode,
+    year,
+    startDate,
+    endDate,
+    reportType,
+    department,
+    status,
+    reportData,
+    errorMessage,
+    progress,
+    isFormValid,
+    setDateMode,
+    setYear,
+    setStartDate,
+    setEndDate,
+    setReportType,
+    setDepartment,
+    clearFilters,
+    generateReport,
+    downloadPDF,
+    downloadExcel,
+  } = useReportGenerator()
 
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i)
-
-  const isFormValid = dateMode === "year" 
-    ? year && reportType && department
-    : startDate && endDate && reportType && department
 
   const getPreviewDescription = () => {
     switch (status) {
       case "idle":
         return "Configura los parámetros para ver la vista previa"
       case "generating":
-        return "Generando informe..."
+        return "Generando informe desde el servidor..."
       case "success":
         return "Informe listo para descargar"
       case "error":
-        return "Error al generar el informe"
+        return errorMessage || "Error al generar el informe"
+      case "no-data":
+        return "No se encontraron datos para los filtros seleccionados"
       default:
         return ""
     }
-  }
-
-  const generateReport = () => {
-    setStatus("generating")
-    setProgress(0)
-    
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setStatus("success")
-          return 100
-        }
-        return prev + 10
-      })
-    }, 200)
-  }
-
-  const clearFilters = () => {
-    setYear("")
-    setStartDate("")
-    setEndDate("")
-    setReportType("")
-    setDepartment("")
-    setStatus("idle")
-    setProgress(0)
   }
 
   return (
@@ -166,27 +154,26 @@ export default function ReportGenerator() {
                 </div>
               )}
 
-              {/* Tipo de reporte - solo visible en modo año */}
-              {dateMode === "year" && (
-                <div className="space-y-2">
-                  <Label htmlFor="report-type" className="text-slate-700 font-medium">
-                    Tipo de reporte *
-                  </Label>
-                  <select
-                    id="report-type"
-                    value={reportType}
-                    onChange={(e) => setReportType(e.target.value)}
-                    className="w-full border border-slate-300 rounded-md h-10 px-3 text-sm bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Selecciona un tipo</option>
-                    <option value="mensual">Mensual</option>
-                    <option value="trimestral">Trimestral</option>
-                    <option value="trimestral">Cuatrimestral</option>
-                    <option value="mensual">Semestral</option>
-                    <option value="mensual">Anual</option>
-                  </select>
-                </div>
-              )}
+              {/* Tipo de reporte */}
+              <div className="space-y-2">
+                <Label htmlFor="report-type" className="text-slate-700 font-medium">
+                  Tipo de reporte *
+                </Label>
+                <select
+                  id="report-type"
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="w-full border border-slate-300 rounded-md h-10 px-3 text-sm bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecciona un tipo</option>
+                  <option value="mensual">Mensual</option>
+                  <option value="trimestral">Trimestral</option>
+                  <option value="cuatrimestral">Cuatrimestral</option>
+                  <option value="semestral">Semestral</option>
+                  <option value="anual">Anual</option>
+                  <option value="general">General (todos los módulos)</option>
+                </select>
+              </div>
 
               {/* Módulos - Selección múltiple */}
               <div className="space-y-2">
@@ -213,7 +200,7 @@ export default function ReportGenerator() {
                       <span className="text-sm text-slate-800 font-semibold">Todos los módulos</span>
                     </label>
 
-                    {/* Módulos individuales - siempre visibles */}
+                    {/* Módulos individuales */}
                     {[
                       { value: "voluntariado", label: "Voluntariado" },
                       { value: "proyectos", label: "Proyectos" },
@@ -288,7 +275,7 @@ export default function ReportGenerator() {
               {status === "generating" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Generando informe...</span>
+                    <span className="text-slate-600">Consultando servidor...</span>
                     <span className="font-medium text-slate-800">{progress}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />
@@ -326,9 +313,10 @@ export default function ReportGenerator() {
               </div>
 
               {/* Botones de descarga */}
-              {status === "success" && (
+              {status === "success" && reportData && (
                 <div className="space-y-2">
                   <Button
+                    onClick={downloadPDF}
                     variant="outline"
                     className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
                   >
@@ -336,6 +324,7 @@ export default function ReportGenerator() {
                     Descargar PDF
                   </Button>
                   <Button
+                    onClick={downloadExcel}
                     variant="outline"
                     className="w-full border-green-600 text-green-600 hover:bg-green-50"
                   >
@@ -361,7 +350,16 @@ export default function ReportGenerator() {
             <Alert className="border-red-500 bg-red-50">
               <AlertCircle className="h-4 w-4 text-red-600" />
               <AlertDescription className="text-sm text-red-700">
-                Error al generar el informe
+                {errorMessage || "Error al generar el informe"}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {status === "no-data" && (
+            <Alert className="border-yellow-500 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-sm text-yellow-700">
+                No se encontraron datos para los filtros seleccionados. Intenta con otros parámetros.
               </AlertDescription>
             </Alert>
           )}
@@ -393,7 +391,7 @@ export default function ReportGenerator() {
                   <div className="text-center">
                     <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-600" />
                     <p className="mt-4 text-sm font-medium text-slate-800">Generando informe</p>
-                    <p className="mt-1 text-xs text-slate-600">Esto puede tomar unos segundos...</p>
+                    <p className="mt-1 text-xs text-slate-600">Consultando la base de datos...</p>
                     <div className="mx-auto mt-4 w-48">
                       <Progress value={progress} className="h-2" />
                     </div>
@@ -401,26 +399,43 @@ export default function ReportGenerator() {
                 </div>
               )}
 
-              {status === "success" && (
-                <div className="flex h-[600px] items-center justify-center rounded-lg border border-slate-300 bg-white">
-                  <div className="text-center">
-                    <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
-                    <p className="mt-4 text-sm font-medium text-slate-800">
-                      Informe generado exitosamente
-                    </p>
-                    <p className="mt-1 text-xs text-slate-600">
-                      Usa los botones de descarga para obtener tu informe
-                    </p>
-                  </div>
-                </div>
+              {status === "success" && reportData && (
+                <ReportPreview data={reportData} />
               )}
 
               {status === "error" && (
                 <div className="flex h-[600px] items-center justify-center rounded-lg border border-red-300 bg-red-50">
-                  <div className="text-center">
+                  <div className="text-center max-w-md">
                     <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
                     <p className="mt-4 text-sm font-medium text-slate-800">Error al generar el informe</p>
-                    <p className="mt-1 text-xs text-slate-600">Por favor, intenta nuevamente</p>
+                    <p className="mt-2 text-xs text-slate-600">{errorMessage}</p>
+                    <Button 
+                      onClick={clearFilters}
+                      variant="outline"
+                      className="mt-4"
+                    >
+                      Intentar nuevamente
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {status === "no-data" && (
+                <div className="flex h-[600px] items-center justify-center rounded-lg border border-yellow-300 bg-yellow-50">
+                  <div className="text-center max-w-md">
+                    <AlertCircle className="mx-auto h-12 w-12 text-yellow-600" />
+                    <p className="mt-4 text-sm font-medium text-slate-800">No hay datos disponibles</p>
+                    <p className="mt-2 text-xs text-slate-600">
+                      No se encontraron registros para los filtros seleccionados. 
+                      Intenta con otros parámetros o un rango de fechas diferente.
+                    </p>
+                    <Button 
+                      onClick={clearFilters}
+                      variant="outline"
+                      className="mt-4"
+                    >
+                      Limpiar filtros
+                    </Button>
                   </div>
                 </div>
               )}

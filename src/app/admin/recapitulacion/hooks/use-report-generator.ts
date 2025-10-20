@@ -51,43 +51,80 @@ export function useReportGenerator() {
       })
     }, 200)
 
-    const result = await ReportService.generateReport({
-      dateMode,
-      year,
-      startDate,
-      endDate,
-      reportType,
-      category: "general", // Valor por defecto
-      department,
-    })
+    try {
+      const result = await ReportService.generateReport({
+        dateMode,
+        year,
+        startDate,
+        endDate,
+        reportType,
+        category: "general",
+        department,
+      })
 
-    clearInterval(progressInterval)
-    setProgress(100)
+      clearInterval(progressInterval)
+      setProgress(100)
 
-    if (!result.success) {
-      if (result.error === "no-data") {
-        setStatus("no-data")
-        setReportData(null)
-      } else {
-        setStatus("error")
-        setErrorMessage(result.error || "Error desconocido")
-        setReportData(null)
+      if (!result.success) {
+        if (result.error === "no-data") {
+          setStatus("no-data")
+          setReportData(null)
+          setErrorMessage("No se encontraron datos para los filtros seleccionados")
+        } else {
+          setStatus("error")
+          setErrorMessage(result.error || "Error desconocido al generar el informe")
+          setReportData(null)
+        }
+      } else if (result.data) {
+        setStatus("success")
+        setReportData(result.data)
+        setSavedReports((prev) => [result.data!, ...prev.slice(0, 9)]) // Mantener últimos 10
       }
-    } else if (result.data) {
-      setStatus("success")
-      setReportData(result.data)
-      setSavedReports((prev) => [result.data!, ...prev])
+    } catch (error) {
+      clearInterval(progressInterval)
+      setProgress(0)
+      setStatus("error")
+      setErrorMessage("Error inesperado al generar el informe")
+      console.error("Error en generateReport:", error)
     }
   }
 
   const downloadPDF = async () => {
-    const fileName = `informe-${reportType}-${dateMode === "year" ? year : `${startDate}-${endDate}`}.pdf`
-    await ReportService.downloadPDF(fileName)
+    if (!reportData) return
+
+    try {
+      await ReportService.downloadPDF({
+        dateMode,
+        year: reportData.year,
+        startDate,
+        endDate,
+        reportType: reportData.reportType,
+        department: reportData.department || "",
+      })
+    } catch (error) {
+      setStatus("error")
+      setErrorMessage("Error al descargar el PDF")
+      console.error("Error al descargar PDF:", error)
+    }
   }
 
   const downloadExcel = async () => {
-    const fileName = `informe-${reportType}-${dateMode === "year" ? year : `${startDate}-${endDate}`}.xlsx`
-    await ReportService.downloadExcel(fileName)
+    if (!reportData) return
+
+    try {
+      await ReportService.downloadExcel({
+        dateMode,
+        year: reportData.year,
+        startDate,
+        endDate,
+        reportType: reportData.reportType,
+        department: reportData.department || "",
+      })
+    } catch (error) {
+      setStatus("error")
+      setErrorMessage("Error al descargar el archivo Excel")
+      console.error("Error al descargar Excel:", error)
+    }
   }
 
   const loadReport = (report: SavedReport) => {
@@ -96,6 +133,14 @@ export function useReportGenerator() {
     setYear(report.year)
     setReportType(report.reportType)
     setDepartment(report.department || "")
+    
+    if (report.dateRange) {
+      setDateMode("range")
+      setStartDate(report.dateRange.start)
+      setEndDate(report.dateRange.end)
+    } else {
+      setDateMode("year")
+    }
   }
 
   return {
