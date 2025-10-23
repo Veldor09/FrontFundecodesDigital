@@ -149,7 +149,8 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
     return e;
   }, [form, country, idType]);
 
-  const showError = (f: Field) => (submitted || touched[f]) && !!errors[f];
+  // ✅ No mostrar errores mientras guarda o tras éxito (okMsg), para evitar “flicker” visual
+  const showError = (f: Field) => (submitted || touched[f]) && !!errors[f] && !loading && !okMsg;
   const markTouched = (f: Field) => setTouched((t) => ({ ...t, [f]: true }));
 
   /* Teléfono helpers */
@@ -192,7 +193,10 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
   /* Submit */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setServerError(null); setOkMsg(null); setSubmitted(true);
+    setServerError(null); setOkMsg(null);
+
+    // Mostramos errores si los hay
+    setSubmitted(true);
     if (Object.keys(errors).length > 0) return;
 
     setLoading(true);
@@ -210,6 +214,8 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
         await save({ id: initial.id, ...basePayload });
         setOkMsg("✅ Cambios guardados.");
         onSaved?.("updated");
+        setSubmitted(false);            // ✅ evita que aparezcan errores al cerrar
+        onClose();                      // ✅ cerrar inmediato (sin timeout)
       } else {
         const tempPassword = genTempPassword(12);
         const result = await save({ ...basePayload, password: tempPassword } as any);
@@ -219,7 +225,6 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
           process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") ||
           (typeof window !== "undefined" ? window.location.origin : "");
 
-        // 👇 La página existe en /set-password (NO /auth/set-password)
         const inviteLink = inviteToken
           ? `${appUrl}/set-password?token=${encodeURIComponent(inviteToken)}`
           : null;
@@ -231,10 +236,10 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
         );
 
         onSaved?.("created");
+        setSubmitted(false);            // ✅ evita flicker si el form se resetea
         resetForm();
+        onClose();                      // ✅ cerrar inmediato (sin timeout)
       }
-
-      setTimeout(() => onClose(), 900);
     } catch (err: any) {
       setServerError(err?.message || "❌ Operación no completada.");
     } finally {
