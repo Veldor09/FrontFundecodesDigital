@@ -10,7 +10,8 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ProjectFilesManager } from "./ProjectFilesManager";
+import ProjectFilesManager from "./ProjectFilesManager";
+
 
 type Props = {
   open: boolean;

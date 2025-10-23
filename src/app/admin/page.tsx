@@ -28,8 +28,8 @@ export default function AdminDashboardPage() {
       <section className="mb-12">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {/* Voluntariado */}
-          <Link href="/admin/voluntariado" className="group">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-teal-300">
+          <Link href="/admin/voluntariado" className="group block h-full">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-teal-300 h-full flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-teal-50 group-hover:border-teal-200">
                   <Handshake className="h-7 w-7 text-teal-600" />
@@ -39,15 +39,15 @@ export default function AdminDashboardPage() {
                   <p className="text-sm text-slate-500">Gestión de formularios, estados y participantes</p>
                 </div>
               </div>
-              <div className="mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-auto pt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity">
                 Gestionar →
               </div>
             </div>
           </Link>
 
           {/* Proyectos */}
-          <Link href="/admin/projects" className="group">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-blue-300">
+          <Link href="/admin/projects" className="group block h-full">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-blue-300 h-full flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-blue-50 group-hover:border-blue-200">
                   <FolderKanban className="h-7 w-7 text-blue-600" />
@@ -57,15 +57,15 @@ export default function AdminDashboardPage() {
                   <p className="text-sm text-slate-500">Gestión de proyectos activos y finalizados</p>
                 </div>
               </div>
-              <div className="mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-auto pt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">
                 Administrar →
               </div>
             </div>
           </Link>
 
           {/* Solicitudes y Facturación */}
-          <Link href="/admin/BillingRequest" className="group">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-green-300">
+          <Link href="/admin/BillingRequest" className="group block h-full">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-green-300 h-full flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-green-50 group-hover:border-green-200">
                   <Receipt className="h-7 w-7 text-green-600" />
@@ -75,15 +75,15 @@ export default function AdminDashboardPage() {
                   <p className="text-sm text-slate-500">Consulta y administración de Solicitudes</p>
                 </div>
               </div>
-              <div className="mt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-auto pt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity">
                 Ver Solicitudes →
               </div>
             </div>
           </Link>
 
           {/* Colaboradores */}
-          <Link href="/admin/Collaborators" className="group">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-purple-300">
+          <Link href="/admin/Collaborators" className="group block h-full">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-purple-300 h-full flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-purple-50 group-hover:border-purple-200">
                   <Users className="h-7 w-7 text-purple-600" />
@@ -93,15 +93,15 @@ export default function AdminDashboardPage() {
                   <p className="text-sm text-slate-500">Miembros, roles, permisos y estados</p>
                 </div>
               </div>
-              <div className="mt-4 text-sm font-medium text-purple-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-auto pt-4 text-sm font-medium text-purple-700 opacity-0 group-hover:opacity-100 transition-opacity">
                 Administrar →
               </div>
             </div>
           </Link>
 
           {/* Contabilidad */}
-          <Link href="/admin/accounting" className="group">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-orange-300">
+          <Link href="/admin/accounting" className="group block h-full">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-orange-300 h-full flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-orange-50 group-hover:border-orange-200">
                   <Wallet className="h-7 w-7 text-orange-600" />
@@ -111,15 +111,15 @@ export default function AdminDashboardPage() {
                   <p className="text-sm text-slate-500">Ingresos, egresos y reportes financieros</p>
                 </div>
               </div>
-              <div className="mt-4 text-sm font-medium text-orange-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-auto pt-4 text-sm font-medium text-orange-700 opacity-0 group-hover:opacity-100 transition-opacity">
                 Ver reportes →
               </div>
             </div>
           </Link>
 
           {/* Recapitulación - AHORA CONECTADO */}
-          <Link href="/admin/recapitulacion" className="group">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-red-300">
+          <Link href="/admin/recapitulacion" className="group block h-full">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-red-300 h-full flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-red-50 group-hover:border-red-200">
                   <BarChart3 className="h-7 w-7 text-red-600" />
@@ -129,15 +129,15 @@ export default function AdminDashboardPage() {
                   <p className="text-sm text-slate-500">KPIs, métricas y resúmenes</p>
                 </div>
               </div>
-              <div className="mt-4 text-sm font-medium text-red-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-auto pt-4 text-sm font-medium text-red-700 opacity-0 group-hover:opacity-100 transition-opacity">
                 Ver analytics →
               </div>
             </div>
           </Link>
 
           {/* Página Informativa */}
-          <Link href="/admin/informational-page" className="group lg:col-span-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-indigo-300">
+          <Link href="/admin/informational-page" className="group block h-full lg:col-span-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-indigo-300 h-full flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-indigo-50 group-hover:border-indigo-200">
                   <Globe className="h-7 w-7 text-indigo-600" />
@@ -151,7 +151,7 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 text-sm font-medium text-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-auto pt-4 text-sm font-medium text-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity">
                 Editar contenido →
               </div>
             </div>
