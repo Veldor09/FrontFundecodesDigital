@@ -67,19 +67,20 @@ const TransactionsList = () => {
 
   async function load() {
     const data = await TransactionService.getTransactions()
-    setTransactions(
-      data.map((t) => ({
-        id: t.id,
-        tipo: t.tipo,
-        categoria: t.categoria,
-        descripcion: t.descripcion,
-        programa: t.programa ?? "",
-        monto: t.monto,
-        moneda: t.moneda || "CRC",
-        fecha: new Date(t.fecha).toISOString().slice(0, 10),
-        fechaCreacion: new Date(t.fechaCreacion).toISOString(),
-      })),
-    )
+   setTransactions(
+  data.map((t) => ({
+    id: t.id,
+    tipo: t.tipo,
+    categoria: t.categoria,
+    descripcion: t.descripcion,
+    programa: t.programa ?? "",
+    monto: t.monto,
+    moneda: (["CRC", "USD", "EUR"].includes(t.moneda) ? t.moneda : "CRC") as "CRC" | "USD" | "EUR",
+    fecha: new Date(t.fecha).toISOString().slice(0, 10),
+    fechaCreacion: new Date(t.fechaCreacion).toISOString(),
+  })),
+);
+
   }
 
   useEffect(() => {

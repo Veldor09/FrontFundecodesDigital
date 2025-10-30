@@ -1,3 +1,4 @@
+//src/app/admin/components/AdminHeaderMinimal.tsx
 "use client";
 
 import Image from "next/image";

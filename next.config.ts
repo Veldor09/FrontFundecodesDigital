@@ -6,22 +6,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
-      // Proxy general → todo lo que empiece con /api pasa al backend Nest
+      // Todo lo de /api -> backend con prefijo /api
       {
         source: "/api/:path*",
-        destination: `${API_URL}/:path*`,
+        destination: `${API_URL}/api/:path*`,
       },
-      // Proxy específico para auth (mantiene /api-auth separado)
+      // Auth separado, también con prefijo /api
       {
         source: "/api-auth/:path*",
-        destination: `${API_URL}/auth/:path*`,
+        destination: `${API_URL}/api/auth/:path*`,
       },
     ];
   },
   async redirects() {
     return [
-      // Si alguien abre un link viejo /auth/set-password en el frontend,
-      // lo mandamos a la nueva página pública /set-password
       {
         source: "/auth/set-password",
         destination: "/set-password",
@@ -29,7 +27,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Puedes habilitar strict mode de React si lo deseas
   reactStrictMode: true,
 };
 

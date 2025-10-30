@@ -1,10 +1,19 @@
-// src/app/admin/voluntariado/services/proyectoService.ts
+"use client";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import axios from "axios";
 
-/** Construye querystring con includeVols=1 por defecto (para la vista de asignación) */
+export const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+
+/* ===================== 🔐 Headers ===================== */
+function authHeader() {
+  const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+/* ===================== 🧭 Helpers ===================== */
 function buildQS(params?: Record<string, string | number | boolean>) {
-  const base: Record<string, string> = { includeVols: "1" }; // <- clave
+  const base: Record<string, string> = { includeVols: "1" }; // siempre incluye voluntarios
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v === undefined || v === null) continue;
@@ -15,31 +24,30 @@ function buildQS(params?: Record<string, string | number | boolean>) {
   return qs ? `?${qs}` : "";
 }
 
-/** GET /projects — lista de proyectos (con assignments si includeVols=1) */
+/* ===================== 📂 API Proyectos ===================== */
+
+/** 
+ * GET /api/projects — lista de proyectos 
+ * Incluye voluntarios asignados si includeVols=1
+ */
 export async function fetchProjects(params?: Record<string, string | number | boolean>) {
   const qs = buildQS(params);
-  const res = await fetch(`${API}/projects${qs}`, { cache: "no-store" });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GET /projects ${res.status}: ${text}`);
-  }
-  return res.json(); // array de proyectos
+  const { data } = await axios.get(`${API_URL}/api/projects${qs}`, {
+    headers: { ...authHeader() },
+  });
+  return data;
 }
 
 /** Normaliza el proyecto a la forma que usa la UI de Voluntariado */
 export function normalizeProject(p: any) {
   const estadoRaw = (p?.estado ?? p?.status ?? "activo").toString().toLowerCase();
 
-  // assignments viene de la tabla intermedia ProjectVolunteer
-  // cada item tiene { projectId, voluntarioId, assignedAt, voluntario:{...} }
+  // ✅ Ahora sí: leer IDs correctamente desde assignments[].voluntario.id
   const asignados =
     Array.isArray(p?.assignments)
       ? p.assignments
-          .map((a: any) => a?.voluntarioId)
-          .filter((id: any) => typeof id === "number")
-      // fallback por si algún endpoint viejo devolviera 'volunteers'
-      : Array.isArray(p?.volunteers)
-      ? p.volunteers.map((v: any) => v.id)
+          .map((a: any) => a?.voluntario?.id ?? a?.voluntarioId ?? null)
+          .filter((id: any) => typeof id === "number" || typeof id === "string")
       : [];
 
   return {
@@ -53,54 +61,40 @@ export function normalizeProject(p: any) {
     nombre: string;
     area: string;
     estado: "activo" | "inactivo";
-    voluntariosAsignados: number[];
+    voluntariosAsignados: (number | string)[];
   };
 }
 
-/* -------------------- Asignaciones -------------------- */
-/* Ahora se usan las rutas de projects con la tabla intermedia:
-   POST   /projects/:proyectoId/volunteers/:voluntarioId
-   DELETE /projects/:proyectoId/volunteers/:voluntarioId
-*/
 
+/* ===================== 🤝 Asignaciones ===================== */
+
+/**
+ * POST /api/projects/:proyectoId/volunteers/:voluntarioId
+ * Asigna un voluntario a un proyecto
+ */
 export async function assignVolunteerToProject(
   voluntarioId: string | number,
   proyectoId: string | number
 ) {
-  const res = await fetch(
-    `${API}/projects/${proyectoId}/volunteers/${voluntarioId}`,
-    { method: "POST" }
+  const { data } = await axios.post(
+    `${API_URL}/api/projects/${proyectoId}/volunteers/${voluntarioId}`,
+    {},
+    { headers: { ...authHeader() } }
   );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      `POST /projects/${proyectoId}/volunteers/${voluntarioId} ${res.status}: ${text}`
-    );
-  }
-  try {
-    return await res.json();
-  } catch {
-    return true;
-  }
+  return data ?? { ok: true };
 }
 
+/**
+ * DELETE /api/projects/:proyectoId/volunteers/:voluntarioId
+ * Desasigna un voluntario de un proyecto
+ */
 export async function unassignVolunteerFromProject(
   voluntarioId: string | number,
   proyectoId: string | number
 ) {
-  const res = await fetch(
-    `${API}/projects/${proyectoId}/volunteers/${voluntarioId}`,
-    { method: "DELETE" }
+  const { data } = await axios.delete(
+    `${API_URL}/api/projects/${proyectoId}/volunteers/${voluntarioId}`,
+    { headers: { ...authHeader() } }
   );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      `DELETE /projects/${proyectoId}/volunteers/${voluntarioId} ${res.status}: ${text}`
-    );
-  }
-  try {
-    return await res.json();
-  } catch {
-    return true;
-  }
+  return data ?? { ok: true };
 }

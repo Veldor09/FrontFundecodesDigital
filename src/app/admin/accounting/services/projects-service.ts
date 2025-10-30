@@ -1,11 +1,27 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
+// src/app/admin/contabilidad/services/ProjectsService.ts
+"use client";
 
-export type ProjectOption = { id: number; title: string }
+import axios from "axios";
 
+export const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+
+export type ProjectOption = { id: number; title: string };
+
+/* ========================= 🔐 Headers ========================= */
+function authHeader() {
+  if (typeof window === "undefined") return {};
+  const t = localStorage.getItem("token");
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+/* ========================= 📦 Servicio ========================= */
 export class ProjectsService {
   static async list(): Promise<ProjectOption[]> {
-    const res = await fetch(`${API}/projects`, { credentials: "include" })
-    if (!res.ok) throw new Error("No se pudieron obtener proyectos")
-    return res.json()
+    const { data } = await axios.get<ProjectOption[]>(`${API_URL}/api/projects`, {
+      headers: { ...authHeader() },
+      withCredentials: true,
+    });
+    return data;
   }
 }

@@ -1,103 +1,171 @@
 "use client";
 
-import useSWR, { type BareFetcher } from "swr";
-import type {
-  Voluntario,
-  Estado,
-  VoluntarioCreateDTO,
-  VoluntarioUpdateDTO,
-} from "../types/voluntario";
-import {
-  listVoluntarios,
-  createVoluntario as svcCreate,
-  updateVoluntario as svcUpdate,
-  deleteVoluntario as svcDelete,
-  toggleVoluntario as svcToggle,
-} from "../services/voluntarioService";
+import { useCallback, useMemo, useState } from "react";
+import useSWR from "swr";
+import { API_URL } from "../services/voluntarioService";
 
-// Helper de manejo de respuesta
-async function handle<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText} — ${text}`);
+export type Estado = "ACTIVO" | "INACTIVO";
+export type EstadoFilter = "ALL" | Estado;
+
+export type Voluntario = {
+  id: number | string;
+  tipoDocumento: string;
+  numeroDocumento: string;
+  nombreCompleto: string;
+  email: string;
+  telefono?: string | null;
+  fechaNacimiento?: string | null;
+  fechaIngreso: string;
+  estado: Estado;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ListResponse = {
+  data: Voluntario[]; // 👈 backend devuelve "data"
+  total: number;
+};
+
+/* ===================== HEADERS ===================== */
+function authHeaders(): HeadersInit {
+  const h: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    const t = localStorage.getItem("token");
+    if (t) h.Authorization = `Bearer ${t}`;
   }
-  return res.json() as Promise<T>;
+  return h;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+function authJsonHeaders(): HeadersInit {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (typeof window !== "undefined") {
+    const t = localStorage.getItem("token");
+    if (t) h.Authorization = `Bearer ${t}`;
+  }
+  return h;
+}
 
-// 🔧 Tipar el fetcher como BareFetcher del shape que retorna el endpoint
-const fetcher: BareFetcher<{ data: Voluntario[]; total: number }> = (url: string) =>
-  fetch(url, { cache: "no-store" }).then((res) =>
-    handle<{ data: Voluntario[]; total: number }>(res)
+/* ===================== FETCHER ===================== */
+const fetcher = async (url: string) => {
+  const r = await fetch(url, {
+    headers: authJsonHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    throw new Error(txt || `HTTP ${r.status}`);
+  }
+  return r.json();
+};
+
+function compact<T extends Record<string, any>>(obj: T): Partial<T> {
+  const out: Record<string, any> = {};
+  for (const k of Object.keys(obj)) {
+    const v = (obj as any)[k];
+    if (v !== undefined && v !== null) out[k] = v;
+  }
+  return out as Partial<T>;
+}
+
+/* ===================== HOOK PRINCIPAL ===================== */
+export function useVoluntarios() {
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+  const [estado, setEstado] = useState<EstadoFilter>("ALL");
+
+  const qs = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("page", String(page));
+    p.set("limit", String(limit)); // ✅ backend usa "limit"
+    if (search.trim()) p.set("q", search.trim());
+    if (estado !== "ALL") p.set("estado", estado);
+    return p.toString();
+  }, [page, limit, search, estado]);
+
+  const { data, error, isLoading, mutate } = useSWR<ListResponse>(
+    `${API_URL}/api/voluntarios?${qs}`,
+    fetcher,
+    { keepPreviousData: true }
   );
 
-export function useVoluntarios(params?: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  estado?: Estado | "TODOS";
-}) {
-  const page = params?.page ?? 1;
-  const limit = params?.limit ?? 10;
-  const search = params?.search ?? "";
-  const estado =
-    params?.estado && params.estado !== "TODOS" ? params.estado : undefined;
+  /* ===================== CRUD ===================== */
 
-  const key = `${API}/voluntarios?page=${page}&limit=${limit}&search=${encodeURIComponent(
-    search
-  )}${estado ? `&estado=${estado}` : ""}`;
+  const save = useCallback(
+    async (payload: Partial<Voluntario> & { id?: number | string }) => {
+      const { id, ...rest } = payload;
+      const body = JSON.stringify(compact(rest));
+      const url =
+        id != null
+          ? `${API_URL}/api/voluntarios/${id}`
+          : `${API_URL}/api/voluntarios`;
+      const method = id != null ? "PUT" : "POST"; // ✅ backend usa PUT
 
-  // ✅ Ahora TS reconoce el 2º argumento como fetcher, no como config
-  const { data, isLoading, error, mutate } =
-    useSWR<{ data: Voluntario[]; total: number }>(key, fetcher);
+      const r = await fetch(url, {
+        method,
+        headers: authJsonHeaders(),
+        body,
+        credentials: "include",
+      });
+      if (!r.ok) {
+        const txt = await r.text().catch(() => "");
+        throw new Error(txt || `HTTP ${r.status}`);
+      }
+      const json = await r.json().catch(() => ({}));
+      await mutate();
+      return json as any;
+    },
+    [mutate]
+  );
 
-  async function createVoluntario(dto: VoluntarioCreateDTO) {
-    await svcCreate(dto);
-    await mutate();
-  }
+  const toggle = useCallback(
+    async (id: number | string, nextStatus: Estado) => {
+      // ✅ usa el endpoint real: /:id/toggle
+      const r = await fetch(`${API_URL}/api/voluntarios/${id}/toggle`, {
+        method: "PATCH",
+        headers: authJsonHeaders(),
+        body: JSON.stringify({ estado: nextStatus }),
+        credentials: "include",
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await mutate();
+    },
+    [mutate]
+  );
 
-  async function updateVoluntario(id: number, dto: VoluntarioUpdateDTO) {
-    await svcUpdate(id, dto);
-    await mutate();
-  }
+  const remove = useCallback(
+    async (id: number | string) => {
+      const r = await fetch(`${API_URL}/api/voluntarios/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        credentials: "include",
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await mutate();
+    },
+    [mutate]
+  );
 
-  async function toggleVoluntario(id: number, nextEstado: Estado) {
-    await svcToggle(id, nextEstado);
-    await mutate();
-  }
-
-  async function deleteVoluntario(id: number) {
-    await svcDelete(id);
-    await mutate();
-  }
-
-  // API consumida por tu UI
-  async function save(dto: VoluntarioCreateDTO & { id?: number }) {
-    if (dto.id) {
-      const { id, ...rest } = dto as any;
-      await updateVoluntario(id, rest);
-    } else {
-      await createVoluntario(dto);
-    }
-  }
-
-  async function toggle(id: number, nuevoEstado: Estado) {
-    await toggleVoluntario(id, nuevoEstado);
-  }
-
-  async function remove(id: number) {
-    await deleteVoluntario(id);
-  }
-
+  /* ===================== OUTPUT ===================== */
   return {
-    data: data?.data ?? [],
+    data: data?.data ?? [], // ✅ backend devuelve { data }
     total: data?.total ?? 0,
     loading: isLoading,
     error,
+
+    page,
+    setPage,
+    limit,
+    setLimit,
+    search,
+    setSearch,
+    estado,
+    setEstado,
+
     save,
     toggle,
     remove,
-    refetch: mutate,
+    refresh: mutate,
   };
 }

@@ -20,13 +20,13 @@ export async function apiListCollaborators(params: {
   page?: number;
   pageSize?: number;
 }) {
-  const { data } = await axios.get(`${API_URL}/collaborators`, {
+  const { data } = await axios.get(`${API_URL}/api/collaborators`, { // ← CAMBIO
     params: {
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 10,
       q: params.q,
       rol: params.rol,
-      estado: params.estado, // omite "ALL" desde el caller
+      estado: params.estado,
     },
     headers: { ...authHeader() },
   });
@@ -35,15 +35,15 @@ export async function apiListCollaborators(params: {
 
 // GET ONE
 export async function apiGetCollaborator(id: number | string) {
-  const { data } = await axios.get(`${API_URL}/collaborators/${id}`, {
+  const { data } = await axios.get(`${API_URL}/api/collaborators/${id}`, { // ← CAMBIO
     headers: { ...authHeader() },
   });
   return data;
 }
 
-// CREATE  -> ESTE endpoint dispara el upsert de USER en el backend
+// CREATE
 export async function apiCreateCollaborator(payload: any) {
-  const { data } = await axios.post(`${API_URL}/collaborators`, payload, {
+  const { data } = await axios.post(`${API_URL}/api/collaborators`, payload, { // ← CAMBIO
     headers: { "Content-Type": "application/json", ...authHeader() },
   });
   return data;
@@ -51,7 +51,7 @@ export async function apiCreateCollaborator(payload: any) {
 
 // UPDATE
 export async function apiUpdateCollaborator(id: number | string, patch: any) {
-  const { data } = await axios.patch(`${API_URL}/collaborators/${id}`, patch, {
+  const { data } = await axios.patch(`${API_URL}/api/collaborators/${id}`, patch, { // ← CAMBIO
     headers: { "Content-Type": "application/json", ...authHeader() },
   });
   return data;
@@ -60,7 +60,7 @@ export async function apiUpdateCollaborator(id: number | string, patch: any) {
 // TOGGLE (desactivar / activar)
 export async function apiDeactivateCollaborator(id: number | string) {
   const { data } = await axios.patch(
-    `${API_URL}/collaborators/${id}/deactivate`,
+    `${API_URL}/api/collaborators/${id}/deactivate`, // ← CAMBIO
     {},
     { headers: { ...authHeader() } }
   );
@@ -68,7 +68,7 @@ export async function apiDeactivateCollaborator(id: number | string) {
 }
 export async function apiActivateCollaborator(id: number | string) {
   const { data } = await axios.patch(
-    `${API_URL}/collaborators/${id}`,
+    `${API_URL}/api/collaborators/${id}`,            // ← CAMBIO
     { estado: "ACTIVO" },
     { headers: { "Content-Type": "application/json", ...authHeader() } }
   );
@@ -77,7 +77,7 @@ export async function apiActivateCollaborator(id: number | string) {
 
 // DELETE
 export async function apiDeleteCollaborator(id: number | string) {
-  const { data } = await axios.delete(`${API_URL}/collaborators/${id}`, {
+  const { data } = await axios.delete(`${API_URL}/api/collaborators/${id}`, { // ← CAMBIO
     headers: { ...authHeader() },
   });
   return data;
@@ -85,9 +85,8 @@ export async function apiDeleteCollaborator(id: number | string) {
 
 /** ---------- (Legacy admin/* si aún los usas en alguna vista) ---------- **/
 export async function toggleEstado(id: number, estado: "ACTIVO" | "INACTIVO") {
-  // Si aún necesitas el legacy, mantenlo; si no, puedes eliminarlo.
   const { data } = await axios.patch(
-    `${API_URL}/admin/collaborators/${id}/estado`,
+    `${API_URL}/api/admin/collaborators/${id}/estado`, // ← CAMBIO
     { estado },
     { headers: { ...authHeader() } }
   );
@@ -95,7 +94,7 @@ export async function toggleEstado(id: number, estado: "ACTIVO" | "INACTIVO") {
 }
 
 export async function removeCollaborator(id: number) {
-  const { data } = await axios.delete(`${API_URL}/admin/collaborators/${id}`, {
+  const { data } = await axios.delete(`${API_URL}/api/admin/collaborators/${id}`, { // ← CAMBIO
     headers: { ...authHeader() },
   });
   return data;

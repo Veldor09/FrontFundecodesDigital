@@ -7,12 +7,19 @@ import { API_URL } from "../services/collaborators.api";
 export type Estado = "ACTIVO" | "INACTIVO";
 export type EstadoFilter = "ALL" | Estado;
 
+export type ApiRole =
+  | 'admin'
+  | 'colaboradorfactura'
+  | 'colaboradorvoluntariado'
+  | 'colaboradorproyecto'
+  | 'colaboradorcontabilidad'
+
 export type Collaborator = {
   id: number | string;
   nombreCompleto: string;
   correo: string;
   telefono?: string | null;
-  rol: "ADMIN" | "COLABORADOR";
+  rol: ApiRole;            // <- aquí el cambio (antes: "ADMIN" | "COLABORADOR")
   cedula: string;
   fechaNacimiento?: string | null;
   estado: Estado;
@@ -86,9 +93,9 @@ export function useCollaborators() {
     return p.toString();
   }, [page, pageSize, search, estado]);
 
-  // Llamamos DIRECTO al BACKEND
+  // 🔴 CAMBIO: prefijo /api en todas las llamadas
   const { data, error, isLoading, mutate } = useSWR<ListResponse>(
-    `${API_URL}/collaborators?${qs}`,
+    `${API_URL}/api/collaborators?${qs}`,
     fetcher,
     { keepPreviousData: true }
   );
@@ -113,13 +120,13 @@ export function useCollaborators() {
       const body = JSON.stringify(compact(rest));
       const url =
         id != null
-          ? `${API_URL}/collaborators/${id}`
-          : `${API_URL}/collaborators`;
+          ? `${API_URL}/api/collaborators/${id}`           // ← CAMBIO
+          : `${API_URL}/api/collaborators`;                // ← CAMBIO
       const method = id != null ? "PATCH" : "POST";
 
       const r = await fetch(url, {
         method,
-        headers: authJsonHeaders(),   // <<< MOD
+        headers: authJsonHeaders(),
         body,
         credentials: "include",
       });
@@ -137,16 +144,16 @@ export function useCollaborators() {
   const toggle = useCallback(
     async (id: number | string, currentStatus: Estado) => {
       if (currentStatus === "ACTIVO") {
-        const r = await fetch(`${API_URL}/collaborators/${id}/deactivate`, {
+        const r = await fetch(`${API_URL}/api/collaborators/${id}/deactivate`, { // ← CAMBIO
           method: "PATCH",
-          headers: authHeaders(),      // <<< MOD
+          headers: authHeaders(),
           credentials: "include",
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
       } else {
-        const r = await fetch(`${API_URL}/collaborators/${id}`, {
+        const r = await fetch(`${API_URL}/api/collaborators/${id}`, {          // ← CAMBIO
           method: "PATCH",
-          headers: authJsonHeaders(),  // <<< MOD
+          headers: authJsonHeaders(),
           body: JSON.stringify({ estado: "ACTIVO" }),
           credentials: "include",
         });
@@ -159,9 +166,9 @@ export function useCollaborators() {
 
   const remove = useCallback(
     async (id: number | string) => {
-      const r = await fetch(`${API_URL}/collaborators/${id}`, {
+      const r = await fetch(`${API_URL}/api/collaborators/${id}`, {            // ← CAMBIO
         method: "DELETE",
-        headers: authHeaders(),        // <<< MOD
+        headers: authHeaders(),
         credentials: "include",
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);

@@ -1,16 +1,19 @@
-// services/sancionService.ts
+"use client";
+
+import axios from "axios";
 import type { Sancion, SancionCreateDTO, SancionUpdateDTO } from "../types/sancion";
 
-const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000") + "/api";
+export const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
-
-async function handle<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText} — ${text}`);
-  }
-  return res.json() as Promise<T>;
+function authHeader() {
+  const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  return t ? { Authorization: `Bearer ${t}` } : {};
 }
+
+/* ============================================================
+   📂  API: Sanciones
+   ============================================================ */
 
 export type ListSancionesParams = {
   page?: number;
@@ -27,58 +30,68 @@ export type ListSancionesResponse = {
   limit?: number;
 };
 
-// GET /sanciones
+/* ===================== LIST ===================== */
 export async function listSanciones(params: ListSancionesParams = {}): Promise<ListSancionesResponse> {
-  const q = new URLSearchParams();
-  if (params.page) q.set("page", String(params.page));
-  if (params.limit) q.set("limit", String(params.limit));
-  if (params.search) q.set("search", params.search);
-  if (params.estado) q.set("estado", params.estado);
-  if (params.voluntarioId) q.set("voluntarioId", String(params.voluntarioId));
-
-  const res = await fetch(`${API}/sanciones?${q.toString()}`, { cache: "no-store" });
-  return handle<ListSancionesResponse>(res);
-}
-
-// POST /sanciones
-export async function createSancion(dto: SancionCreateDTO): Promise<Sancion> {
-  const res = await fetch(`${API}/sanciones`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dto),
+  const { data } = await axios.get(`${API_URL}/api/sanciones`, {
+    params: {
+      page: params.page ?? 1,
+      limit: params.limit ?? 10,
+      search: params.search,
+      estado: params.estado,
+      voluntarioId: params.voluntarioId,
+    },
+    headers: { ...authHeader() },
   });
-  return handle<Sancion>(res);
+  return data;
 }
 
-// PUT /sanciones/:id
+/* ===================== GET ONE ===================== */
+export async function getSancion(id: number | string): Promise<Sancion> {
+  const { data } = await axios.get(`${API_URL}/api/sanciones/${id}`, {
+    headers: { ...authHeader() },
+  });
+  return data;
+}
+
+/* ===================== CREATE ===================== */
+export async function createSancion(dto: SancionCreateDTO): Promise<Sancion> {
+  const { data } = await axios.post(`${API_URL}/api/sanciones`, dto, {
+    headers: { "Content-Type": "application/json", ...authHeader() },
+  });
+  return data;
+}
+
+/* ===================== UPDATE ===================== */
 export async function updateSancion(dto: SancionUpdateDTO & { id: number }): Promise<Sancion> {
   const { id, ...body } = dto;
-  const res = await fetch(`${API}/sanciones/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+  const { data } = await axios.put(`${API_URL}/api/sanciones/${id}`, body, {
+    headers: { "Content-Type": "application/json", ...authHeader() },
   });
-  return handle<Sancion>(res);
+  return data;
 }
 
-// DELETE /sanciones/:id
-export async function deleteSancion(id: number): Promise<{ ok: true }> {
-  const res = await fetch(`${API}/sanciones/${id}`, { method: "DELETE" });
-  return handle<{ ok: true }>(res);
-}
-
-// PUT /sanciones/:id/revocar
-export async function revocarSancion(id: number, revocadaPor?: string): Promise<Sancion> {
-  const res = await fetch(`${API}/sanciones/${id}/revocar`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ revocadaPor }),
+/* ===================== DELETE ===================== */
+export async function deleteSancion(id: number | string): Promise<{ ok: true }> {
+  const { data } = await axios.delete(`${API_URL}/api/sanciones/${id}`, {
+    headers: { ...authHeader() },
   });
-  return handle<Sancion>(res);
+  return data;
 }
 
-// GET /sanciones/voluntario/:voluntarioId/activas
+/* ===================== REVOCAR ===================== */
+export async function revocarSancion(id: number | string, revocadaPor?: string): Promise<Sancion> {
+  const { data } = await axios.put(
+    `${API_URL}/api/sanciones/${id}/revocar`,
+    { revocadaPor },
+    { headers: { "Content-Type": "application/json", ...authHeader() } }
+  );
+  return data;
+}
+
+/* ===================== ACTIVAS POR VOLUNTARIO ===================== */
 export async function getSancionesActivasPorVoluntario(voluntarioId: number): Promise<Sancion[]> {
-  const res = await fetch(`${API}/sanciones/voluntario/${voluntarioId}/activas`, { cache: "no-store" });
-  return handle<Sancion[]>(res);
+  const { data } = await axios.get(`${API_URL}/api/sanciones/voluntario/${voluntarioId}/activas`, {
+    headers: { ...authHeader() },
+  });
+  return data;
 }
