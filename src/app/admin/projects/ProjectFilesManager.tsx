@@ -126,7 +126,7 @@ export function ProjectFilesManager({
   const handleDownloadFile = (file: ProjectFile) => {
     const filename = file.url.split("/").pop() || "";
     window.open(
-      `http://localhost:4000/files/download/${encodeURIComponent(filename)}`,
+      `http://localhost:4000/api/files/download/${encodeURIComponent(filename)}`,
       "_blank"
     );
   };
@@ -139,7 +139,7 @@ export function ProjectFilesManager({
     }
     if (file.mimeType.startsWith("image/") || file.mimeType === "application/pdf") {
       window.open(
-        `http://localhost:4000/files/preview/${encodeURIComponent(filename)}`,
+        `http://localhost:4000/api/files/preview/${encodeURIComponent(filename)}`,
         "_blank"
       );
     } else {
