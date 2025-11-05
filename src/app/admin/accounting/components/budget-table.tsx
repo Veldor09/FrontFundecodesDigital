@@ -169,7 +169,7 @@ export function BudgetTable() {
   }
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(amount)
+    new Intl.NumberFormat("es-CR", { style: "currency", currency: "CRC" }).format(amount)
 
   const getExecutionPercentage = (assigned: number, executed: number) =>
     assigned > 0 ? Math.round((executed / assigned) * 100) : 0
@@ -262,14 +262,14 @@ export function BudgetTable() {
                   {formErrors.año && <p className="text-sm text-red-600">{formErrors.año}</p>}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Monto Asignado (€) *</label>
+                  <label className="text-sm font-medium">Monto Asignado (CRC) *</label>
                   <Input type="number" min="0" step="0.01" placeholder="0.00"
                          value={newBudgetForm.montoAsignado}
                          onChange={(e)=>setNewBudgetForm({...newBudgetForm, montoAsignado: e.target.value})}/>
                   {formErrors.montoAsignado && <p className="text-sm text-red-600">{formErrors.montoAsignado}</p>}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Monto Ejecutado (€) *</label>
+                  <label className="text-sm font-medium">Monto Ejecutado (CRC) *</label>
                   <Input type="number" min="0" step="0.01" placeholder="0.00"
                          value={newBudgetForm.montoEjecutado}
                          onChange={(e)=>setNewBudgetForm({...newBudgetForm, montoEjecutado: e.target.value})}/>
