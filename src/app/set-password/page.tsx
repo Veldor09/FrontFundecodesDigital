@@ -1,26 +1,27 @@
-"use client";
+// src/app/set-password/page.tsx
+'use client';
 
-import { useState, useMemo } from "react";
-import axios from "axios";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useMemo, useState } from 'react';
+import axios from 'axios';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const MIN_LEN = 8;
 const MAX_LEN = 100;
 
-export default function SetPasswordPage() {
+function SetPasswordInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const rawToken = searchParams.get("token") ?? "";
+  const rawToken = searchParams.get('token') ?? '';
   const token = decodeURIComponent(rawToken).trim();
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Usamos el rewrite /api-auth -> http://localhost:4000/auth
+  // Con los rewrites: /api-auth -> <BACK>/api/auth
   const requestUrl = `/api-auth/set-password`;
 
   const canSubmit = useMemo(() => {
@@ -37,11 +38,11 @@ export default function SetPasswordPage() {
     setMessage(null);
 
     if (!token) {
-      setError("Token inválido o ausente. Usa el enlace del correo.");
+      setError('Token inválido o ausente. Usa el enlace del correo.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      setError('Las contraseñas no coinciden.');
       return;
     }
     if (newPassword.length < MIN_LEN || newPassword.length > MAX_LEN) {
@@ -54,28 +55,25 @@ export default function SetPasswordPage() {
       const res = await axios.post(
         requestUrl,
         { token, newPassword, confirmPassword },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
 
       const ok = !!res.data?.ok;
       if (ok) {
-        setMessage("¡Listo! Tu contraseña fue actualizada. Redirigiendo a la página principal...");
-        setNewPassword("");
-        setConfirmPassword("");
-       
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
+        setMessage('¡Listo! Tu contraseña fue actualizada. Redirigiendo al login…');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => router.push('/login'), 2000);
       } else {
-        setError(res.data?.message || "No se pudo actualizar la contraseña.");
+        setError(res.data?.message || 'No se pudo actualizar la contraseña.');
       }
     } catch (err: any) {
       const backendMsg =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
-        "Error al guardar la contraseña.";
-      setError(Array.isArray(backendMsg) ? backendMsg.join(", ") : backendMsg);
+        'Error al guardar la contraseña.';
+      setError(Array.isArray(backendMsg) ? backendMsg.join(', ') : backendMsg);
     } finally {
       setLoading(false);
     }
@@ -127,15 +125,23 @@ export default function SetPasswordPage() {
           type="submit"
           disabled={!canSubmit || loading}
           className={`w-full p-2 rounded text-white ${
-            !canSubmit || loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+            !canSubmit || loading ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
           }`}
         >
-          {loading ? "Guardando…" : "Guardar contraseña"}
+          {loading ? 'Guardando…' : 'Guardar contraseña'}
         </button>
       </form>
 
       {error && <p className="text-red-500 mt-3">{error}</p>}
       {message && <p className="text-green-600 mt-3">{message}</p>}
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <SetPasswordInner />
+    </Suspense>
   );
 }
