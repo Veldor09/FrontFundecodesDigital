@@ -190,7 +190,7 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     maxLength={80}
-                    className="h-11 sm:h-12 bg-white border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm sm:text-base"
+                    className="h-11 sm:h-12 bg-white border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm sm:text-base text-gray-900"
                   />
                 </div>
 
@@ -205,7 +205,7 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     maxLength={500}
-                    className="resize-none bg-white border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm sm:text-base"
+                    className="resize-none bg-white border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm sm:text-base text-gray-900"
                   />
                   <p className="mt-2 text-xs sm:text-sm text-gray-500 text-right">
                     {text.length}/500
