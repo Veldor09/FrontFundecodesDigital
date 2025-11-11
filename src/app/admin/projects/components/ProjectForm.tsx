@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
-import { ProjectFilesManager } from "./ProjectFilesManager";
+import { ProjectFilesManager } from "../components/ProjectFilesManager";
 import { Upload } from "lucide-react";
 import { getProjectFiles } from "@/services/projects.service";
 
