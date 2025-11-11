@@ -1,9 +1,15 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+// Normaliza que el baseURL termine con /api
+function normalizeBaseUrl(url: string) {
+  const u = url.replace(/\/+$/, '');
+  return u.endsWith('/api') ? u : `${u}/api`;
+}
+
 const API = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
-  withCredentials: true,
+  baseURL: normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'),
+  withCredentials: false, // usamos Authorization header, no cookies
 });
 
 // Helper para setear/quitar token
@@ -17,7 +23,7 @@ export function setAuthToken(token?: string) {
   }
 }
 
-// Adjunta token si existe
+// Adjunta token si existe (por si cambia en runtime)
 API.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
@@ -37,23 +43,25 @@ API.interceptors.response.use(
 
     const status = error?.response?.status as number | undefined;
     const data = error?.response?.data;
-    const path = error?.response?.data?.path as string | undefined;
+    const serverMsg =
+      data?.message || data?.error || error?.message || 'Error inesperado en la API';
 
-    // Toaster con mensaje estándar
+    // Toasters
     if (data?.error === 'ACCOUNT_NOT_APPROVED') {
-      toast.error(data.message || 'Su cuenta no ha sido aprobada aún');
-    } else if (data?.message) {
-      toast.error(Array.isArray(data.message) ? data.message.join(', ') : data.message);
-    } else if (status) {
-      if (status === 401) toast.error('No autorizado');
-      else if (status === 403) toast.error('Acceso denegado');
-      else toast.error('Error inesperado en la API');
+      toast.error(
+        data.message || 'Su cuenta no ha sido aprobada aún'
+      );
+    } else if (Array.isArray(data?.message)) {
+      toast.error(data.message.join(', '));
+    } else if (serverMsg) {
+      toast.error(serverMsg);
     }
 
-    // Redirección a pantalla estándar solo si es 401/403 y NO estamos en login
-    const isAuthLogin = typeof path === 'string' ? path.includes('/auth/login') : false;
-    if ((status === 401 || status === 403) && !isAuthLogin) {
-      // limpiar token si el server dice 401/403 (opcional)
+    // Redirección si 401/403 (evita loop en /auth/login)
+    const reqUrl: string = error?.config?.url ?? '';
+    const isLoginCall = /\/auth\/login\b/.test(reqUrl);
+    if ((status === 401 || status === 403) && !isLoginCall) {
+      // opcional: limpiar token
       // setAuthToken(undefined);
       window.location.href = '/error/unauthorized';
     }

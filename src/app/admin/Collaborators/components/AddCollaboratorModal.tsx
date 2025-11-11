@@ -35,11 +35,38 @@ const ID_CONFIG: Record<
   juridica: { label: "Cédula jurídica (10)",  placeholder: "3101123456",   pattern: /^\d{10}$/,  length: [10,10], onlyNumbers: true },
 };
 
-/* Roles UI */
-type UIRole = "admin" | "editor" | "viewer";
-const UI_ROLES: UIRole[] = ["admin", "editor", "viewer"];
-const UI_TO_API_ROLE: Record<UIRole, "ADMIN" | "COLABORADOR"> = {
-  admin: "ADMIN", editor: "COLABORADOR", viewer: "COLABORADOR",
+/* Roles UI (sin voluntario ni colaboradorvoluntario) */
+type UIRole =
+  | "admin"
+  | "colaboradorfactura"
+  | "colaboradorvoluntariado"
+  | "colaboradorproyecto"
+  | "colaboradorcontabilidad";
+
+const UI_ROLES: UIRole[] = [
+  "admin",
+  "colaboradorfactura",
+  "colaboradorvoluntariado",
+  "colaboradorproyecto",
+  "colaboradorcontabilidad",
+];
+
+/** Mapeo 1:1 al backend */
+const UI_TO_API_ROLE: Record<UIRole, UIRole> = {
+  admin: "admin",
+  colaboradorfactura: "colaboradorfactura",
+  colaboradorvoluntariado: "colaboradorvoluntariado",
+  colaboradorproyecto: "colaboradorproyecto",
+  colaboradorcontabilidad: "colaboradorcontabilidad",
+};
+
+/** Etiquetas más legibles en el selector */
+const ROLE_LABEL: Record<UIRole, string> = {
+  admin: "Admin",
+  colaboradorfactura: "Colaborador – Factura",
+  colaboradorvoluntariado: "Colaborador – Voluntariado",
+  colaboradorproyecto: "Colaborador – Proyecto",
+  colaboradorcontabilidad: "Colaborador – Contabilidad",
 };
 
 type Props = {
@@ -81,6 +108,21 @@ function genTempPassword(length = 12): string {
   return pwd.join("");
 }
 
+/** Normaliza valores heredados (ADMIN/COLABORADOR) o desconocidos → default: colaboradorproyecto */
+function normalizeIncomingRole(r?: string | null): UIRole {
+  if (!r) return "colaboradorproyecto";
+  const low = r.toLowerCase();
+
+  if ((UI_ROLES as string[]).includes(low)) return low as UIRole;
+  if (low === "admin") return "admin";
+
+  // Si viene "colaborador" genérico, elige default:
+  if (low === "colaborador" || low === "colaboradores") return "colaboradorproyecto";
+
+  // Fallback al default
+  return "colaboradorproyecto";
+}
+
 export default function AddCollaboratorModal({ open, mode, initial, onClose, onSaved }: Props) {
   const { save } = useCollaborators();
 
@@ -93,7 +135,12 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
   });
 
   const [form, setForm] = useState<FormState>({
-    fullName: "", email: "", identification: "", birthdate: "", phone: "+506", role: "viewer",
+    fullName: "",
+    email: "",
+    identification: "",
+    birthdate: "",
+    phone: "+506",
+    role: "colaboradorproyecto", // ← default actualizado
   });
 
   const [country, setCountry] = useState<string | undefined>("CR");
@@ -103,13 +150,14 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
 
   useEffect(() => {
     if (open && mode === "editar" && initial) {
+      const normalizedRole = normalizeIncomingRole((initial as any).role ?? (initial as any).rol);
       setForm({
         fullName: initial.fullName ?? "",
         email: initial.email ?? "",
-        identification: initial.identification ?? "",
+        identification: (initial as any).identification ?? (initial as any).cedula ?? "",
         birthdate: initial.birthdate ?? "",
         phone: initial.phone ?? "+506",
-        role: initial.role === "ADMIN" ? "admin" : "viewer",
+        role: normalizedRole,
       });
     }
     if (open && mode === "crear") resetForm();
@@ -117,7 +165,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
   }, [open, mode, initial?.id]);
 
   const resetForm = () => {
-    setForm({ fullName: "", email: "", identification: "", birthdate: "", phone: "+506", role: "viewer" });
+    setForm({ fullName: "", email: "", identification: "", birthdate: "", phone: "+506", role: "colaboradorproyecto" });
     setCountry("CR"); setIdType("cedula");
     setTouched({ fullName: false, email: false, identification: false, birthdate: false, phone: false, role: false });
   };
@@ -205,7 +253,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
         nombreCompleto: form.fullName.trim(),
         correo: form.email.trim(),
         telefono: (form.phone || "").replace(/\s+/g, ""),
-        rol: UI_TO_API_ROLE[form.role],
+        rol: UI_TO_API_ROLE[form.role], // ← mapeo 1:1 a los roles del backend
         cedula: form.identification.trim(),
         fechaNacimiento: form.birthdate || null,
       };
@@ -220,7 +268,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
         const tempPassword = genTempPassword(12);
         const result = await save({ ...basePayload, password: tempPassword } as any);
 
-        const inviteToken: string | undefined = result?.inviteToken;
+        const inviteToken: string | undefined = (result as any)?.inviteToken;
         const appUrl =
           process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") ||
           (typeof window !== "undefined" ? window.location.origin : "");
@@ -327,10 +375,21 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
             {/* Rol */}
             <div>
               <Label htmlFor="role">Rol *</Label>
-              <select id="role" className="w-full rounded border px-3 py-2 h-10" value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value as UIRole })}
-                      onBlur={() => markTouched("role")} aria-invalid={showError("role")} aria-describedby="role-error" required>
-                {UI_ROLES.map((r) => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+              <select
+                id="role"
+                className="w-full rounded border px-3 py-2 h-10"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value as UIRole })}
+                onBlur={() => markTouched("role")}
+                aria-invalid={showError("role")}
+                aria-describedby="role-error"
+                required
+              >
+                {UI_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
               </select>
               {showError("role") && <p id="role-error" className="text-xs text-red-600 mt-1">{(errors as any).role}</p>}
             </div>
@@ -344,7 +403,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
-              {loading ? "Guardando…" : cta}
+              {loading ? "Guardando…" : (mode === "editar" ? "Guardar cambios" : "Crear")}
             </Button>
           </div>
         </form>

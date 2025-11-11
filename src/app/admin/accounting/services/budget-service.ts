@@ -1,56 +1,89 @@
-import type { BudgetItem } from "../types"
+// src/app/admin/contabilidad/services/BudgetService.ts
+"use client";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
+import axios from "axios";
+import type { BudgetItem } from "../types";
 
-const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
-const monthNameToNumber = (name: string) => MONTHS.indexOf(name) + 1
-const numberToMonth = (n: number) => MONTHS[n - 1] ?? ""
+/* ========================= 🌐 Config base ========================= */
+export const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
-/** Busca el id del proyecto por su título (UI usa `programa` = nombre del proyecto) */
+/* ========================= 🔐 Headers ========================= */
+function authHeader() {
+  if (typeof window === "undefined") return {};
+  const t = localStorage.getItem("token");
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+/* ========================= 📅 Utilidades ========================= */
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+const monthNameToNumber = (name: string) => MONTHS.indexOf(name) + 1;
+const numberToMonth = (n: number) => MONTHS[n - 1] ?? "";
+
+/* ========================= 🔍 Helpers ========================= */
 async function findProjectIdByTitle(title: string): Promise<number> {
-  const res = await fetch(`${API}/projects`, { credentials: "include" })
-  if (!res.ok) throw new Error("No se pudieron obtener proyectos")
-  const projects = await res.json() as Array<{ id: number; title: string }>
-  const match = projects.find(p => (p.title ?? "").toLowerCase() === title.toLowerCase())
-  if (!match) throw new Error("Proyecto no encontrado: " + title)
-  return match.id
+  if (!title) throw new Error("Título de proyecto requerido");
+
+  const { data: projects } = await axios.get(
+    `${API_URL}/api/projects`,
+    { headers: authHeader(), withCredentials: true }
+  );
+
+  const match = (projects as Array<{ id: number; title: string }>).find(
+    (p) => (p.title ?? "").toLowerCase() === title.toLowerCase()
+  );
+  if (!match) throw new Error("Proyecto no encontrado: " + title);
+  return match.id;
 }
 
 function mapFromApi(x: any): BudgetItem {
   return {
     id: x.id,
-    programa: x.proyecto, // UI sigue llamándolo "programa"
+    programa: x.proyecto, // la UI sigue usando "programa"
     mes: numberToMonth(Number(x.mes)),
     año: Number(x.anio),
     montoAsignado: Number(x.montoAsignado),
     montoEjecutado: Number(x.montoEjecutado),
     fechaCreacion: x.createdAt ? new Date(x.createdAt) : new Date(),
     fechaActualizacion: x.updatedAt ? new Date(x.updatedAt) : new Date(),
-  }
+  };
 }
 
+/* ========================= 💰 Servicio principal ========================= */
 export class BudgetService {
+  /** Listar presupuestos */
   static async getBudgetItems(filters?: Partial<BudgetItem>): Promise<BudgetItem[]> {
-    const params = new URLSearchParams()
+    const params: Record<string, any> = {};
+
     if (filters?.programa) {
       try {
-        const pid = await findProjectIdByTitle(filters.programa)
-        params.set("projectId", String(pid))
-      } catch {/* si no existe, traemos todo y filtra el front */}
+        const pid = await findProjectIdByTitle(filters.programa);
+        params.projectId = pid;
+      } catch {
+        /* ignora si no existe */
+      }
     }
-    if (filters?.mes) params.set("mes", String(monthNameToNumber(filters.mes)))
-    if (filters?.año) params.set("anio", String(filters.año))
+    if (filters?.mes) params.mes = monthNameToNumber(filters.mes);
+    if (filters?.año) params.anio = filters.año;
 
-    const res = await fetch(`${API}/contabilidad/presupuestos?${params.toString()}`, { credentials: "include" })
-    if (!res.ok) throw new Error("Error al obtener presupuestos")
-    const data = await res.json()
-    return (data as any[]).map(mapFromApi)
+    const { data } = await axios.get(`${API_URL}/api/contabilidad/presupuestos`, {
+      headers: authHeader(),
+      withCredentials: true,
+      params,
+    });
+
+    return (data as any[]).map(mapFromApi);
   }
 
+  /** Crear presupuesto */
   static async createBudgetItem(
-    item: Omit<BudgetItem, "id" | "fechaCreacion" | "fechaActualizacion">,
+    item: Omit<BudgetItem, "id" | "fechaCreacion" | "fechaActualizacion">
   ): Promise<BudgetItem> {
-    const projectId = await findProjectIdByTitle(item.programa)
+    const projectId = await findProjectIdByTitle(item.programa);
     const body = {
       projectId,
       proyecto: item.programa,
@@ -58,40 +91,49 @@ export class BudgetService {
       anio: item.año,
       montoAsignado: item.montoAsignado,
       montoEjecutado: item.montoEjecutado,
-    }
-    const res = await fetch(`${API}/contabilidad/presupuestos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(body),
-    })
-    if (!res.ok) throw new Error("Error al crear presupuesto")
-    return mapFromApi(await res.json())
+    };
+
+    const { data } = await axios.post(
+      `${API_URL}/api/contabilidad/presupuestos`,
+      body,
+      {
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        withCredentials: true,
+      }
+    );
+
+    return mapFromApi(data);
   }
 
-  static async updateBudgetItem(id: string, updates: Partial<BudgetItem>): Promise<BudgetItem> {
-    const body: any = {}
-    if (updates.programa) body.proyecto = updates.programa
-    if (updates.mes) body.mes = monthNameToNumber(updates.mes)
-    if (updates.año != null) body.anio = updates.año
-    if (updates.montoAsignado != null) body.montoAsignado = updates.montoAsignado
-    if (updates.montoEjecutado != null) body.montoEjecutado = updates.montoEjecutado
+  /** Actualizar presupuesto existente */
+  static async updateBudgetItem(
+    id: string,
+    updates: Partial<BudgetItem>
+  ): Promise<BudgetItem> {
+    const body: any = {};
+    if (updates.programa) body.proyecto = updates.programa;
+    if (updates.mes) body.mes = monthNameToNumber(updates.mes);
+    if (updates.año != null) body.anio = updates.año;
+    if (updates.montoAsignado != null) body.montoAsignado = updates.montoAsignado;
+    if (updates.montoEjecutado != null) body.montoEjecutado = updates.montoEjecutado;
 
-    const res = await fetch(`${API}/contabilidad/presupuestos/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(body),
-    })
-    if (!res.ok) throw new Error("Error al actualizar presupuesto")
-    return mapFromApi(await res.json())
+    const { data } = await axios.patch(
+      `${API_URL}/api/contabilidad/presupuestos/${id}`,
+      body,
+      {
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        withCredentials: true,
+      }
+    );
+
+    return mapFromApi(data);
   }
 
+  /** Eliminar presupuesto por ID */
   static async deleteBudgetItem(id: string): Promise<void> {
-    const res = await fetch(`${API}/contabilidad/presupuestos/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    })
-    if (!res.ok) throw new Error("Error al eliminar presupuesto")
+    await axios.delete(`${API_URL}/api/contabilidad/presupuestos/${id}`, {
+      headers: authHeader(),
+      withCredentials: true,
+    });
   }
 }

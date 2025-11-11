@@ -17,6 +17,7 @@ export interface Transaction {
   categoria: string
   descripcion: string
   monto: number
+  moneda: string
   programa?: string
   fechaCreacion: Date
 }

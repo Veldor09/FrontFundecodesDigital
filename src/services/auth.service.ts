@@ -1,4 +1,3 @@
-// src/services/auth.service.ts
 import API, { setAuthToken } from "./api";
 
 export interface LoginResponse {
@@ -8,41 +7,42 @@ export interface LoginResponse {
     email: string;
     name?: string | null;
     roles?: string[];
-    // el backend suele devolver 'perms', lo normalizamos a 'permissions'
-    perms?: string[];
-    permissions?: string[];
+    perms?: string[];        // del back
+    permissions?: string[];  // alias normalizado
     approved?: boolean;
     verified?: boolean;
   };
 }
 
-export type User = LoginResponse["user"];
+export type User = LoginResponse["user"] & { permissions: string[]; roles: string[] };
 
 /**
  * Inicia sesión y guarda el token para siguientes peticiones.
  */
 export async function login(email: string, password: string): Promise<User> {
   try {
-    const res = await API.post<LoginResponse>("/auth/login", { email, password });
-    const token = res.data?.access_token;
+    const res = await API.post<LoginResponse>("/auth/login", {
+      email: (email || "").trim().toLowerCase(),
+      password,
+    });
 
+    const token = res.data?.access_token;
     if (!token) {
       throw new Error("Respuesta inválida del servidor (sin token).");
     }
 
-    // Guarda el token (debería actualizar axios.defaults y localStorage)
     setAuthToken(token);
-    // Por si tu setAuthToken no persiste, aseguramos:
     if (typeof window !== "undefined") {
       localStorage.setItem("token", token);
     }
 
-    // Normaliza permisos
-    const user = res.data.user ?? ({} as User);
-    const permissions = user.permissions ?? user.perms ?? [];
-    return { ...user, permissions };
+    const rawUser = res.data.user ?? ({} as LoginResponse["user"]);
+    const permissions = rawUser.permissions ?? rawUser.perms ?? [];
+    const roles = rawUser.roles ?? [];
+
+    // devolvemos usuario normalizado con permissions y roles asegurados
+    return { ...rawUser, permissions, roles };
   } catch (err: any) {
-    // Intenta extraer mensaje legible desde el backend
     const msg =
       err?.response?.data?.message ||
       err?.response?.data?.error ||
@@ -54,12 +54,12 @@ export async function login(email: string, password: string): Promise<User> {
 
 /**
  * Solicita recuperación de contraseña.
- * - Si tu backend devuelve 400 cuando el correo no existe, este método lanzará ese error.
- * - Si tu backend devuelve siempre { ok: true }, simplemente resuelve sin error.
  */
 export async function requestPasswordReset(email: string): Promise<{ ok: true }> {
   try {
-    const { data } = await API.post<{ ok: true }>("/auth/forgot-password", { email });
+    const { data } = await API.post<{ ok: true }>("/auth/forgot-password", {
+      email: (email || "").trim().toLowerCase(),
+    });
     return data ?? { ok: true };
   } catch (err: any) {
     const msg =
@@ -80,8 +80,8 @@ export async function setPassword(
   confirmPassword?: string
 ): Promise<{ ok: true }> {
   try {
-    const payload: any = { token, newPassword };
-    if (confirmPassword) payload.confirmPassword = confirmPassword;
+    const payload: Record<string, any> = { token, newPassword };
+    if (confirmPassword !== undefined) payload.confirmPassword = confirmPassword;
 
     const { data } = await API.post<{ ok: true }>("/auth/set-password", payload, {
       headers: { "Content-Type": "application/json" },
@@ -117,7 +117,6 @@ export function getStoredToken(): string | null {
 
 /**
  * Reaplica el token guardado (útil al montar la app/SPA).
- * Llama esto en el layout raíz o en un _app para mantener sesión tras recarga.
  */
 export function ensureAuthFromStorage() {
   const t = getStoredToken();

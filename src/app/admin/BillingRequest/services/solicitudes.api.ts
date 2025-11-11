@@ -1,28 +1,43 @@
 "use client";
 
+import axiosInstance from "./axiosInstance";
+
+/* =========================
+ * Configuración base
+ * ========================= */
 const API_BASE =
   (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4000").replace(/\/+$/, "");
+
+function authHeader() {
+  const t =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
 
 function url(path: string) {
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE}${p}`;
 }
 
-async function http<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, init);
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const msg = text || `HTTP ${res.status} ${res.statusText}`;
+function handleAxiosError(err: any): never {
+  if (err.response) {
+    const msg =
+      err.response.data?.message ||
+      err.response.data?.error ||
+      `HTTP ${err.response.status} ${err.response.statusText}`;
     throw new Error(msg);
+  } else if (err.request) {
+    throw new Error("No se recibió respuesta del servidor.");
+  } else {
+    throw new Error(err.message || "Error desconocido.");
   }
-  return res.json() as Promise<T>;
 }
 
 /* =========================
  * Tipos
  * ========================= */
 export type EstadoContadora = "VALIDADA" | "PENDIENTE" | "DEVUELTA";
-export type EstadoDirector  = "APROBADA" | "RECHAZADA" | "PENDIENTE";
+export type EstadoDirector = "APROBADA" | "RECHAZADA" | "PENDIENTE";
 
 export interface Solicitud {
   id: number;
@@ -54,85 +69,168 @@ const normalize = (s?: string | null) =>
   (s ?? "").toString().trim().toUpperCase();
 
 /* =========================
- * Endpoints (fetch nativo)
+ * Endpoints con Axios
  * ========================= */
 
-export async function createSolicitud(payload: CreateSolicitudPayload): Promise<Solicitud> {
-  const fd = new FormData();
-  fd.set("titulo", payload.titulo);
-  fd.set("descripcion", payload.descripcion);
-  if (payload.usuarioId !== undefined) fd.set("usuarioId", String(payload.usuarioId));
-  (payload.files ?? []).forEach((f) => fd.append("archivos", f)); // 👈 nombre EXACTO
+export async function createSolicitud(
+  payload: CreateSolicitudPayload
+): Promise<Solicitud> {
+  try {
+    const fd = new FormData();
+    fd.set("titulo", payload.titulo);
+    fd.set("descripcion", payload.descripcion);
+    if (payload.usuarioId !== undefined)
+      fd.set("usuarioId", String(payload.usuarioId));
+    (payload.files ?? []).forEach((f) => fd.append("archivos", f));
 
-  return http<Solicitud>(url("/solicitudes"), {
-    method: "POST",
-    body: fd, // NO pongas Content-Type manualmente
-  });
+    const { data } = await axiosInstance.post(url("/api/solicitudes"), fd, {
+      headers: { ...authHeader() },
+      withCredentials: true,
+    });
+    return data;
+  } catch (err) {
+    handleAxiosError(err);
+  }
 }
 
-/**
- * Trae todas las solicitudes y permite filtrar en cliente.
- * - bandeja: "contadora" -> estadoContadora === "PENDIENTE"
- * - bandeja: "director"  -> estadoContadora === "VALIDADA"
- */
 export async function fetchSolicitudes(opts?: {
   estado?: EstadoContadora | "TODAS";
   bandeja?: "contadora" | "director";
 }): Promise<SolicitudListItem[]> {
-  const data = await http<Solicitud[]>(url("/solicitudes"), { method: "GET" });
-  let out: SolicitudListItem[] = Array.isArray(data) ? data : [];
+  try {
+    const { data } = await axiosInstance.get<Solicitud[]>(url("/api/solicitudes"), {
+      headers: { ...authHeader() },
+      withCredentials: true,
+    });
 
-  if (opts?.estado && opts.estado !== "TODAS") {
-    out = out.filter((r) => normalize(r.estadoContadora) === normalize(opts.estado));
+    let out: SolicitudListItem[] = Array.isArray(data) ? data : [];
+
+    if (opts?.estado && opts.estado !== "TODAS") {
+      out = out.filter(
+        (r) => normalize(r.estadoContadora) === normalize(opts.estado)
+      );
+    }
+    if (opts?.bandeja === "contadora") {
+      out = out.filter(
+        (r) => normalize(r.estadoContadora) === "PENDIENTE"
+      );
+    } else if (opts?.bandeja === "director") {
+      out = out.filter(
+        (r) => normalize(r.estadoContadora) === "VALIDADA"
+      );
+    }
+    return out;
+  } catch (err) {
+    handleAxiosError(err);
   }
-  if (opts?.bandeja === "contadora") {
-    out = out.filter((r) => normalize(r.estadoContadora) === "PENDIENTE");
-  } else if (opts?.bandeja === "director") {
-    out = out.filter((r) => normalize(r.estadoContadora) === "VALIDADA");
-  }
-  return out;
 }
 
 export async function getSolicitud(id: number): Promise<Solicitud> {
-  return http<Solicitud>(url(`/solicitudes/${id}`), { method: "GET" });
+  try {
+    const { data } = await axiosInstance.get<Solicitud>(
+      url(`/api/solicitudes/${id}`),
+      {
+        headers: { ...authHeader() },
+        withCredentials: true,
+      }
+    );
+    return data;
+  } catch (err) {
+    handleAxiosError(err);
+  }
 }
 
-export async function fetchHistorial(id: number) {
-  return http<any[]>(url(`/solicitudes/${id}/historial`), { method: "GET" });
+export async function fetchHistorial(id: number): Promise<any[]> {
+  try {
+    const { data } = await axiosInstance.get<any[]>(
+      url(`/api/solicitudes/${id}/historial`),
+      {
+        headers: { ...authHeader() },
+        withCredentials: true,
+      }
+    );
+    return data;
+  } catch (err) {
+    handleAxiosError(err);
+  }
 }
 
 export async function validateSolicitud(id: number): Promise<Solicitud> {
-  const body = { estadoContadora: "VALIDADA" as const };
-  return http<Solicitud>(url(`/solicitudes/${id}/validar`), {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  try {
+    const body = { estadoContadora: "VALIDADA" as const };
+    const { data } = await axiosInstance.patch<Solicitud>(
+      url(`/api/solicitudes/${id}/validar`),
+      body,
+      {
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        withCredentials: true,
+      }
+    );
+    return data;
+  } catch (err) {
+    handleAxiosError(err);
+  }
 }
 
-export async function returnSolicitud(id: number, comentario: string): Promise<Solicitud> {
-  const body = { estadoContadora: "DEVUELTA" as const, comentarioContadora: comentario };
-  return http<Solicitud>(url(`/solicitudes/${id}/validar`), {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+export async function returnSolicitud(
+  id: number,
+  comentario: string
+): Promise<Solicitud> {
+  try {
+    const body = {
+      estadoContadora: "DEVUELTA" as const,
+      comentarioContadora: comentario,
+    };
+    const { data } = await axiosInstance.patch<Solicitud>(
+      url(`/api/solicitudes/${id}/validar`),
+      body,
+      {
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        withCredentials: true,
+      }
+    );
+    return data;
+  } catch (err) {
+    handleAxiosError(err);
+  }
 }
 
 export async function approveSolicitud(id: number): Promise<Solicitud> {
-  const body = { estadoDirector: "APROBADA" as const };
-  return http<Solicitud>(url(`/solicitudes/${id}/decision-director`), {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  try {
+    const body = { estadoDirector: "APROBADA" as const };
+    const { data } = await axiosInstance.patch<Solicitud>(
+      url(`/api/solicitudes/${id}/decision-director`),
+      body,
+      {
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        withCredentials: true,
+      }
+    );
+    return data;
+  } catch (err) {
+    handleAxiosError(err);
+  }
 }
 
-export async function rejectSolicitud(id: number, comentario: string): Promise<Solicitud> {
-  const body = { estadoDirector: "RECHAZADA" as const, comentarioDirector: comentario };
-  return http<Solicitud>(url(`/solicitudes/${id}/decision-director`), {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+export async function rejectSolicitud(
+  id: number,
+  comentario: string
+): Promise<Solicitud> {
+  try {
+    const body = {
+      estadoDirector: "RECHAZADA" as const,
+      comentarioDirector: comentario,
+    };
+    const { data } = await axiosInstance.patch<Solicitud>(
+      url(`/api/solicitudes/${id}/decision-director`),
+      body,
+      {
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        withCredentials: true,
+      }
+    );
+    return data;
+  } catch (err) {
+    handleAxiosError(err);
+  }
 }
