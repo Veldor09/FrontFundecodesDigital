@@ -10,8 +10,7 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import ProjectFilesManager from "./ProjectFilesManager";
-
+import { ProjectFilesManager } from "./ProjectFilesManager";
 
 type Props = {
   open: boolean;
@@ -50,7 +49,6 @@ export default function ProjectFilesModal({ open, onOpenChange, projectId }: Pro
               onOpenChange(false);
               setClosing(false);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             Finalizar
           </Button>

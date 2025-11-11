@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
-import { ProjectFilesManager } from "../components/ProjectFilesManager";
+import { ProjectFilesManager } from "./ProjectFilesManager";
 import { Upload } from "lucide-react";
 import { getProjectFiles } from "@/services/projects.service";
 
@@ -531,7 +531,7 @@ export default function ProjectForm({
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={busy} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button type="submit" disabled={busy}>
             {busy ? "Guardando…" : mode === "create" ? "Siguiente" : "Guardar"}
           </Button>
         </div>
