@@ -1,7 +1,8 @@
+// src/services/api.ts
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// Normaliza que el baseURL termine con /api
+// Normaliza que el baseURL termine con /api (sin repetir slashes)
 function normalizeBaseUrl(url: string) {
   const u = url.replace(/\/+$/, '');
   return u.endsWith('/api') ? u : `${u}/api`;
@@ -9,7 +10,9 @@ function normalizeBaseUrl(url: string) {
 
 const API = axios.create({
   baseURL: normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'),
-  withCredentials: false, // usamos Authorization header, no cookies
+  withCredentials: false,
+  timeout: 20000,
+  headers: { Accept: 'application/json' },
 });
 
 // Helper para setear/quitar token
@@ -23,7 +26,7 @@ export function setAuthToken(token?: string) {
   }
 }
 
-// Adjunta token si existe (por si cambia en runtime)
+// Interceptor REQUEST: adjunta token + evita doble /api
 API.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
@@ -32,12 +35,23 @@ API.interceptors.request.use((config) => {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
   }
+
+  const base = (config.baseURL || '').replace(/\/+$/, '');
+  let url = config.url || '';
+
+  if (base.endsWith('/api')) {
+    if (/^\/?api\//i.test(url)) url = url.replace(/^\/?api\//i, '/');
+    else if (/^\/?api$/i.test(url)) url = '/';
+  }
+
+  url = url.replace(/([^:]\/)\/+/g, '$1'); // normaliza slashes
+  config.url = url;
   return config;
 });
 
-// Manejo de errores + redirección a pantalla estándar
+// Interceptor RESPONSE: toasts + redirect 401/403
 API.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   (error) => {
     if (typeof window === 'undefined') return Promise.reject(error);
 
@@ -46,23 +60,18 @@ API.interceptors.response.use(
     const serverMsg =
       data?.message || data?.error || error?.message || 'Error inesperado en la API';
 
-    // Toasters
     if (data?.error === 'ACCOUNT_NOT_APPROVED') {
-      toast.error(
-        data.message || 'Su cuenta no ha sido aprobada aún'
-      );
+      toast.error(data.message || 'Su cuenta no ha sido aprobada aún');
     } else if (Array.isArray(data?.message)) {
       toast.error(data.message.join(', '));
     } else if (serverMsg) {
       toast.error(serverMsg);
     }
 
-    // Redirección si 401/403 (evita loop en /auth/login)
     const reqUrl: string = error?.config?.url ?? '';
     const isLoginCall = /\/auth\/login\b/.test(reqUrl);
     if ((status === 401 || status === 403) && !isLoginCall) {
-      // opcional: limpiar token
-      // setAuthToken(undefined);
+      // setAuthToken(undefined); // opcional
       window.location.href = '/error/unauthorized';
     }
 
