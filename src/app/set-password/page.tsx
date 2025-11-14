@@ -21,7 +21,6 @@ function SetPasswordInner() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Con los rewrites: /api-auth -> <BACK>/api/auth
   const requestUrl = `/api-auth/set-password`;
 
   const canSubmit = useMemo(() => {
@@ -80,61 +79,67 @@ function SetPasswordInner() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 border rounded">
-      <h3 className="text-lg font-semibold mb-4">Establecer contraseña</h3>
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-blue-100">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm space-y-6">
+        <h1 className="text-2xl font-bold text-center text-teal-700">Establecer contraseña</h1>
 
-      {!token && (
-        <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          Token inválido o ausente. Por favor abre el enlace que te enviamos por correo.
-        </div>
-      )}
+        {!token && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            Token inválido o ausente. Por favor abre el enlace que te enviamos por correo.
+          </div>
+        )}
 
-      <p className="mb-4">Ingresa tu nueva contraseña dos veces para activar tu cuenta.</p>
+        <p className="text-sm text-slate-600">Ingresa tu nueva contraseña dos veces para activar tu cuenta.</p>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <input
-            type="password"
-            placeholder="Nueva contraseña"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            minLength={MIN_LEN}
-            maxLength={MAX_LEN}
-            required
-            className="w-full p-2 border rounded"
-            autoComplete="new-password"
-          />
-          <p className="mt-1 text-xs text-slate-500">
-            Debe tener entre {MIN_LEN} y {MAX_LEN} caracteres.
-          </p>
-        </div>
-        <div>
-          <input
-            type="password"
-            placeholder="Confirmar contraseña"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            minLength={MIN_LEN}
-            maxLength={MAX_LEN}
-            required
-            className="w-full p-2 border rounded"
-            autoComplete="new-password"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={!canSubmit || loading}
-          className={`w-full p-2 rounded text-white ${
-            !canSubmit || loading ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
-          }`}
-        >
-          {loading ? 'Guardando…' : 'Guardar contraseña'}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              minLength={MIN_LEN}
+              maxLength={MAX_LEN}
+              required
+              autoComplete="new-password"
+              placeholder="Mínimo 8 caracteres"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+            <p className="mt-1 text-xs text-slate-500">Entre {MIN_LEN} y {MAX_LEN} caracteres.</p>
+          </div>
 
-      {error && <p className="text-red-500 mt-3">{error}</p>}
-      {message && <p className="text-green-600 mt-3">{message}</p>}
-    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              minLength={MIN_LEN}
+              maxLength={MAX_LEN}
+              required
+              autoComplete="new-password"
+              placeholder="Repite la contraseña"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={!canSubmit || loading}
+            className={`w-full rounded-lg py-2 text-white font-semibold transition-colors ${
+              !canSubmit || loading
+                ? 'bg-teal-300 cursor-not-allowed'
+                : 'bg-teal-600 hover:bg-teal-700'
+            }`}
+          >
+            {loading ? 'Guardando…' : 'Guardar contraseña'}
+          </button>
+        </form>
+
+        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+        {message && <p className="text-sm text-emerald-600 text-center">{message}</p>}
+      </div>
+    </main>
   );
 }
 
