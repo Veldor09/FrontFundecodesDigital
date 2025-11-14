@@ -12,7 +12,7 @@ export interface solicitud {
   comentarioContadora?: string;  
   comentarioDirector?: string;  
   attachmentUrl?: string;// URL a archivo PDF/imagen
-  //requesterId?: string;  // ID del solicitante (opcional)
-  //requesterName?: string;// Nombre del solicitante (opcional)
+  requesterId?: string;  // ID del solicitante (opcional)
+  requesterName?: string;// Nombre del solicitante (opcional)
   status: string; 
 }

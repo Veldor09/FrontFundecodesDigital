@@ -121,8 +121,7 @@ export default function RequestsTable() {
           <thead className="bg-slate-50 text-left">
             <tr className="text-slate-700">
               <th className="px-4 py-3">Título</th>
-              {/*
-              <th className="px-4 py-3 w-36">Solicitante</th>*/}
+              <th className="px-4 py-3 w-36">Solicitante</th>
               <th className="px-4 py-3 w-28">Estado</th>
               <th className="px-4 py-3 w-40">Creada</th>
               <th className="px-4 py-3 w-32 text-right">Acciones</th>
