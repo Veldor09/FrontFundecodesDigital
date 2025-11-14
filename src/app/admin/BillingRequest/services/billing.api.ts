@@ -15,8 +15,9 @@ import { getSolicitud } from "../services/solicitudes.api";
 =========================================================== */
 
 const BASE =
-  (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
+  (process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ??
     "http://localhost:4000") as string;
+
 
 /** Headers automáticos con token localStorage si existe */
 function authHeader() {
