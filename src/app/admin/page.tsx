@@ -150,6 +150,7 @@ export default function AdminDashboardPage() {
           "mt-4 text-sm font-medium text-red-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin"] as Role[],
       },
+      /*
       {
         key: "info",
         title: "Página Informativa",
@@ -164,9 +165,9 @@ export default function AdminDashboardPage() {
           "mt-4 text-sm font-medium text-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin"] as Role[],
         fullWidth: true,
-      },
+      },*/
     ],
-    []
+    [] 
   );
 
   const visibleModules = useMemo(() => {
