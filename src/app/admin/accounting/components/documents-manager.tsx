@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge"
 import { Upload, Download, FileText, CheckCircle, XCircle } from "lucide-react"
 import type { Document } from "../types"
 import { DocumentService } from "../services/document-service"
+import { ProjectsService } from "../services/projects-service"
 
 export function DocumentsManager() {
   const [documents, setDocuments] = useState<Document[]>([])
+  const [projects, setProjects] = useState<{ id: number; title: string }[]>([])
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([])
   const [filters, setFilters] = useState({ programa: "todos", mes: "todos" })
   const [loading, setLoading] = useState(false)
@@ -22,7 +24,8 @@ export function DocumentsManager() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const programas = Array.from(new Set(documents.map(d => d.programa))).sort()
+  /* proyectos que ya tienen docs (para el filtro) */
+  const programas = Array.from(new Set(documents.map((d) => d.programa))).sort()
 
   async function load() {
     setLoading(true)
@@ -34,8 +37,15 @@ export function DocumentsManager() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  /* carga inicial */
+  useEffect(() => {
+    load()
+    ProjectsService.list()
+      .then(setProjects)
+      .catch(() => setProjects([]))
+  }, [])
 
+  /* filtros */
   useEffect(() => {
     let filtered = documents
     if (filters.programa !== "todos") filtered = filtered.filter((doc) => doc.programa === filters.programa)
@@ -43,15 +53,16 @@ export function DocumentsManager() {
     setFilteredDocuments(filtered)
   }, [filters, documents])
 
+  /* subida */
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault()
     const file = fileInputRef.current?.files?.[0]
     if (!file) return setMessage({ type: "error", text: "Por favor selecciona un archivo" })
-    if (!uploadData.programa) return setMessage({ type: "error", text: "Por favor escribe un programa" })
+    if (!uploadData.programa) return setMessage({ type: "error", text: "Por favor selecciona un proyecto" })
     if (!uploadData.mes) return setMessage({ type: "error", text: "Por favor selecciona un mes" })
     if (file.size > 10 * 1024 * 1024) return setMessage({ type: "error", text: "El archivo es demasiado grande. Máximo 10MB." })
 
-    const allowedTypes = ["application/pdf","image/jpeg","image/png","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
     if (!allowedTypes.includes(file.type)) return setMessage({ type: "error", text: "Tipo de archivo no permitido. Solo PDF, JPG, PNG y Excel." })
 
     try {
@@ -69,6 +80,7 @@ export function DocumentsManager() {
     }
   }
 
+  /* descarga */
   const handleDownload = (doc: Document) => {
     try {
       const link = document.createElement("a")
@@ -83,6 +95,7 @@ export function DocumentsManager() {
     }
   }
 
+  /* mensajes automáticos */
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(null), 3000)
@@ -90,6 +103,7 @@ export function DocumentsManager() {
     }
   }, [message])
 
+  /* helpers */
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes"
     const k = 1024
@@ -101,7 +115,6 @@ export function DocumentsManager() {
 
   return (
     <Card>
-      {/* JSX original intacto */}
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Gestión de Documentos</CardTitle>
@@ -113,79 +126,121 @@ export function DocumentsManager() {
               </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Subir Nuevo Documento</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Subir Nuevo Documento</DialogTitle>
+              </DialogHeader>
               <form onSubmit={handleFileUpload} className="space-y-4">
+                {/* archivo */}
                 <div>
                   <Label htmlFor="file">Archivo *</Label>
-                  <Input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" required />
+                  <Input ref={fileInputRef} id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" required />
                   <p className="text-sm text-muted-foreground mt-1">Formatos permitidos: PDF, JPG, PNG, Excel. Máximo 10MB.</p>
                 </div>
 
+                {/* proyecto → select con todos los proyectos */}
                 <div>
                   <Label htmlFor="proyecto">Proyecto *</Label>
-                  <Input type="text" placeholder="Escribe el nombre del proyecto"
-                         value={uploadData.programa}
-                         onChange={(e) => setUploadData({ ...uploadData, programa: e.target.value })}
-                         required />
+                  <select
+                    id="proyecto"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={uploadData.programa}
+                    onChange={(e) => setUploadData({ ...uploadData, programa: e.target.value })}
+                    required
+                  >
+                    <option value="">Seleccionar proyecto</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.title}>
+                        {p.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
+                {/* mes */}
                 <div>
                   <Label htmlFor="mes">Mes *</Label>
                   <select
+                    id="mes"
                     className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={uploadData.mes}
                     onChange={(e) => setUploadData({ ...uploadData, mes: e.target.value })}
                     required
                   >
                     <option value="">Seleccionar mes</option>
-                    {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map(m => (
-                      <option key={m} value={m}>{m}</option>
+                    {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
                     ))}
                   </select>
                 </div>
 
+                {/* año */}
                 <div>
-                  <Label htmlFor="año">Año</Label>
-                  <Input type="number" value={uploadData.año} onChange={(e) => setUploadData({ ...uploadData, año: Number(e.target.value) })} min={2020} max={2030} required />
+                  <Label htmlFor="anio">Año</Label>
+                  <Input
+                    id="anio"
+                    type="number"
+                    min={2020}
+                    max={2030}
+                    value={uploadData.año}
+                    onChange={(e) => setUploadData({ ...uploadData, año: Number(e.target.value) })}
+                    required
+                  />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>{loading ? "Subiendo..." : "Subir Documento"}</Button>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Subiendo..." : "Subir Documento"}
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
         </div>
 
+        {/* mensajes */}
         {message && (
-          <div className={`flex items-center gap-2 p-3 rounded-md ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+          <div className={`flex items-center gap-2 p-3 rounded-md mt-3 ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
             {message.type === "success" ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
             <span className="text-sm">{message.text}</span>
           </div>
         )}
 
-        <div className="flex gap-6 flex-wrap items-end">
+        {/* filtros */}
+        <div className="flex gap-6 flex-wrap items-end mt-4">
           <div className="min-w-[200px]">
             <Label className="text-sm font-medium mb-2 block">Programa</Label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={filters.programa}
-                    onChange={(e) => setFilters({ ...filters, programa: e.target.value })}>
+            <select
+              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filters.programa}
+              onChange={(e) => setFilters({ ...filters, programa: e.target.value })}
+            >
               <option value="todos">Todos los programas</option>
-              {programas.map((p) => <option key={p} value={p}>{p}</option>)}
+              {programas.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="min-w-[180px]">
             <Label className="text-sm font-medium mb-2 block">Mes</Label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={filters.mes}
-                    onChange={(e) => setFilters({ ...filters, mes: e.target.value })}>
+            <select
+              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filters.mes}
+              onChange={(e) => setFilters({ ...filters, mes: e.target.value })}
+            >
               <option value="todos">Todos los meses</option>
-              {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map(m => (
-                <option key={m} value={m}>{m}</option>
+              {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
               ))}
             </select>
           </div>
         </div>
 
-        <div className="text-sm text-muted-foreground">Mostrando {filteredDocuments.length} de {documents.length} documentos</div>
+        <div className="text-sm text-muted-foreground mt-2">Mostrando {filteredDocuments.length} de {documents.length} documentos</div>
       </CardHeader>
 
       <CardContent>
@@ -222,7 +277,9 @@ export function DocumentsManager() {
                     <TableCell>{doc.programa}</TableCell>
                     <TableCell>{doc.mes}</TableCell>
                     <TableCell>{doc.año}</TableCell>
-                    <TableCell><Badge variant="outline">{doc.tipo}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{doc.tipo}</Badge>
+                    </TableCell>
                     <TableCell>{formatFileSize(doc.tamaño)}</TableCell>
                     <TableCell>{formatDate(doc.fechaSubida as any)}</TableCell>
                     <TableCell>
