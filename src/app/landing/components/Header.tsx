@@ -15,7 +15,7 @@ export default function Header() {
 
   const menuItems = [
     { name: "Home", href: "/landing" },
-    { name: "Proyectos", href: "#proyectos" },
+    { name: "Proyectos", href: "/landing/projects" },
     { name: "Voluntariado", href: "/PagInfo/Voluntariado" },
     { name: "Contáctenos", href: "/PagInfo/Contactenos" },
   ];

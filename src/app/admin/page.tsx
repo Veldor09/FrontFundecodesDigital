@@ -56,7 +56,7 @@ function normalizeRole(v?: string | null): Role | null {
 export default function AdminDashboardPage() {
   const [role, setRole] = useState<Role | null>(null);
 
-  // Lee el rol del JWT (acepta payload.role | payload.rol | payload.roles[0])
+  // Lee el rol del JWT
   useEffect(() => {
     const t = getToken();
     const p = getJwtPayload<{ role?: string; rol?: string; roles?: string[] }>(t);
@@ -64,7 +64,7 @@ export default function AdminDashboardPage() {
     setRole(normalizeRole(p?.role ?? p?.rol ?? fromArray) ?? null);
   }, []);
 
-  // Config de módulos y los roles que pueden verlos
+  // Configuración de tarjetas
   const MODULES = useMemo(
     () => [
       {
@@ -77,7 +77,8 @@ export default function AdminDashboardPage() {
           "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-teal-300",
         badgeClasses:
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-teal-50 group-hover:border-teal-200",
-        linkClasses: "mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity",
+        linkClasses:
+          "mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin", "colaboradorvoluntariado", "voluntario"] as Role[],
       },
       {
@@ -90,7 +91,8 @@ export default function AdminDashboardPage() {
           "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-blue-300",
         badgeClasses:
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-blue-50 group-hover:border-blue-200",
-        linkClasses: "mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity",
+        linkClasses:
+          "mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin", "colaboradorproyecto"] as Role[],
       },
       {
@@ -103,8 +105,8 @@ export default function AdminDashboardPage() {
           "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-green-300",
         badgeClasses:
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-green-50 group-hover:border-green-200",
-        linkClasses: "mt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        // Puede verlo admin, colaboradorfactura y colaboradorcontabilidad
+        linkClasses:
+          "mt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin", "colaboradorfactura", "colaboradorcontabilidad"] as Role[],
       },
       {
@@ -133,7 +135,6 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-orange-50 group-hover:border-orange-200",
         linkClasses:
           "mt-4 text-sm font-medium text-orange-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        // Además de admin, contabilidad también ve "Solicitudes y Facturación" (arriba)
         roles: ["admin", "colaboradorcontabilidad"] as Role[],
       },
       {
@@ -170,7 +171,7 @@ export default function AdminDashboardPage() {
   );
 
   const visibleModules = useMemo(() => {
-    if (!role || role === "admin") return MODULES; // admin ve todo
+    if (!role || role === "admin") return MODULES; 
     return MODULES.filter((m) => !m.roles || m.roles.includes(role));
   }, [MODULES, role]);
 
@@ -190,15 +191,18 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Tarjetas de módulos (filtradas por rol) */}
+      {/* Tarjetas con altura igualada */}
       <section className="mb-12">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {visibleModules.map((m) => {
             const Icon = m.icon;
             const colSpan = m.fullWidth ? "lg:col-span-3" : "";
+
             return (
               <Link key={m.key} href={m.href} className={`group ${colSpan}`}>
-                <div className={m.cardClasses}>
+                <div
+                  className={`${m.cardClasses} h-full min-h-[170px] flex flex-col justify-between`}
+                >
                   <div className="flex items-center gap-4">
                     <div className={m.badgeClasses}>
                       <Icon className="h-7 w-7" />
@@ -216,15 +220,14 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Resumen General */}
-<section>
-  <div className="mb-6">
-    <h2 className="text-2xl font-bold text-slate-900">Resumen General</h2>
-    <p className="text-slate-500">Métricas actualizadas en tiempo real</p>
-  </div>
-  {/* Evita pedir datos hasta conocer el rol */}
-  {role ? <DashboardMetrics/> : null}
-</section>
+      {/* Resumen general */}
+      <section>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-slate-900">Resumen General</h2>
+          <p className="text-slate-500">Métricas actualizadas en tiempo real</p>
+        </div>
+        {role ? <DashboardMetrics /> : null}
+      </section>
     </main>
   );
 }
