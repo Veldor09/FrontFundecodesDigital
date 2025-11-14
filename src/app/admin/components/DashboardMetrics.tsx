@@ -220,7 +220,7 @@ export function DashboardMetrics() {
               label={metrics.accounting.label}
               icon={Wallet}
               color="text-red-600"
-              href="/admin/contabilidad"
+              href="/admin/accounting"
             />
 
             <MetricCard
@@ -229,7 +229,7 @@ export function DashboardMetrics() {
               label={metrics.billing.label}
               icon={Receipt}
               color="text-indigo-600"
-              href="/admin/facturacion"
+              href="/admin/BillingRequest"
             />
           </>
         )}
@@ -266,7 +266,7 @@ export function DashboardMetrics() {
             label={"Solicitudes y facturación"}
             icon={Receipt}
             color="text-indigo-600"
-            href="/admin/facturacion"
+            href="/admin/BillingRequest"
           />
         )}
 
@@ -279,7 +279,7 @@ export function DashboardMetrics() {
               label={"Reportes y estados"}
               icon={Wallet}
               color="text-red-600"
-              href="/admin/contabilidad"
+              href="/admin/accounting"
             />
             <MetricCard
               title="Facturación"
@@ -287,7 +287,7 @@ export function DashboardMetrics() {
               label={"Solicitudes y facturación"}
               icon={Receipt}
               color="text-indigo-600"
-              href="/admin/facturacion"
+              href="/admin/BillingRequest"
             />
           </>
         )}
