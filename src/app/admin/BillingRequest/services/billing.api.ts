@@ -170,37 +170,19 @@ async function createBillingRequest(body: CreateBillingRequestBody) {
  * - Si no existe, la crea usando datos básicos.
  */
 export async function ensureBillingRequestFromSolicitud(args: EnsureArgs) {
-  const { solicitudId, projectId, fallbackAmount = 0 } = args;
+  const { solicitudId } = args;
 
-  // 1️⃣ Intento directo
-  try {
-    const existing: any = await getRequest(solicitudId);
-    if (existing && typeof existing.id === "number") return existing;
-  } catch (e: any) {
-    if (e?.status && e.status !== 404) {
-      console.warn("BillingRequest check error:", e);
-    }
-  }
-
-  // 2️⃣ Traer la solicitud original
-  const raw = await getSolicitud(solicitudId);
-  const data = (raw as any)?.data ?? raw;
-
-  const concept: string = String(
-    data?.titulo ?? data?.descripcion ?? `Solicitud ${solicitudId}`
-  ).slice(0, 255);
-
-  const amountNum: number = Number(
-    data?.monto ?? data?.amount ?? data?.total ?? fallbackAmount ?? 0
+  // ✅ Llamada al nuevo endpoint puente
+  return assertOkAxios(
+    axiosInstance.post(
+      `${BASE}/api/billing/request-from-solicitud/${solicitudId}`,
+      {},
+      {
+        headers: { ...authHeader() },
+        withCredentials: true,
+      }
+    )
   );
-
-  const body: CreateBillingRequestBody = {
-    amount: Number.isFinite(amountNum) ? amountNum : 0,
-    concept,
-    projectId: Number(projectId),
-  };
-
-  return createBillingRequest(body);
 }
 
 /* ===========================================================
