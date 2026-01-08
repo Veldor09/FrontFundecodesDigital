@@ -1,4 +1,4 @@
-//src/app/admin/components/AdminHeaderMinimal.tsx
+// src/app/admin/components/AdminHeaderMinimal.tsx
 "use client";
 
 import Image from "next/image";
@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Open_Sans } from "next/font/google";
 import { User } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
+// 👉 Importa tu función logout (ajusta la ruta si es diferente)
+import { logout } from "@/lib/auth-client";   // ← ruta real
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -39,14 +44,12 @@ export default function AdminHeaderMinimal() {
   }, []);
 
   const goPublic = () => router.push("/");
-  const goProfile = () => {
+
+  // 👉 Nueva función onLogout: limpia token y redirige
+  const onLogout = () => {
     setOpen(false);
-    router.push("/admin/perfil");
-  };
-  const signOut = () => {
-    setOpen(false);
-    // aquí iría tu logout real (limpiar token, etc.)
-    router.push("/login");
+    logout();          // Limpia el token / cookies / storage
+    router.replace("/landing");
   };
 
   return (
@@ -61,7 +64,7 @@ export default function AdminHeaderMinimal() {
           >
             <div className="bg-white rounded-full p-2 shadow-md">
               <Image
-                src="/Img/FUNDECODES_Logo.png"  // mismo asset que tu otro header
+                src="/Img/FUNDECODES_Logo.png"
                 alt="Fundecodes"
                 width={40}
                 height={40}
@@ -75,7 +78,18 @@ export default function AdminHeaderMinimal() {
             </div>
           </button>
 
-          {/* Perfil (icono + menú) */}
+          {/* Botón: Ir a la página principal (siempre visible) */}
+          <Link href="/informational-page">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-white border-white/50 hover:bg-white/10"
+            >
+              Ir a la página principal
+            </Button>
+          </Link>
+
+          {/* Perfil (icono + menú desplegable) */}
           <div className="relative">
             <button
               ref={btnRef}
@@ -116,19 +130,18 @@ export default function AdminHeaderMinimal() {
 
                 <div className="h-px bg-slate-100" />
 
-                <button
-                  role="menuitem"
-                  onClick={goProfile}
-                  className="w-full text-left px-5 py-3 text-slate-700 hover:bg-slate-50 transition"
+                <Link
+                  href="/landing"
+                  className="block w-full text-left px-5 py-3 text-slate-700 hover:bg-slate-50 transition"
                 >
-                  Mi perfil
-                </button>
-
+                  Ir a la página principal
+                </Link>
                 <div className="h-px bg-slate-100" />
 
+                {/* 👉 Botón que llama a onLogout */}
                 <button
                   role="menuitem"
-                  onClick={signOut}
+                  onClick={onLogout}
                   className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 transition"
                 >
                   Cerrar sesión

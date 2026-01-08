@@ -1,12 +1,98 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User } from "lucide-react";
+import { Menu, X, User, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+/* -----------  AUTH LOGIC (CLIENT-SIDE)  ----------- */
+function useAuthStatus() {
+  const [isAuth, setIsAuth] = useState(false);
+
+  // leer token solo en cliente
+  useEffect(() => {
+    setIsAuth(!!localStorage.getItem("token"));
+  }, []);
+
+  // releer token cuando el usuario retrocede (botón "atrás")
+  useEffect(() => {
+    const onPageshow = () => setIsAuth(!!localStorage.getItem("token"));
+    window.addEventListener("pageshow", onPageshow);
+    return () => window.removeEventListener("pageshow", onPageshow);
+  }, []);
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setIsAuth(false);        // limpia memoria
+    location.href = "/landing";   // ← directo a landing
+  };
+
+  return { isAuth, logout };
+}
+
+/* -----------  AUTH BUTTON / MENU  ----------- */
+function AuthButton() {
+  const { isAuth, logout } = useAuthStatus();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // cerrar menú al clicar fuera
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  if (!isAuth)
+    return (
+      <Button asChild variant="secondary" className="bg-white/15 hover:bg-white/25 text-white">
+        <Link href="/login">Iniciar sesión</Link>
+      </Button>
+    );
+
+  return (
+    <div ref={ref} className="relative">
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => setOpen((v) => !v)}
+        className="bg-white/15 hover:bg-white/25 text-white gap-2"
+      >
+        <User className="h-4 w-4" />
+        <span>Cuenta</span>
+        <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
+      </Button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-56 rounded-xl border border-white/20 bg-white/90 backdrop-blur shadow-xl overflow-hidden">
+          <Link
+            href="/admin"
+            className="block px-4 py-3 text-slate-800 hover:bg-white/60 transition"
+            onClick={() => setOpen(false)}
+          >
+            Panel administrativo
+          </Link>
+          <button
+  onClick={() => {
+    setOpen(false);
+    localStorage.removeItem("token");   // 1. limpia token
+    location.href = "/landing";         // 2. redirige a landing
+  }}
+  className="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition"
+>
+  Cerrar sesión
+</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* -----------  HEADER PRINCIPAL  ----------- */
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
@@ -37,9 +123,7 @@ export default function Header() {
             </div>
             <div className="text-white">
               <h1 className="text-xl font-bold font-modern tracking-wide">Fundecodes</h1>
-              <p className="text-sm text-blue-100 font-medium font-modern">
-                Haciendo la diferencia
-              </p>
+              <p className="text-sm text-blue-100 font-medium font-modern">Haciendo la diferencia</p>
             </div>
           </div>
 
@@ -58,16 +142,8 @@ export default function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            {/* Icono usuario -> redirige a /login */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 rounded-full"
-              onClick={() => router.push("/login")}
-              aria-label="Ir al inicio de sesión"
-            >
-              <User className="h-6 w-6" />
-            </Button>
+            {/* Botón/auth adaptativo */}
+            <AuthButton />
 
             {/* Mobile Menu Button */}
             <Button
