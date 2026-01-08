@@ -1,10 +1,9 @@
-//src/app/admin/layout.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "../../services/auth.service";
-import AdminHeaderMinimal from "./components/AdminHeaderMinimal"; // <- header azul/teal
+import AdminHeaderMinimal from "./components/AdminHeaderMinimal";
 
 // Helpers locales para token
 function getToken(): string | null {
@@ -22,11 +21,22 @@ function getJwtPayload<T = any>(token: string | null): T | null {
   }
 }
 
+/* =====  AUTH GATE (client-side)  ===== */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const t = getToken();
+    if (!t) {
+      location.href = "/landing"; // ← directo a landing
+    }
+  }, []);
+
+  return <>{children}</>;
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
 
-  // Token/payload solo para posibles usos (p.ej. mostrar email en el header si lo necesitas)
   const token = useMemo(() => getToken(), []);
   const payload = useMemo(() => getJwtPayload<{ email?: string }>(token), [token]);
   const userEmail = payload?.email ?? "Usuario";
@@ -34,16 +44,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     const t = getToken();
     if (!t) {
-      router.replace("/login");
+      onLogout(); // ← cierra sesión y redirige a landing
     } else {
       setChecking(false);
     }
   }, [router]);
 
-  // Exponemos logout por si quieres llamarlo desde cualquier parte
+  /* Fuerza recarga al retroceder para que se ejecute useEffect */
+  useEffect(() => {
+    const onPageshow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        location.reload();
+      }
+    };
+    window.addEventListener("pageshow", onPageshow);
+    return () => window.removeEventListener("pageshow", onPageshow);
+  }, []);
+
   function onLogout() {
-    logout(); // limpia storage / headers
-    router.replace("/login");
+    logout(); // limpia token
+    router.replace("/landing"); // ← a landing
   }
 
   if (checking) {
@@ -56,14 +76,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <>
-      {/* Header global con gradiente para todo /admin */}
       <AdminHeaderMinimal />
-      {/* Contenido de cada página admin */}
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </div>
-      </main>
+      <AuthGate>
+        <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </div>
+        </main>
+      </AuthGate>
     </>
   );
 }
