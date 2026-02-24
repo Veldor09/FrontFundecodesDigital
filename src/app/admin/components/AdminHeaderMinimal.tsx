@@ -32,7 +32,7 @@ export default function AdminHeaderMinimal() {
       const t = e.target as Node;
       if (menuRef.current?.contains(t) || btnRef.current?.contains(t)) return;
       setOpen(false);
-    };
+    };''
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
 
     document.addEventListener("mousedown", onDocClick);
