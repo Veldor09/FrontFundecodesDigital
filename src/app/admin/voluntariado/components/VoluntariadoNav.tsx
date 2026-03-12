@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
-const tabs = ["Voluntarios", "Proyectos", "Sanciones"] as const;
-type Tab = typeof tabs[number];
+const tabs = ["Programas", "Asignación", "Voluntarios", "Sanciones"] as const;
+type Tab = (typeof tabs)[number];
 
 interface Props {
   active: Tab;
@@ -20,7 +20,7 @@ export default function VoluntariadoNav({ active, onChange }: Props) {
             Bienvenido al Área de Voluntariado
           </h1>
         </div>
-        
+
         {/* Navegación - Desktop */}
         <div className="hidden md:block">
           <div className="relative flex items-center justify-center h-16">

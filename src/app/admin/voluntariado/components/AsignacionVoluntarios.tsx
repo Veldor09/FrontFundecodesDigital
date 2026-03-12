@@ -7,20 +7,25 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Search, UserPlus, UserMinus, X } from "lucide-react";
-import { Proyecto } from "../types/proyecto";
+import { ProgramaVoluntariado } from "../types/programaVoluntariado";
 import { Voluntario } from "../types/voluntario";
 import { useVoluntarios } from "../hooks/useVoluntarios";
 import Modal from "@/components/ui/Modal";
+import type { AsignacionProgramaPayload } from "../services/programaVoluntariadoService";
 
 interface Props {
-  proyecto: Proyecto;
-  onAsignar: (proyectoId: string, voluntarioId: string) => Promise<void>;
-  onDesasignar: (proyectoId: string, voluntarioId: string) => Promise<void>;
+  programa: ProgramaVoluntariado;
+  onAsignar: (
+    programaId: string | number,
+    voluntarioId: string | number,
+    payload: AsignacionProgramaPayload
+  ) => Promise<void>;
+  onDesasignar: (programaId: string | number, voluntarioId: string | number) => Promise<void>;
   onClose: () => void;
 }
 
 export default function AsignacionVoluntarios({
-  proyecto,
+  programa,
   onAsignar,
   onDesasignar,
   onClose,
@@ -37,27 +42,37 @@ export default function AsignacionVoluntarios({
       voluntarios
         .filter(
           (v: Voluntario) =>
-            v.estado === "ACTIVO" && !proyecto.voluntariosAsignados.includes(v.id)
+            v.estado === "ACTIVO" && !programa.voluntariosAsignados.includes(v.id)
         )
         .filter((v: Voluntario) =>
           [v.nombreCompleto, v.email].some((f) =>
             f?.toLowerCase().includes(search.toLowerCase())
           )
         ),
-    [voluntarios, proyecto.voluntariosAsignados, search]
+    [voluntarios, programa.voluntariosAsignados, search]
   );
 
   useEffect(() => {
     const asignados = voluntarios.filter((v: Voluntario) =>
-      proyecto.voluntariosAsignados.includes(v.id)
+      programa.voluntariosAsignados.includes(v.id)
     );
     setVoluntariosAsignados(asignados);
-  }, [voluntarios, proyecto.voluntariosAsignados]);
+  }, [voluntarios, programa.voluntariosAsignados]);
+
+  // Payload por defecto (luego lo vamos a llenar desde un modal/form)
+  const defaultPayload: AsignacionProgramaPayload = {
+    pagoRealizado: false,
+    origen: "CUENTA_PROPIA",
+    intermediario: null,
+    fechaEntrada: new Date().toISOString(),
+    fechaSalida: null,
+    horasTotales: 0,
+  };
 
   const handleAsignar = async (voluntarioId: string) => {
     setAsignando(true);
     try {
-      await onAsignar(proyecto.id, voluntarioId);
+      await onAsignar(programa.id, voluntarioId, defaultPayload);
       toast.success("Voluntario asignado correctamente");
     } catch (error) {
       toast.error("Error al asignar voluntario");
@@ -70,7 +85,7 @@ export default function AsignacionVoluntarios({
   const handleDesasignar = async (voluntarioId: string) => {
     setAsignando(true);
     try {
-      await onDesasignar(proyecto.id, voluntarioId);
+      await onDesasignar(programa.id, voluntarioId);
       toast.success("Voluntario desasignado correctamente");
     } catch (error) {
       toast.error("Error al desasignar voluntario");
@@ -82,15 +97,14 @@ export default function AsignacionVoluntarios({
 
   return (
     <Modal open={true} onClose={onClose} title="Gestión de Voluntarios">
-      {/* Ancho controlado dentro */}
       <div className="max-w-4xl w-full space-y-6">
-        {/* Info del proyecto */}
+        {/* Info del programa */}
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <h3 className="font-semibold text-blue-900">{proyecto.nombre}</h3>
-          <p className="text-sm text-blue-700 mt-1">{proyecto.descripcion}</p>
+          <h3 className="font-semibold text-blue-900">{programa.nombre}</h3>
+          <p className="text-sm text-blue-700 mt-1">{programa.descripcion}</p>
           <div className="flex items-center gap-2 mt-2">
-            {proyecto.area && (
-              <Badge className="bg-blue-100 text-blue-800">Área: {proyecto.area}</Badge>
+            {programa.lugar && (
+              <Badge className="bg-blue-100 text-blue-800">Lugar: {programa.lugar}</Badge>
             )}
             <Badge className="bg-gray-100 text-gray-800">
               {voluntariosAsignados.length} voluntario
@@ -110,7 +124,7 @@ export default function AsignacionVoluntarios({
           {voluntariosAsignados.length === 0 ? (
             <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
               <UserMinus className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-              <p>No hay voluntarios asignados a este proyecto</p>
+              <p>No hay voluntarios asignados a este programa</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
