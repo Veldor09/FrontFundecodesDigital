@@ -9,8 +9,8 @@ import {
   Handshake,
   Wallet,
   BarChart3,
-  Globe,
   FolderKanban,
+  MessageSquare,
 } from "lucide-react";
 import { DashboardMetrics } from "./components/DashboardMetrics";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,20 @@ type Role =
   | "colaboradorvoluntariado"
   | "colaboradorproyecto"
   | "colaboradorcontabilidad";
+
+type ModuleCard = {
+  key: string;
+  title: string;
+  desc: string;
+  href: string;
+  icon: any;
+  cardClasses: string;
+  badgeClasses: string;
+  linkClasses: string;
+  roles: Role[];
+  fullWidth?: boolean;
+  badgeCount?: number;
+};
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -55,17 +69,55 @@ function normalizeRole(v?: string | null): Role | null {
 
 export default function AdminDashboardPage() {
   const [role, setRole] = useState<Role | null>(null);
+  const [pendingCommentsCount, setPendingCommentsCount] = useState(0);
 
-  // Lee el rol del JWT
+  async function loadPendingCommentsCount() {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/comments/admin/pending-count`;
+
+      const res = await fetch(url, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("No se pudo cargar el conteo");
+      }
+
+      const data = await res.json();
+      console.log("pending-count response:", data);
+
+      setPendingCommentsCount(Number(data?.count ?? 0));
+    } catch (error) {
+      console.log("pending-count error:", error);
+      setPendingCommentsCount(0);
+    }
+  }
+
   useEffect(() => {
     const t = getToken();
     const p = getJwtPayload<{ role?: string; rol?: string; roles?: string[] }>(t);
-    const fromArray = Array.isArray(p?.roles) ? p!.roles[0] : undefined;
+    const fromArray = Array.isArray(p?.roles) ? p.roles[0] : undefined;
     setRole(normalizeRole(p?.role ?? p?.rol ?? fromArray) ?? null);
+
+    loadPendingCommentsCount();
+
+    const onFocus = () => {
+      loadPendingCommentsCount();
+    };
+
+    window.addEventListener("focus", onFocus);
+
+    const interval = setInterval(() => {
+      loadPendingCommentsCount();
+    }, 5000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(interval);
+    };
   }, []);
 
-  // Configuración de tarjetas
-  const MODULES = useMemo(
+  const MODULES: ModuleCard[] = useMemo(
     () => [
       {
         key: "vol",
@@ -79,7 +131,7 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-teal-50 group-hover:border-teal-200",
         linkClasses:
           "mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin", "colaboradorvoluntariado", "voluntario"] as Role[],
+        roles: ["admin", "colaboradorvoluntariado", "voluntario"],
       },
       {
         key: "proy",
@@ -93,12 +145,12 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-blue-50 group-hover:border-blue-200",
         linkClasses:
           "mt-4 text-sm font-medium text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin", "colaboradorproyecto"] as Role[],
+        roles: ["admin", "colaboradorproyecto"],
       },
       {
         key: "billing",
         title: "Solicitudes y Facturación",
-        desc: "Consulta y administración de Solicitudes",
+        desc: "Consulta y administración de solicitudes",
         href: "/admin/BillingRequest",
         icon: Receipt,
         cardClasses:
@@ -107,7 +159,7 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-green-50 group-hover:border-green-200",
         linkClasses:
           "mt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin", "colaboradorfactura", "colaboradorcontabilidad"] as Role[],
+        roles: ["admin", "colaboradorfactura", "colaboradorcontabilidad"],
       },
       {
         key: "colabs",
@@ -121,7 +173,7 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-purple-50 group-hover:border-purple-200",
         linkClasses:
           "mt-4 text-sm font-medium text-purple-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin"] as Role[],
+        roles: ["admin"],
       },
       {
         key: "acct",
@@ -135,7 +187,7 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-orange-50 group-hover:border-orange-200",
         linkClasses:
           "mt-4 text-sm font-medium text-orange-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin", "colaboradorcontabilidad"] as Role[],
+        roles: ["admin", "colaboradorcontabilidad"],
       },
       {
         key: "recap",
@@ -149,41 +201,40 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-red-50 group-hover:border-red-200",
         linkClasses:
           "mt-4 text-sm font-medium text-red-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin"] as Role[],
+        roles: ["admin"],
       },
-      /*
       {
-        key: "info",
-        title: "Página Informativa",
-        desc: "Contenido público del sitio y secciones (Inicio, Visión, Misión, etc.)",
-        href: "/admin/informational-page",
-        icon: Globe,
+        key: "comments",
+        title: "Comentarios",
+        desc: "Validar, aprobar o denegar comentarios del landing",
+        href: "/admin/comments",
+        icon: MessageSquare,
         cardClasses:
           "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-indigo-300",
         badgeClasses:
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-indigo-50 group-hover:border-indigo-200",
         linkClasses:
           "mt-4 text-sm font-medium text-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin"] as Role[],
-        fullWidth: true,
-      },*/
+        roles: ["admin"],
+        badgeCount: pendingCommentsCount,
+      },
     ],
-    [] 
+    [pendingCommentsCount]
   );
 
   const visibleModules = useMemo(() => {
-    if (!role || role === "admin") return MODULES; 
-    return MODULES.filter((m) => !m.roles || m.roles.includes(role));
+    if (!role || role === "admin") return MODULES;
+    return MODULES.filter((m) => m.roles.includes(role));
   }, [MODULES, role]);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Encabezado */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Módulos del Sistema</h1>
           <p className="text-slate-500">Gestiona cada área de la organización</p>
         </div>
+
         <Link href="/">
           <Button variant="outline" size="sm" className="gap-2 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
@@ -192,7 +243,6 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Tarjetas con altura igualada */}
       <section className="mb-12">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {visibleModules.map((m) => {
@@ -205,14 +255,24 @@ export default function AdminDashboardPage() {
                   className={`${m.cardClasses} h-full min-h-[170px] flex flex-col justify-between`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={m.badgeClasses}>
-                      <Icon className="h-7 w-7" />
+                    <div className="relative shrink-0">
+                      <div className={m.badgeClasses}>
+                        <Icon className="h-7 w-7" />
+                      </div>
+
+                      {typeof m.badgeCount === "number" && m.badgeCount > 0 && (
+                        <span className="absolute -top-2 -right-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-xs font-bold leading-none text-white shadow-md ring-2 ring-white">
+                          {m.badgeCount > 99 ? "99+" : m.badgeCount}
+                        </span>
+                      )}
                     </div>
+
                     <div>
                       <h3 className="text-lg font-semibold text-slate-800">{m.title}</h3>
                       <p className="text-sm text-slate-500">{m.desc}</p>
                     </div>
                   </div>
+
                   <div className={m.linkClasses}>Ir →</div>
                 </div>
               </Link>
@@ -221,12 +281,12 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Resumen general */}
       <section>
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-slate-900">Resumen General</h2>
           <p className="text-slate-500">Métricas actualizadas en tiempo real</p>
         </div>
+
         {role ? <DashboardMetrics /> : null}
       </section>
     </main>
