@@ -18,7 +18,6 @@ import ProjectForm from "@/app/admin/projects/ProjectForm";
 import Modal from "@/components/ui/Modal";
 import ProjectFilesModal from "./ProjectFilesModal";
 
-// Tipos de payload
 export type ProjectCreateInput = {
   title: string;
   summary?: string;
@@ -110,7 +109,7 @@ export default function AdminProjectsPage() {
   async function handleCreate(payload: ProjectCreateInput): Promise<void> {
     // 1) Abrir modal de archivos y cerrar el de crear
     setFilesModalOpen(true);
-    setNewProjectId(null); // mostrará “Guardando…”
+    setNewProjectId(null); // mostrará "Guardando…"
     setMode({ kind: "none" });
 
     // 2) Crear el proyecto
@@ -146,7 +145,8 @@ export default function AdminProjectsPage() {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/admin">
-              <Button variant="outline" size="sm">
+              {/* 🎨 Navegación secundaria: outline neutral */}
+              <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-100">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver al dashboard
               </Button>
@@ -160,6 +160,7 @@ export default function AdminProjectsPage() {
           </div>
 
           <div className="flex gap-2">
+            {/* 🎨 Acción secundaria: gris neutro */}
             <Button
               variant="secondary"
               size="sm"
@@ -167,15 +168,18 @@ export default function AdminProjectsPage() {
                 setPage(1);
                 load(1);
               }}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Recargar
             </Button>
+            {/* 🎨 Acción primaria: azul (igual que Aplicar) */}
             <Button
               size="sm"
               onClick={() => {
                 setMode({ kind: "create" });
               }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Añadir proyecto
@@ -189,10 +193,11 @@ export default function AdminProjectsPage() {
             placeholder="Buscar por nombre…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
+            className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
           />
 
           <select
-            className="border rounded px-3 py-2"
+            className="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             value={place}
             onChange={(e) => setPlace(e.target.value)}
           >
@@ -205,7 +210,7 @@ export default function AdminProjectsPage() {
           </select>
 
           <select
-            className="border rounded px-3 py-2"
+            className="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
@@ -218,7 +223,7 @@ export default function AdminProjectsPage() {
           </select>
 
           <select
-            className="border rounded px-3 py-2"
+            className="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             value={area}
             onChange={(e) => setArea(e.target.value)}
           >
@@ -231,7 +236,7 @@ export default function AdminProjectsPage() {
           </select>
 
           <select
-            className="border rounded px-3 py-2"
+            className="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             value={status}
             onChange={(e) => setStatus(e.target.value as ProjectStatus | "")}
           >
@@ -242,7 +247,7 @@ export default function AdminProjectsPage() {
           </select>
 
           <select
-            className="border rounded px-3 py-2"
+            className="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             value={published}
             onChange={(e) =>
               setPublished(e.target.value as "" | "true" | "false")
@@ -254,14 +259,17 @@ export default function AdminProjectsPage() {
           </select>
 
           <div className="flex gap-2">
+            {/* 🎨 Aplicar filtros: azul (acción principal) */}
             <Button
               onClick={() => {
                 setPage(1);
                 load(1);
               }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               Aplicar
             </Button>
+            {/* 🎨 Limpiar filtros: gris neutro */}
             <Button
               variant="secondary"
               onClick={() => {
@@ -274,6 +282,7 @@ export default function AdminProjectsPage() {
                 setPage(1);
                 load(1);
               }}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700"
             >
               Limpiar
             </Button>
@@ -282,11 +291,14 @@ export default function AdminProjectsPage() {
 
         {/* Lista */}
         {loading ? (
-          <p>Cargando…</p>
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="ml-3 text-gray-600">Cargando…</p>
+          </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((p) => (
-              <Card key={p.id} className="p-4">
+              <Card key={p.id} className="p-4 hover:shadow-lg transition-shadow">
                 {p.coverUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -296,37 +308,38 @@ export default function AdminProjectsPage() {
                   />
                 )}
                 <div className="flex items-start justify-between gap-3">
-                  {/* 🔧 FIX: El bloque de texto puede encoger y envolver contenido */}
                   <div className="flex-1 min-w-0">
-                    {/* 🔧 FIX: Evita overflow de títulos largos sin espacios */}
                     <h3 className="font-semibold break-words hyphens-auto">
                       {p.title}
                     </h3>
                     <div className="mt-1 flex gap-2 flex-wrap">
-                      {p.place && <Badge>{p.place}</Badge>}
+                      {p.place && <Badge className="bg-blue-100 text-blue-700 border-blue-200">{p.place}</Badge>}
                       {p.category && (
-                        <Badge variant="secondary">{p.category}</Badge>
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">{p.category}</Badge>
                       )}
-                      {p.area && <Badge variant="outline">{p.area}</Badge>}
-                      {p.status && <Badge variant="outline">{p.status}</Badge>}
+                      {p.area && <Badge variant="outline" className="border-gray-300 text-gray-600">{p.area}</Badge>}
+                      {p.status && <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">{p.status}</Badge>}
                       {p.published && (
-                        <Badge variant="outline">Publicado</Badge>
+                        <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50">Publicado</Badge>
                       )}
                     </div>
                   </div>
-                  {/* 🔧 FIX: Botones no se encogen ni se desplazan */}
                   <div className="flex flex-col gap-2 shrink-0">
+                    {/* 🎨 Editar: azul (acción informativa/modificación) */}
                     <Button
                       size="sm"
                       variant="secondary"
                       onClick={() => setMode({ kind: "edit", item: p })}
+                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200"
                     >
                       Editar
                     </Button>
+                    {/* 🎨 Eliminar: rojo (acción destructiva) */}
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={() => handleRemove(p.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white"
                     >
                       Dar de baja
                     </Button>
@@ -337,8 +350,9 @@ export default function AdminProjectsPage() {
           </div>
         )}
 
-        {/* ✅ Paginación */}
+        {/* Paginación */}
         <div className="flex items-center justify-center gap-2 mt-6">
+          {/* 🎨 Navegación: gris neutro con estados disabled claros */}
           <Button
             variant="secondary"
             disabled={page <= 1}
@@ -347,11 +361,12 @@ export default function AdminProjectsPage() {
               setPage(n);
               load(n);
             }}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             Anterior
           </Button>
 
-          <span className="text-sm">
+          <span className="text-sm font-medium text-gray-700 px-4">
             Página {Math.min(page, totalPages)} de {totalPages}
           </span>
 
@@ -363,6 +378,7 @@ export default function AdminProjectsPage() {
               setPage(n);
               load(n);
             }}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             Siguiente
           </Button>

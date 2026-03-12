@@ -5,18 +5,17 @@ import axiosInstance from "./axiosInstance";
 /* =========================
  * Configuración base
  * ========================= */
-const API_BASE =
-  (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4000").replace(/\/+$/, "");
+export const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
 function authHeader() {
-  const t =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
 function url(path: string) {
   const p = path.startsWith("/") ? path : `/${path}`;
-  return `${API_BASE}${p}`;
+  return `${API_URL}${p}`;
 }
 
 function handleAxiosError(err: any): never {

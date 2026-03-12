@@ -3,12 +3,14 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { CheckCircle, X, FolderOpen, ChevronDown, Check } from "lucide-react";
 import { Voluntario } from "../types/voluntario";
 import Modal from "@/components/ui/Modal";
 import { Listbox, Transition } from "@headlessui/react";
-import { useProyectos } from "../hooks/useProyectos";
+import { useProgramaVoluntariado } from "../hooks/useProgramaVoluntariado";
+import type { AsignacionProgramaPayload, OrigenVoluntariado } from "../services/programaVoluntariadoService";
 
 interface Props {
   voluntario: Voluntario;
@@ -17,31 +19,56 @@ interface Props {
 }
 
 export default function AsignacionModal({ voluntario, open, onClose }: Props) {
-  const { data: proyectos, loading, assign, refetch } = useProyectos();
-  const [proyectoSeleccionado, setProyectoSeleccionado] = useState<string>("");
+  const { data: programas, loading, assign, refetch } = useProgramaVoluntariado();
+
+  const [programaSeleccionado, setProgramaSeleccionado] = useState<string>("");
   const [guardando, setGuardando] = useState(false);
 
-  const proyectosDisponibles = useMemo(
+  // Campos nuevos (payload)
+  const [pagoRealizado, setPagoRealizado] = useState(false);
+  const [origen, setOrigen] = useState<OrigenVoluntariado>("CUENTA_PROPIA");
+  const [intermediario, setIntermediario] = useState("");
+  const [fechaEntrada, setFechaEntrada] = useState(() => new Date().toISOString().slice(0, 10)); // yyyy-mm-dd
+  const [fechaSalida, setFechaSalida] = useState<string>("");
+  const [horasTotales, setHorasTotales] = useState<number>(0);
+
+  const programasDisponibles = useMemo(
     () =>
-      (proyectos ?? []).filter(
-        (p) => p.estado === "activo" && !p.voluntariosAsignados.includes(voluntario.id)
+      (programas ?? []).filter(
+        (p) => !p.voluntariosAsignados.includes(voluntario.id)
       ),
-    [proyectos, voluntario.id]
+    [programas, voluntario.id]
   );
 
-  const proyectosAsignados = useMemo(
-    () => (proyectos ?? []).filter((p) => p.voluntariosAsignados.includes(voluntario.id)),
-    [proyectos, voluntario.id]
+  const programasAsignados = useMemo(
+    () => (programas ?? []).filter((p) => p.voluntariosAsignados.includes(voluntario.id)),
+    [programas, voluntario.id]
   );
 
   const handleGuardar = async () => {
-    if (!proyectoSeleccionado) {
-      toast.error("Debes seleccionar un proyecto");
+    if (!programaSeleccionado) {
+      toast.error("Debes seleccionar un programa");
       return;
     }
+
+    if (origen === "INTERMEDIARIO" && !intermediario.trim()) {
+      toast.error("Debes indicar el intermediario/empresa");
+      return;
+    }
+
+    const payload: AsignacionProgramaPayload = {
+      pagoRealizado,
+      origen,
+      intermediario: origen === "INTERMEDIARIO" ? intermediario.trim() : null,
+      // backend espera ISO; convertimos yyyy-mm-dd a ISO
+      fechaEntrada: new Date(`${fechaEntrada}T00:00:00.000Z`).toISOString(),
+      fechaSalida: fechaSalida ? new Date(`${fechaSalida}T00:00:00.000Z`).toISOString() : null,
+      horasTotales: Number.isFinite(+horasTotales) ? Number(horasTotales) : 0,
+    };
+
     setGuardando(true);
     try {
-      await assign(voluntario.id, proyectoSeleccionado);
+      await assign(voluntario.id, programaSeleccionado, payload);
       toast.success("Voluntario asignado correctamente");
       await refetch();
       onClose();
@@ -54,8 +81,7 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Asignar Voluntario a Proyecto">
-      {/* Controla el ancho dentro del contenido */}
+    <Modal open={open} onClose={onClose} title="Asignar Voluntario a Programa">
       <div className="max-w-2xl w-full space-y-6">
         {/* Info del voluntario */}
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
@@ -63,12 +89,12 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
           <p className="text-sm text-blue-700">{voluntario.email}</p>
         </div>
 
-        {/* Proyectos ya asignados */}
-        {proyectosAsignados.length > 0 && (
+        {/* Programas ya asignados */}
+        {programasAsignados.length > 0 && (
           <div>
-            <h4 className="font-semibold text-slate-900 mb-2">Proyectos asignados actualmente:</h4>
+            <h4 className="font-semibold text-slate-900 mb-2">Programas asignados actualmente:</h4>
             <div className="space-y-2">
-              {proyectosAsignados.map((p) => (
+              {programasAsignados.map((p) => (
                 <div key={p.id} className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="font-medium text-green-900">{p.nombre}</div>
                   <div className="text-sm text-green-700">{p.descripcion}</div>
@@ -78,27 +104,27 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
           </div>
         )}
 
-        {/* Selección de proyecto */}
+        {/* Selección de programa */}
         <div>
           <Label className="text-slate-700 flex items-center gap-2 mb-2">
             <FolderOpen className="h-4 w-4" />
-            Asignar a Proyecto
+            Asignar a Programa
           </Label>
           {loading ? (
-            <div className="text-sm text-slate-500">Cargando proyectos...</div>
-          ) : proyectosDisponibles.length === 0 ? (
+            <div className="text-sm text-slate-500">Cargando programas...</div>
+          ) : programasDisponibles.length === 0 ? (
             <div className="text-center py-6 text-slate-500 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
               <FolderOpen className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-              <p>No hay proyectos disponibles para asignar</p>
+              <p>No hay programas disponibles para asignar</p>
             </div>
           ) : (
-            <Listbox value={proyectoSeleccionado} onChange={setProyectoSeleccionado}>
+            <Listbox value={programaSeleccionado} onChange={setProgramaSeleccionado}>
               <div className="relative">
                 <Listbox.Button className="relative w-full cursor-default rounded-md border border-input bg-background py-2 pl-3 pr-10 text-left text-sm focus:outline-none">
                   <span className="block truncate">
-                    {proyectoSeleccionado
-                      ? proyectosDisponibles.find((p) => String(p.id) === String(proyectoSeleccionado))?.nombre
-                      : "Seleccionar proyecto"}
+                    {programaSeleccionado
+                      ? programasDisponibles.find((p) => String(p.id) === String(programaSeleccionado))?.nombre
+                      : "Seleccionar programa"}
                   </span>
                   <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                     <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -106,24 +132,24 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
                 </Listbox.Button>
                 <Transition leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
                   <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-background py-1 shadow-lg ring-1 ring-black/5 focus:outline-none">
-                    {proyectosDisponibles.map((proyecto) => (
+                    {programasDisponibles.map((programa) => (
                       <Listbox.Option
-                        key={proyecto.id}
+                        key={programa.id}
                         className={({ active }) =>
                           `relative cursor-default select-none py-2 pl-10 pr-4 text-sm ${
                             active ? "bg-accent text-accent-foreground" : "text-foreground"
                           }`
                         }
-                        value={String(proyecto.id)}
+                        value={String(programa.id)}
                       >
                         {({ selected }) => (
                           <>
                             <div>
                               <span className={`block truncate ${selected ? "font-medium" : "font-normal"}`}>
-                                {proyecto.nombre}
+                                {programa.nombre}
                               </span>
                               <span className="text-xs text-gray-500 block truncate">
-                                {proyecto.area ?? "—"} {proyecto.responsable ? `· ${proyecto.responsable}` : ""}
+                                {programa.lugar ?? "—"}
                               </span>
                             </div>
                             {selected && (
@@ -142,13 +168,84 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
           )}
         </div>
 
+        {/* Datos de la asignación (nuevo) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-slate-700">Pago realizado</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={pagoRealizado}
+                onChange={(e) => setPagoRealizado(e.target.checked)}
+              />
+              <span className="text-sm text-slate-600">Marcar si ya pagó</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-slate-700">Origen</Label>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={origen}
+              onChange={(e) => setOrigen(e.target.value as OrigenVoluntariado)}
+            >
+              <option value="CUENTA_PROPIA">Cuenta propia</option>
+              <option value="INTERMEDIARIO">Intermediario / Empresa</option>
+            </select>
+          </div>
+
+          {origen === "INTERMEDIARIO" && (
+            <div className="space-y-2 md:col-span-2">
+              <Label className="text-slate-700">Intermediario / Empresa</Label>
+              <Input
+                value={intermediario}
+                onChange={(e) => setIntermediario(e.target.value)}
+                placeholder="Ej: Empresa XYZ"
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label className="text-slate-700">Fecha de entrada</Label>
+            <Input
+              type="date"
+              value={fechaEntrada}
+              onChange={(e) => setFechaEntrada(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-slate-700">Fecha de salida (opcional)</Label>
+            <Input
+              type="date"
+              value={fechaSalida}
+              onChange={(e) => setFechaSalida(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label className="text-slate-700">Horas totales</Label>
+            <Input
+              type="number"
+              min={0}
+              value={String(horasTotales)}
+              onChange={(e) => setHorasTotales(Number(e.target.value))}
+              placeholder="Ej: 40"
+            />
+          </div>
+        </div>
+
         {/* Botones */}
         <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200">
           <Button variant="outline" onClick={onClose} disabled={guardando}>
             <X className="h-4 w-4 mr-2" />
             Cancelar
           </Button>
-          <Button onClick={handleGuardar} disabled={guardando || !proyectoSeleccionado} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button
+            onClick={handleGuardar}
+            disabled={guardando || !programaSeleccionado}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
             {guardando ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -157,7 +254,7 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
             ) : (
               <>
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Asignar a proyecto
+                Asignar a programa
               </>
             )}
           </Button>

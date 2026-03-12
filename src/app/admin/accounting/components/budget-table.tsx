@@ -69,10 +69,8 @@ export function BudgetTable() {
       .catch(() => setProjects([]))
   }, [])
 
-  // títulos de proyecto
   const projectTitles = useMemo(() => projects.map(p => p.title), [projects])
 
-  // filtro superior: si aún no cargan /projects, usar lo que ya hay en presupuestos
   const uniqueProyectos = useMemo(() => {
     return projectTitles.length > 0
       ? projectTitles
@@ -179,12 +177,14 @@ export function BudgetTable() {
       <CardHeader className="pb-4">
         <CardTitle className="text-xl font-semibold text-gray-900">Gestión de Presupuesto por Proyectos</CardTitle>
 
-        <div className="flex items-center justify-between gap-4 pt-4">
-          <div className="flex gap-4">
-            <div className="space-y-1">
+        {/* CAMBIO 1: Contenedor responsive para filtros y botón */}
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 pt-4">
+          {/* CAMBIO 2: Filtros responsive */}
+          <div className="flex flex-col sm:flex-row gap-4 flex-1">
+            <div className="space-y-1 flex-1 sm:flex-none">
               <label className="text-sm font-medium text-gray-700">Proyecto</label>
               <select
-                className="w-56 border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-56 border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={filters.proyecto}
                 onChange={(e) => setFilters({ ...filters, proyecto: e.target.value })}
               >
@@ -193,10 +193,10 @@ export function BudgetTable() {
               </select>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1 sm:flex-none">
               <label className="text-sm font-medium text-gray-700">Mes</label>
               <select
-                className="w-40 border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-40 border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={filters.mes}
                 onChange={(e) => setFilters({ ...filters, mes: e.target.value })}
               >
@@ -205,10 +205,10 @@ export function BudgetTable() {
               </select>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1 sm:flex-none">
               <label className="text-sm font-medium text-gray-700">Año</label>
               <select
-                className="w-32 border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-32 border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={filters.año}
                 onChange={(e) => setFilters({ ...filters, año: e.target.value })}
               >
@@ -218,10 +218,10 @@ export function BudgetTable() {
             </div>
           </div>
 
-          {/* Modal de AGREGAR */}
+          {/* CAMBIO 3: Botón Agregar con ancho responsive */}
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar
               </Button>
@@ -321,14 +321,14 @@ export function BudgetTable() {
                   {formErrors.año && <p className="text-sm text-red-600">{formErrors.año}</p>}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Monto Asignado (€) *</label>
+                  <label className="text-sm font-medium">Monto Asignado (CRC) *</label>
                   <Input type="number" min="0" step="0.01" placeholder="0.00"
                          value={editForm.montoAsignado}
                          onChange={(e)=>setEditForm({...editForm, montoAsignado: e.target.value})}/>
                   {formErrors.montoAsignado && <p className="text-sm text-red-600">{formErrors.montoAsignado}</p>}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Monto Ejecutado (€) *</label>
+                  <label className="text-sm font-medium">Monto Ejecutado (CRC) *</label>
                   <Input type="number" min="0" step="0.01" placeholder="0.00"
                          value={editForm.montoEjecutado}
                          onChange={(e)=>setEditForm({...editForm, montoEjecutado: e.target.value})}/>
@@ -353,65 +353,143 @@ export function BudgetTable() {
         {filteredBudgetData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No se encontraron registros con los filtros seleccionados.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Proyecto</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Mes</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Año</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Monto Asignado</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Monto Ejecutado</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">% Ejecución</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-900">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBudgetData.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-100">
-                    <td className="py-3 px-4 font-medium">{item.programa}</td>
-                    <td className="py-3 px-4">{item.mes}</td>
-                    <td className="py-3 px-4">{item.año}</td>
-                    <td className="py-3 px-4">{formatCurrency(item.montoAsignado)}</td>
-                    <td className="py-3 px-4">{formatCurrency(item.montoEjecutado)}</td>
-                    <td className="py-3 px-4">
+          <>
+            {/* CAMBIO 4: Tabla solo visible en desktop */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Proyecto</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Mes</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Año</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Monto Asignado</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Monto Ejecutado</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">% Ejecución</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBudgetData.map((item) => (
+                    <tr key={item.id} className="border-b border-gray-100">
+                      <td className="py-3 px-4 font-medium">{item.programa}</td>
+                      <td className="py-3 px-4">{item.mes}</td>
+                      <td className="py-3 px-4">{item.año}</td>
+                      <td className="py-3 px-4">{formatCurrency(item.montoAsignado)}</td>
+                      <td className="py-3 px-4">{formatCurrency(item.montoEjecutado)}</td>
+                      <td className="py-3 px-4">
+                        <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                          {getExecutionPercentage(item.montoAsignado, item.montoEjecutado)}%
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-2">
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleEditClick(item)}>
+                            Editar
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+                                Eliminar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Se eliminará permanentemente el registro del presupuesto para el proyecto "{item.programa}".
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-red-600 hover:bg-red-700">
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* CAMBIO 5: Vista de cards para móvil */}
+            <div className="md:hidden space-y-4">
+              {filteredBudgetData.map((item) => (
+                <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Proyecto</div>
+                      <div className="font-semibold text-gray-900">{item.programa}</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Mes</div>
+                        <div className="text-sm">{item.mes}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Año</div>
+                        <div className="text-sm">{item.año}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Monto Asignado</div>
+                      <div className="text-sm font-medium">{formatCurrency(item.montoAsignado)}</div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Monto Ejecutado</div>
+                      <div className="text-sm font-medium">{formatCurrency(item.montoEjecutado)}</div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">% Ejecución</div>
                       <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
                         {getExecutionPercentage(item.montoAsignado, item.montoEjecutado)}%
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleEditClick(item)}>
-                          Editar
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-gray-100">
+                      <Button 
+                        size="sm" 
+                        className="bg-blue-600 hover:bg-blue-700 text-white flex-1" 
+                        onClick={() => handleEditClick(item)}
+                      >
+                        <Edit2 className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white flex-1">
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Eliminar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción no se puede deshacer. Se eliminará permanentemente el registro del presupuesto para el proyecto "{item.programa}".
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-red-600 hover:bg-red-700">
                               Eliminar
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Se eliminará permanentemente el registro del presupuesto para el proyecto "{item.programa}".
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-red-600 hover:bg-red-700">
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

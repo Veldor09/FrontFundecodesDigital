@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
 import { ProjectFilesManager } from "./ProjectFilesManager";
-import { Upload } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { getProjectFiles } from "@/services/projects.service";
 
 /* Opciones predefinidas */
@@ -58,10 +58,10 @@ const AREAS = [
 /* ===== Límites realistas ===== */
 const LIMITS = {
   title:   { min: 3,  max: 50 },
-  select:  { min: 3,  max: 40 }, // categoría/lugar/área
-  summary: { min: 10, max: 80 }, // opcional
-  content: {        max: 1000 },  // opcional
-  url:     {        max: 200 },   // opcional (si se escribe)
+  select:  { min: 3,  max: 40 },
+  summary: { min: 10, max: 80 },
+  content: {        max: 1000 },
+  url:     {        max: 200 },
 };
 
 /* Tipos y validación */
@@ -91,12 +91,10 @@ type Props = {
 function validate(p: ProjectFormInput) {
   const errors: Record<string, string> = {};
 
-  // Título 3–80
   const t = (p.title ?? "").trim();
   if (t.length < LIMITS.title.min) errors.title = `El título debe tener al menos ${LIMITS.title.min} caracteres`;
   else if (t.length > LIMITS.title.max) errors.title = `El título no puede exceder ${LIMITS.title.max} caracteres`;
 
-  // Categoría/Lugar/Área 3–50
   const cat = (p.category ?? "").trim();
   if (cat.length < LIMITS.select.min) errors.category = `La categoría debe tener al menos ${LIMITS.select.min} caracteres`;
   else if (cat.length > LIMITS.select.max) errors.category = `La categoría no puede exceder ${LIMITS.select.max} caracteres`;
@@ -109,7 +107,6 @@ function validate(p: ProjectFormInput) {
   if (ar.length < LIMITS.select.min) errors.area = `El área debe tener al menos ${LIMITS.select.min} caracteres`;
   else if (ar.length > LIMITS.select.max) errors.area = `El área no puede exceder ${LIMITS.select.max} caracteres`;
 
-  // URL https (opcional, ≤200)
   const url = (p.coverUrl ?? "").trim();
   if (url) {
     if (url.length > LIMITS.url.max) {
@@ -124,18 +121,15 @@ function validate(p: ProjectFormInput) {
     }
   }
 
-  // Resumen opcional 30–200
   const sum = (p.summary ?? "").trim();
   if (sum) {
     if (sum.length < LIMITS.summary.min) errors.summary = `El resumen debe tener al menos ${LIMITS.summary.min} caracteres`;
     else if (sum.length > LIMITS.summary.max) errors.summary = `El resumen no puede exceder ${LIMITS.summary.max} caracteres`;
   }
 
-  // Contenido opcional ≤2000
   const cont = (p.content ?? "");
   if (cont && cont.length > LIMITS.content.max) errors.content = `El contenido no debe exceder ${LIMITS.content.max} caracteres`;
 
-  // Estado (opcional)
   if (p.status && !["EN_PROCESO", "FINALIZADO", "PAUSADO"].includes(p.status)) {
     errors.status = "Estado inválido";
   }
@@ -143,7 +137,7 @@ function validate(p: ProjectFormInput) {
   return errors;
 }
 
-/* Selector con menú contextual (ahora soporta min/max/required y onBlur) */
+/* Selector con menú contextual mejorado */
 function PresetSelectInput({
   label,
   value,
@@ -168,26 +162,48 @@ function PresetSelectInput({
   onBlur?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const hasValue = value.trim().length > 0;
+  const isValid = hasValue && !error;
 
   return (
     <div className="relative">
-      <label className="text-sm">{label}</label>
+      <label className="text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
       <div className="flex gap-2 items-center">
-        <Input
-          className="flex-1"
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={onBlur}
-          maxLength={maxLength}
-          minLength={minLength}
-          required={required}
-          aria-invalid={!!error}
-        />
+        <div className="flex-1 relative">
+          <Input
+            className={`pr-8 ${
+              error 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                : isValid 
+                ? 'border-green-300 focus:border-green-500 focus:ring-green-500'
+                : 'border-gray-300'
+            }`}
+            value={value}
+            placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+            onBlur={onBlur}
+            maxLength={maxLength}
+            minLength={minLength}
+            required={required}
+            aria-invalid={!!error}
+          />
+          {/* Indicador de estado dentro del input */}
+          {hasValue && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              {error ? (
+                <AlertCircle className="w-4 h-4 text-red-500" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              )}
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="w-8 h-8 flex items-center justify-center rounded-full border bg-white hover:bg-gray-100"
+          className="w-9 h-9 flex items-center justify-center rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
           aria-label="Seleccionar de la lista"
           title="Seleccionar de la lista"
         >
@@ -196,12 +212,12 @@ function PresetSelectInput({
       </div>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-56 bg-white border rounded shadow-lg z-10">
+        <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
           <ul className="max-h-48 overflow-y-auto">
             {options.map((o) => (
               <li
                 key={o}
-                className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer transition-colors"
                 onClick={() => {
                   onChange(o);
                   setOpen(false);
@@ -211,16 +227,21 @@ function PresetSelectInput({
               </li>
             ))}
             <li
-              className="px-3 py-2 text-sm text-gray-500 italic hover:bg-gray-50 cursor-pointer"
+              className="px-3 py-2 text-sm text-gray-500 italic hover:bg-gray-50 cursor-pointer border-t"
               onClick={() => setOpen(false)}
             >
-              Otro (escribir manualmente)
+              ✏️ Escribir otro manualmente
             </li>
           </ul>
         </div>
       )}
 
-      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      {error && (
+        <div className="flex items-start gap-1 mt-1">
+          <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-red-600">{error}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -246,6 +267,7 @@ export default function ProjectForm({
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const [projectFiles, setProjectFiles] = useState<any[]>([]);
   const [projectId, setProjectId] = useState<number>(initial?.id || 0);
@@ -285,9 +307,9 @@ export default function ProjectForm({
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setTouched((prev) => ({ ...prev, [key]: true }));
   }
 
-  // feedback inmediato por campo
   function validateField(name: keyof ProjectFormInput) {
     const snapshot: ProjectFormInput = {
       title: form.title.trim(),
@@ -308,14 +330,12 @@ export default function ProjectForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    // 1) Validación nativa del navegador
     const formEl = e.currentTarget;
     if (!formEl.checkValidity()) {
       formEl.reportValidity();
       return;
     }
 
-    // 2) Validación personalizada
     const payload: ProjectFormInput = {
       title: form.title.trim(),
       slug: form.slug?.trim() || undefined,
@@ -335,50 +355,96 @@ export default function ProjectForm({
 
     setBusy(true);
     try {
-      await onSubmit(payload); // el padre maneja modal/flujo
+      await onSubmit(payload);
     } finally {
       setBusy(false);
     }
   }
 
-  // Contador de caracteres
-  const CharacterCounter = ({ current, max, min }: { current: number; max: number; min?: number }) => (
-    <div className={`text-xs mt-1 ${current > max ? 'text-red-600' : min && current > 0 && current < min ? 'text-orange-600' : 'text-gray-500'}`}>
-      {current}/{max}{min ? ` (mín: ${min})` : ""}
-    </div>
-  );
+  // Contador de caracteres mejorado
+  const CharacterCounter = ({ current, max, min }: { current: number; max: number; min?: number }) => {
+    const isOverLimit = current > max;
+    const isUnderMin = min && current > 0 && current < min;
+    const isValid = current >= (min || 0) && current <= max;
+    
+    return (
+      <div className="flex items-center gap-1 mt-1">
+        {isOverLimit && <AlertCircle className="w-3 h-3 text-red-500" />}
+        {isUnderMin && <Info className="w-3 h-3 text-amber-500" />}
+        {isValid && current > 0 && <CheckCircle2 className="w-3 h-3 text-green-500" />}
+        <span className={`text-xs ${
+          isOverLimit ? 'text-red-600 font-medium' : 
+          isUnderMin ? 'text-amber-600' : 
+          isValid && current > 0 ? 'text-green-600' :
+          'text-gray-500'
+        }`}>
+          {current}/{max}{min ? ` (mín: ${min})` : ""}
+        </span>
+      </div>
+    );
+  };
+
+  // Helper para determinar el estilo del input
+  const getInputClassName = (fieldName: keyof FormState, hasValue: boolean) => {
+    const hasError = errors[fieldName];
+    const isTouched = touched[fieldName];
+    
+    if (hasError) return 'border-red-300 focus:border-red-500 focus:ring-red-500';
+    if (isTouched && hasValue) return 'border-green-300 focus:border-green-500 focus:ring-green-500';
+    return 'border-gray-300 focus:border-blue-500 focus:ring-blue-500';
+  };
 
   return (
-    <Card className="p-4">
-      <form className="grid gap-4" onSubmit={handleSubmit} noValidate={false}>
-        {/* Título 3–80 + contador */}
+    <Card className="p-6 shadow-sm">
+      <form className="grid gap-6" onSubmit={handleSubmit} noValidate={false}>
+        {/* Título con feedback visual */}
         <div>
-          <label className="text-sm">Título *</label>
-          <Input
-            value={form.title}
-            onChange={(e) => set("title", e.target.value)}
-            onBlur={() => validateField("title")}
-            placeholder={`Mínimo ${LIMITS.title.min} caracteres, máximo ${LIMITS.title.max}`}
-            required
-            minLength={LIMITS.title.min}
-            maxLength={LIMITS.title.max}
-            aria-invalid={!!errors.title}
-            aria-describedby="title-error"
-          />
-          {errors.title && <p id="title-error" className="text-xs text-red-600 mt-1">{errors.title}</p>}
+          <label className="text-sm font-medium text-gray-700">
+            Título <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <Input
+              className={`pr-8 ${getInputClassName('title', form.title.length > 0)}`}
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+              onBlur={() => validateField("title")}
+              placeholder={`Mínimo ${LIMITS.title.min} caracteres, máximo ${LIMITS.title.max}`}
+              required
+              minLength={LIMITS.title.min}
+              maxLength={LIMITS.title.max}
+              aria-invalid={!!errors.title}
+              aria-describedby="title-error"
+            />
+            {form.title.length > 0 && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                {errors.title ? (
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                ) : form.title.length >= LIMITS.title.min ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                ) : null}
+              </div>
+            )}
+          </div>
+          {errors.title && (
+            <div className="flex items-start gap-1 mt-1">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p id="title-error" className="text-xs text-red-600">{errors.title}</p>
+            </div>
+          )}
           <CharacterCounter current={form.title.length} max={LIMITS.title.max} min={LIMITS.title.min} />
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-3">
+        {/* Grid de selectores */}
+        <div className="grid sm:grid-cols-3 gap-4">
           <div>
             <PresetSelectInput
-              label="Categoría *"
+              label="Categoría"
               value={form.category}
               onChange={(v) => set("category", v)}
               onBlur={() => validateField("category")}
               options={CATEGORIES}
               error={errors.category}
-              placeholder={`Ej. Conservación Marina (${LIMITS.select.min}–${LIMITS.select.max})`}
+              placeholder="Selecciona o escribe"
               maxLength={LIMITS.select.max}
               minLength={LIMITS.select.min}
               required
@@ -388,13 +454,13 @@ export default function ProjectForm({
 
           <div>
             <PresetSelectInput
-              label="Lugar *"
+              label="Lugar"
               value={form.place}
               onChange={(v) => set("place", v)}
               onBlur={() => validateField("place")}
               options={PLACES}
               error={errors.place}
-              placeholder={`Ej. Parque Nacional Barra Honda (${LIMITS.select.min}–${LIMITS.select.max})`}
+              placeholder="Selecciona o escribe"
               maxLength={LIMITS.select.max}
               minLength={LIMITS.select.min}
               required
@@ -404,13 +470,13 @@ export default function ProjectForm({
 
           <div>
             <PresetSelectInput
-              label="Área *"
+              label="Área"
               value={form.area}
               onChange={(v) => set("area", v)}
               onBlur={() => validateField("area")}
               options={AREAS}
               error={errors.area}
-              placeholder={`Ej. Conservación de Humedales (${LIMITS.select.min}–${LIMITS.select.max})`}
+              placeholder="Selecciona o escribe"
               maxLength={LIMITS.select.max}
               minLength={LIMITS.select.min}
               required
@@ -419,106 +485,132 @@ export default function ProjectForm({
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-3">
+        {/* Estado y Publicado */}
+        <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm">Estado</label>
+            <label className="text-sm font-medium text-gray-700">Estado</label>
             <select
-              className="border rounded px-3 py-2 w-full"
+              className="border border-gray-300 rounded-md px-3 py-2 w-full focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               value={form.status ?? ""}
               onChange={(e) => set("status", (e.target.value as ProjectStatus | "") || undefined)}
               onBlur={() => validateField("status")}
               aria-invalid={!!errors.status}
-              aria-describedby="status-error"
             >
               <option value="">—</option>
-              <option value="EN_PROCESO">En proceso</option>
-              <option value="FINALIZADO">Finalizado</option>
-              <option value="PAUSADO">Pausado</option>
+              <option value="EN_PROCESO"> En proceso</option>
+              <option value="FINALIZADO"> Finalizado</option>
+              <option value="PAUSADO"> Pausado</option>
             </select>
-            {errors.status && <p id="status-error" className="text-xs text-red-600 mt-1">{errors.status}</p>}
+            {errors.status && (
+              <div className="flex items-start gap-1 mt-1">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
+                <p className="text-xs text-red-600">{errors.status}</p>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-end gap-3">
+          <div className="flex items-center gap-3 pt-6">
             <input
               id="published"
               type="checkbox"
               checked={!!form.published}
               onChange={(e) => set("published", e.target.checked)}
-              className="w-6 h-6 md:w-7 md:h-7 rounded-lg border-gray-300 accent-blue-600"
+              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
             />
-            <label htmlFor="published" className="text-sm select-none">
-              Publicado
+            <label htmlFor="published" className="text-sm font-medium text-gray-700 select-none cursor-pointer">
+              {form.published ? ' Publicado' : 'No publicado'}
             </label>
           </div>
         </div>
 
-        {/* URL solo https + ≤200 */}
+        {/* URL de portada */}
         <div>
-          <label className="text-sm">URL de portada</label>
-          <Input
-            value={form.coverUrl ?? ""}
-            onChange={(e) => set("coverUrl", e.target.value)}
-            onBlur={() => validateField("coverUrl")}
-            placeholder="https://ejemplo.com/imagen.jpg"
-            type="url"
-            pattern="https://.*"
-            title="Debe iniciar con https://"
-            maxLength={LIMITS.url.max}
-            aria-invalid={!!errors.coverUrl}
-            aria-describedby="cover-error"
-          />
-          {errors.coverUrl && <p id="cover-error" className="text-xs text-red-600 mt-1">{errors.coverUrl}</p>}
+          <label className="text-sm font-medium text-gray-700">URL de portada</label>
+          <div className="relative">
+            <Input
+              className={getInputClassName('coverUrl', (form.coverUrl ?? '').length > 0)}
+              value={form.coverUrl ?? ""}
+              onChange={(e) => set("coverUrl", e.target.value)}
+              onBlur={() => validateField("coverUrl")}
+              placeholder="https://ejemplo.com/imagen.jpg"
+              type="url"
+              pattern="https://.*"
+              title="Debe iniciar con https://"
+              maxLength={LIMITS.url.max}
+              aria-invalid={!!errors.coverUrl}
+            />
+          </div>
+          {errors.coverUrl && (
+            <div className="flex items-start gap-1 mt-1">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
+              <p className="text-xs text-red-600">{errors.coverUrl}</p>
+            </div>
+          )}
         </div>
 
-        {/* Resumen opcional 30–200 + contador */}
+        {/* Resumen opcional */}
         <div>
-          <label className="text-sm">Resumen (opcional)</label>
-          <Input
-            value={form.summary ?? ""}
-            onChange={(e) => set("summary", e.target.value)}
-            onBlur={() => validateField("summary")}
-            placeholder={`Mínimo ${LIMITS.summary.min} caracteres, máximo ${LIMITS.summary.max}`}
-            maxLength={LIMITS.summary.max}
-            aria-invalid={!!errors.summary}
-            aria-describedby="summary-error"
-          />
-          {errors.summary && <p id="summary-error" className="text-xs text-red-600 mt-1">{errors.summary}</p>}
+          <label className="text-sm font-medium text-gray-700">Resumen (opcional)</label>
+          <div className="relative">
+            <Input
+              className={getInputClassName('summary', (form.summary ?? '').length > 0)}
+              value={form.summary ?? ""}
+              onChange={(e) => set("summary", e.target.value)}
+              onBlur={() => validateField("summary")}
+              placeholder={`Mínimo ${LIMITS.summary.min} caracteres, máximo ${LIMITS.summary.max}`}
+              maxLength={LIMITS.summary.max}
+              aria-invalid={!!errors.summary}
+            />
+          </div>
+          {errors.summary && (
+            <div className="flex items-start gap-1 mt-1">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
+              <p className="text-xs text-red-600">{errors.summary}</p>
+            </div>
+          )}
           {form.summary && (
             <CharacterCounter current={(form.summary ?? "").length} max={LIMITS.summary.max} min={LIMITS.summary.min} />
           )}
         </div>
 
-        {/* Contenido opcional ≤2000 + contador */}
+        {/* Contenido opcional */}
         <div>
-          <label className="text-sm">Contenido (opcional)</label>
+          <label className="text-sm font-medium text-gray-700">Contenido (opcional)</label>
           <textarea
-            className="border rounded px-3 py-2 w-full min-h-[120px]"
+            className={`border rounded-md px-3 py-2 w-full min-h-[120px] focus:outline-none focus:ring-2 ${getInputClassName('content', (form.content ?? '').length > 0)}`}
             value={form.content ?? ""}
             onChange={(e) => set("content", e.target.value)}
             onBlur={() => validateField("content")}
             placeholder={`Máximo ${LIMITS.content.max} caracteres`}
             maxLength={LIMITS.content.max}
             aria-invalid={!!errors.content}
-            aria-describedby="content-error"
           />
-          {errors.content && <p id="content-error" className="text-xs text-red-600 mt-1">{errors.content}</p>}
+          {errors.content && (
+            <div className="flex items-start gap-1 mt-1">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
+              <p className="text-xs text-red-600">{errors.content}</p>
+            </div>
+          )}
           {form.content && <CharacterCounter current={(form.content ?? "").length} max={LIMITS.content.max} />}
         </div>
 
-        {/* Archivos del Proyecto: SOLO en edición */}
+        {/* Archivos del Proyecto */}
         {mode === "edit" && (
-          <div className="space-y-4">
+          <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Upload className="w-5 h-5" />
+              <Upload className="w-5 h-5 text-blue-600" />
               Archivos del Proyecto
             </h3>
 
             {projectId === 0 ? (
-              <Card className="border-yellow-200 bg-yellow-50">
+              <Card className="border-amber-200 bg-amber-50">
                 <CardContent className="p-4">
-                  <p className="text-yellow-800 text-sm">
-                    💡 Primero guarda el proyecto para poder subir archivos
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <Info className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-amber-800 text-sm">
+                      Primero guarda el proyecto para poder subir archivos
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -527,12 +619,29 @@ export default function ProjectForm({
           </div>
         )}
 
-        <div className="flex gap-2 justify-end">
-          <Button type="button" variant="secondary" onClick={onCancel}>
+        {/* Botones de acción */}
+        <div className="flex gap-3 justify-end pt-4 border-t">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel}
+            className="px-6"
+          >
             Cancelar
           </Button>
-          <Button type="submit" disabled={busy}>
-            {busy ? "Guardando…" : mode === "create" ? "Siguiente" : "Guardar"}
+          <Button 
+            type="submit" 
+            disabled={busy}
+            className="px-6 bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {busy ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin">⏳</span>
+                Guardando…
+              </span>
+            ) : (
+              mode === "create" ? "Siguiente" : "Guardar cambios"
+            )}
           </Button>
         </div>
       </form>

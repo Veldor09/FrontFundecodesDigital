@@ -14,9 +14,9 @@ import { getSolicitud } from "../services/solicitudes.api";
    🔧 CONFIG GENERAL
 =========================================================== */
 
-const BASE =
-  (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ??
-    "http://localhost:4000") as string;
+export const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ??
+    "http://localhost:4000/api/") as string;
 
 /** Headers automáticos con token localStorage si existe */
 function authHeader() {
@@ -61,7 +61,7 @@ export function formatApiError(err: unknown): string {
 =========================================================== */
 export async function listPrograms(): Promise<ProgramOption[]> {
   const rows = await assertOkAxios<any[]>(
-    axiosInstance.get(`${BASE}/api/programs`, {
+    axiosInstance.get(`${API_URL}/api/programs`, {
       headers: { ...authHeader() },
       withCredentials: true,
     })
@@ -76,7 +76,7 @@ export async function listPrograms(): Promise<ProgramOption[]> {
 /** POST /api/billing/payments */
 export async function createPayment(dto: CreatePaymentDto): Promise<Payment> {
   return assertOkAxios(
-    axiosInstance.post(`${BASE}/api/billing/payments`, dto, {
+    axiosInstance.post(`${API_URL}/api/billing/payments`, dto, {
       headers: { "Content-Type": "application/json", ...authHeader() },
       withCredentials: true,
     })
@@ -88,7 +88,7 @@ export async function listPaymentsForRequest(
   requestId: number
 ): Promise<Payment[]> {
   return assertOkAxios(
-    axiosInstance.get(`${BASE}/api/billing/payments`, {
+    axiosInstance.get(`${API_URL}/api/billing/payments`, {
       params: { requestId },
       headers: { ...authHeader() },
       withCredentials: true,
@@ -101,7 +101,7 @@ export async function listPaymentsForProject(
   projectId: number
 ): Promise<Payment[]> {
   return assertOkAxios(
-    axiosInstance.get(`${BASE}/api/billing/payments`, {
+    axiosInstance.get(`${API_URL}/api/billing/payments`, {
       params: { projectId },
       headers: { ...authHeader() },
       withCredentials: true,
@@ -114,7 +114,7 @@ export async function listPaymentsForProject(
 =========================================================== */
 export async function getLedger(projectId: number): Promise<LedgerEvent[]> {
   return assertOkAxios(
-    axiosInstance.get(`${BASE}/api/billing/programs/${projectId}/ledger`, {
+    axiosInstance.get(`${API_URL}/api/billing/programs/${projectId}/ledger`, {
       headers: { ...authHeader() },
       withCredentials: true,
     })
@@ -128,7 +128,7 @@ export async function getLedger(projectId: number): Promise<LedgerEvent[]> {
 /** GET /api/solicitudes/:id */
 export async function getRequest(id: number) {
   return assertOkAxios<any>(
-    axiosInstance.get(`${BASE}/api/solicitudes/${id}`, {
+    axiosInstance.get(`${API_URL}/api/solicitudes/${id}`, {
       headers: { ...authHeader() },
       withCredentials: true,
     })
@@ -156,7 +156,7 @@ type CreateBillingRequestBody = {
 /** POST /api/solicitudes — crea nueva solicitud si no existe */
 async function createBillingRequest(body: CreateBillingRequestBody) {
   return assertOkAxios<any>(
-    axiosInstance.post(`${BASE}/api/solicitudes`, body, {
+    axiosInstance.post(`${API_URL}/api/solicitudes`, body, {
       headers: { "Content-Type": "application/json", ...authHeader() },
       withCredentials: true,
     })
@@ -169,37 +169,19 @@ async function createBillingRequest(body: CreateBillingRequestBody) {
  * - Si no existe, la crea usando datos básicos.
  */
 export async function ensureBillingRequestFromSolicitud(args: EnsureArgs) {
-  const { solicitudId, projectId, fallbackAmount = 0 } = args;
+  const { solicitudId } = args;
 
-  // 1️⃣ Intento directo
-  try {
-    const existing: any = await getRequest(solicitudId);
-    if (existing && typeof existing.id === "number") return existing;
-  } catch (e: any) {
-    if (e?.status && e.status !== 404) {
-      console.warn("BillingRequest check error:", e);
-    }
-  }
-
-  // 2️⃣ Traer la solicitud original
-  const raw = await getSolicitud(solicitudId);
-  const data = (raw as any)?.data ?? raw;
-
-  const concept: string = String(
-    data?.titulo ?? data?.descripcion ?? `Solicitud ${solicitudId}`
-  ).slice(0, 255);
-
-  const amountNum: number = Number(
-    data?.monto ?? data?.amount ?? data?.total ?? fallbackAmount ?? 0
+  // ✅ Llamada al nuevo endpoint puente
+  return assertOkAxios(
+    axiosInstance.post(
+      `${API_URL}/api/billing/request-from-solicitud/${solicitudId}`,
+      {},
+      {
+        headers: { ...authHeader() },
+        withCredentials: true,
+      }
+    )
   );
-
-  const body: CreateBillingRequestBody = {
-    amount: Number.isFinite(amountNum) ? amountNum : 0,
-    concept,
-    projectId: Number(projectId),
-  };
-
-  return createBillingRequest(body);
 }
 
 /* ===========================================================
