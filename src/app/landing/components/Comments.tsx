@@ -14,29 +14,34 @@ type Comment = {
   visible?: boolean;
 };
 
-const API_BASE = "/api/comments";
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/comments`;
 
 async function apiGetComments(): Promise<Comment[]> {
-  const res = await fetch(API_BASE, { cache: "no-store" });
-  if (!res.ok) throw new Error("GET /api/comments failed");
+  const res = await fetch(`${API_BASE}/public`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("GET /api/comments/public failed");
+  }
+
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
-async function apiCreateComment(payload: { author: string; text: string }): Promise<Comment> {
-  const res = await fetch(API_BASE, {
+async function apiCreateComment(payload: {
+  author: string;
+  text: string;
+}): Promise<void> {
+  const res = await fetch(`${API_BASE}/public`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("POST /api/comments failed");
-  const saved = await res.json();
-  return {
-    id: String(saved?.id ?? Date.now()),
-    author: String(saved?.author ?? payload.author),
-    text: String(saved?.text ?? payload.text),
-    visible: saved?.visible ?? true,
-  };
+
+  if (!res.ok) {
+    throw new Error("POST /api/comments/public failed");
+  }
 }
 
 export default function Comments({ comments }: { comments?: Comment[] }) {
@@ -48,34 +53,55 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
   const fallback: Comment[] = useMemo(
     () =>
-      (comments?.filter((c) => c.visible !== false) ??
-        [
-          { id: "d1", author: "María González", text: "Una experiencia increíble, el equipo fue muy profesional y atento en todo momento.", visible: true },
-          { id: "d2", author: "Carlos Ramírez", text: "Quedé muy satisfecho con el servicio. Altamente recomendado.", visible: true },
-          { id: "d3", author: "Ana López", text: "Excelente atención y resultados que superaron mis expectativas.", visible: true },
-        ]),
+      comments?.filter((c) => c.visible !== false) ?? [
+        {
+          id: "d1",
+          author: "María González",
+          text: "Una experiencia increíble, el equipo fue muy profesional y atento en todo momento.",
+          visible: true,
+        },
+        {
+          id: "d2",
+          author: "Carlos Ramírez",
+          text: "Quedé muy satisfecho con el servicio. Altamente recomendado.",
+          visible: true,
+        },
+        {
+          id: "d3",
+          author: "Ana López",
+          text: "Excelente atención y resultados que superaron mis expectativas.",
+          visible: true,
+        },
+      ],
     [comments]
   );
 
   useEffect(() => {
     let alive = true;
+
     (async () => {
       try {
         const data = await apiGetComments();
         if (!alive) return;
+
         setList(data.filter((c) => c.visible !== false));
         setLoadError(null);
       } catch {
         if (!alive) return;
+
         setList(fallback);
-        setLoadError(null);
+        setLoadError(
+          "No se pudieron cargar los comentarios desde el servidor. Se muestran comentarios de ejemplo."
+        );
       } finally {
         if (alive) setLoading(false);
       }
     })();
+
     return () => {
       alive = false;
     };
@@ -83,31 +109,26 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!name.trim() || !text.trim()) return;
 
     setSubmitError(null);
+    setSubmitSuccess(null);
     setSubmitting(true);
 
-    const tempId = "temp-" + Date.now();
-    const optimistic: Comment = {
-      id: tempId,
-      author: name.trim(),
-      text: text.trim(),
-      visible: true,
-    };
-
-    setList((prev) => [optimistic, ...prev]);
-
     try {
-      const saved = await apiCreateComment({ author: optimistic.author, text: optimistic.text });
-      setList((prev) =>
-        prev.map((c) => (c.id === tempId ? { ...saved, visible: saved.visible ?? true } : c))
-      );
+      await apiCreateComment({
+        author: name.trim(),
+        text: text.trim(),
+      });
+
       setName("");
       setText("");
+      setSubmitSuccess(
+        "Tu comentario fue enviado correctamente y está pendiente de validación."
+      );
     } catch {
-      setList((prev) => prev.filter((c) => c.id !== tempId));
-      setSubmitError("No se pudo publicar el comentario. Intenta de nuevo.");
+      setSubmitError("No se pudo enviar el comentario. Intenta de nuevo.");
     } finally {
       setSubmitting(false);
     }
@@ -116,7 +137,6 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
   return (
     <section className="bg-white rounded-xl shadow-sm p-5 sm:p-8 lg:p-10">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="flex flex-col items-center gap-3 mb-8 sm:mb-10">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-green-700" />
@@ -132,11 +152,16 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
           </div>
         ) : (
           <>
-            {/* Lista de comentarios */}
+            {loadError && (
+              <div className="mb-6 p-3 sm:p-4 bg-amber-50 border-l-4 border-amber-500 rounded">
+                <p className="text-sm text-amber-700">{loadError}</p>
+              </div>
+            )}
+
             <div className="space-y-5 sm:space-y-6 mb-10 sm:mb-12">
               {list.map((c) => (
-                <div 
-                  key={c.id} 
+                <div
+                  key={c.id}
                   className="bg-gray-50 rounded-xl p-4 sm:p-6 hover:bg-gray-100 transition-colors duration-200"
                 >
                   <div className="flex items-start gap-3 sm:gap-4">
@@ -161,14 +186,16 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                     <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
                   </div>
                   <p className="text-gray-500 text-sm sm:text-base">
-                    Sé el primero en comentar
+                    Aún no hay comentarios aprobados
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Formulario */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 sm:p-8 border border-gray-200">
+            <form
+              onSubmit={handleAdd}
+              className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 sm:p-8 border border-gray-200"
+            >
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-5 sm:mb-6">
                 Deja tu comentario
               </h3>
@@ -179,9 +206,18 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                 </div>
               )}
 
+              {submitSuccess && (
+                <div className="mb-5 p-3 sm:p-4 bg-green-50 border-l-4 border-green-500 rounded">
+                  <p className="text-sm text-green-700">{submitSuccess}</p>
+                </div>
+              )}
+
               <div className="space-y-4 sm:space-y-5">
                 <div>
-                  <Label htmlFor="comment-name" className="text-gray-700 font-medium mb-2 block text-sm sm:text-base">
+                  <Label
+                    htmlFor="comment-name"
+                    className="text-gray-700 font-medium mb-2 block text-sm sm:text-base"
+                  >
                     Nombre
                   </Label>
                   <Input
@@ -195,7 +231,10 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                 </div>
 
                 <div>
-                  <Label htmlFor="comment-text" className="text-gray-700 font-medium mb-2 block text-sm sm:text-base">
+                  <Label
+                    htmlFor="comment-text"
+                    className="text-gray-700 font-medium mb-2 block text-sm sm:text-base"
+                  >
                     Comentario
                   </Label>
                   <Textarea
@@ -212,15 +251,15 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                   </p>
                 </div>
 
-                <Button 
-                  onClick={handleAdd}
+                <Button
+                  type="submit"
                   disabled={submitting || !name.trim() || !text.trim()}
                   className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white h-11 sm:h-12 px-6 sm:px-8 text-sm sm:text-base font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "Publicando..." : "Publicar comentario"}
+                  {submitting ? "Enviando..." : "Enviar comentario"}
                 </Button>
               </div>
-            </div>
+            </form>
           </>
         )}
       </div>

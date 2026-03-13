@@ -78,16 +78,7 @@ export default function AdminHeaderMinimal() {
             </div>
           </button>
 
-          {/* Botón: Ir a la página principal (siempre visible) */}
-          <Link href="/informational-page">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-white border-white/50 hover:bg-white/10"
-            >
-              Ir a la página principal
-            </Button>
-          </Link>
+          
 
           {/* Perfil (icono + menú desplegable) */}
           <div className="relative">
