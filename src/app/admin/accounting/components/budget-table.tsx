@@ -27,7 +27,12 @@ const TODOS_MES = "Todos los meses"
 const TODOS_ANIO = "Todos los años"
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 
-export function BudgetTable() {
+interface BudgetTableProps {
+  selectedProject?: string
+  onDataChange?: () => void
+}
+
+export function BudgetTable({ selectedProject, onDataChange }: BudgetTableProps) {
   const [filters, setFilters] = useState({ proyecto: TODOS_PROY, mes: TODOS_MES, año: TODOS_ANIO })
   const [projects, setProjects] = useState<{ id: number; title: string }[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -69,6 +74,12 @@ export function BudgetTable() {
       .catch(() => setProjects([]))
   }, [])
 
+  useEffect(() => {
+    if (!selectedProject) return
+    setFilters((prev) => ({ ...prev, proyecto: selectedProject }))
+    setNewBudgetForm((prev) => ({ ...prev, proyecto: selectedProject }))
+  }, [selectedProject])
+
   const projectTitles = useMemo(() => projects.map(p => p.title), [projects])
 
   const uniqueProyectos = useMemo(() => {
@@ -78,7 +89,8 @@ export function BudgetTable() {
   }, [projectTitles, budgetData])
 
   const filteredBudgetData = budgetData.filter((item) => {
-    const proyectoMatch = filters.proyecto === TODOS_PROY || item.programa === filters.proyecto
+    const proyectoActivo = selectedProject ?? filters.proyecto
+    const proyectoMatch = proyectoActivo === TODOS_PROY || item.programa === proyectoActivo
     const mesMatch = filters.mes === TODOS_MES || item.mes === filters.mes
     const añoMatch = filters.año === TODOS_ANIO || String(item.año) === filters.año
     return proyectoMatch && mesMatch && añoMatch
@@ -99,6 +111,7 @@ export function BudgetTable() {
   const handleDelete = async (id: string) => {
     await BudgetService.deleteBudgetItem(id)
     await load()
+    onDataChange?.()
   }
 
   const validateEditForm = () => {
@@ -122,6 +135,7 @@ export function BudgetTable() {
       montoEjecutado: Number(editForm.montoEjecutado),
     })
     await load()
+    onDataChange?.()
     setIsEditModalOpen(false)
     setEditingItem(null)
     setFormErrors({})
@@ -140,14 +154,16 @@ export function BudgetTable() {
 
   const handleSubmitNewBudget = async () => {
     if (!validateForm()) return
-    await BudgetService.createBudgetItem({
+    const payload: Omit<BudgetItem, "id" | "fechaCreacion" | "fechaActualizacion"> = {
       programa: newBudgetForm.proyecto.trim(),
       mes: newBudgetForm.mes,
       año: Number(newBudgetForm.año),
       montoAsignado: Number(newBudgetForm.montoAsignado),
       montoEjecutado: Number(newBudgetForm.montoEjecutado),
-    } as any)
+    }
+    await BudgetService.createBudgetItem(payload)
     await load()
+    onDataChange?.()
     setNewBudgetForm({ proyecto: "", mes: "", año: "", montoAsignado: "", montoEjecutado: "" })
     setFormErrors({})
     setIsModalOpen(false)
@@ -185,7 +201,8 @@ export function BudgetTable() {
               <label className="text-sm font-medium text-gray-700">Proyecto</label>
               <select
                 className="w-full sm:w-56 border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={filters.proyecto}
+                value={selectedProject ?? filters.proyecto}
+                disabled={Boolean(selectedProject)}
                 onChange={(e) => setFilters({ ...filters, proyecto: e.target.value })}
               >
                 <option value={TODOS_PROY}>{TODOS_PROY}</option>
@@ -233,7 +250,8 @@ export function BudgetTable() {
                   <label className="text-sm font-medium">Proyecto *</label>
                   <select
                     className="w-full border border-gray-300 rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newBudgetForm.proyecto}
+                    value={selectedProject ?? newBudgetForm.proyecto}
+                    disabled={Boolean(selectedProject)}
                     onChange={(e)=>setNewBudgetForm({...newBudgetForm, proyecto: e.target.value})}
                   >
                     <option value="">Seleccionar proyecto</option>
@@ -396,7 +414,7 @@ export function BudgetTable() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Se eliminará permanentemente el registro del presupuesto para el proyecto "{item.programa}".
+                                  Esta acción no se puede deshacer. Se eliminará permanentemente el registro del presupuesto para el proyecto &quot;{item.programa}&quot;.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -473,7 +491,7 @@ export function BudgetTable() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Se eliminará permanentemente el registro del presupuesto para el proyecto "{item.programa}".
+                              Esta acción no se puede deshacer. Se eliminará permanentemente el registro del presupuesto para el proyecto &quot;{item.programa}&quot;.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
