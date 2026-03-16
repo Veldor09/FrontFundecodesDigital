@@ -15,10 +15,11 @@ export type ProgramaVoluntariado = {
   nombre: string;
   lugar: string;
   descripcion: string;
+  limiteParticipantes: number;
 
   // ids de voluntarios asignados al programa
   voluntariosAsignados: (number | string)[];
 
-  // ✅ NUEVO: metadata de la asignación por voluntarioId
+  // metadata por voluntarioId
   asignacionesPorVoluntario: Record<string, ProgramaVoluntariadoAsignacionInfo>;
 };

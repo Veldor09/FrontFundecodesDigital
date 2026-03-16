@@ -13,6 +13,7 @@ type FormState = {
   nombre: string;
   lugar: string;
   descripcion: string;
+  limiteParticipantes: string;
 };
 
 export default function Page() {
@@ -26,12 +27,18 @@ export default function Page() {
     nombre: "",
     lugar: "",
     descripcion: "",
+    limiteParticipantes: "0",
   });
 
   const editing = Boolean(form.id);
 
   function openCreate() {
-    setForm({ nombre: "", lugar: "", descripcion: "" });
+    setForm({
+      nombre: "",
+      lugar: "",
+      descripcion: "",
+      limiteParticipantes: "0",
+    });
     setOpen(true);
   }
 
@@ -41,6 +48,7 @@ export default function Page() {
       nombre: p.nombre ?? "",
       lugar: p.lugar ?? "",
       descripcion: p.descripcion ?? "",
+      limiteParticipantes: String(p.limiteParticipantes ?? 0),
     });
     setOpen(true);
   }
@@ -49,23 +57,29 @@ export default function Page() {
     if (!form.nombre.trim()) return toast.error("El nombre es requerido");
     if (!form.lugar.trim()) return toast.error("El lugar es requerido");
 
+    const limite = Number(form.limiteParticipantes);
+
+    if (!Number.isFinite(limite) || limite < 0) {
+      return toast.error("El límite debe ser un número mayor o igual a 0");
+    }
+
     setSaving(true);
     try {
+      const payload = {
+        nombre: form.nombre.trim(),
+        lugar: form.lugar.trim(),
+        descripcion: form.descripcion?.trim() || "",
+        limiteParticipantes: limite,
+      };
+
       if (editing) {
-        await update(form.id!, {
-          nombre: form.nombre.trim(),
-          lugar: form.lugar.trim(),
-          descripcion: form.descripcion?.trim() || "",
-        });
+        await update(form.id!, payload);
         toast.success("Programa actualizado");
       } else {
-        await create({
-          nombre: form.nombre.trim(),
-          lugar: form.lugar.trim(),
-          descripcion: form.descripcion?.trim() || "",
-        });
+        await create(payload);
         toast.success("Programa creado");
       }
+
       setOpen(false);
     } catch (e) {
       toast.error("No se pudo guardar");
@@ -77,6 +91,7 @@ export default function Page() {
 
   async function handleDelete(id: string | number) {
     if (!confirm("¿Eliminar este programa?")) return;
+
     try {
       await remove(id);
       toast.success("Programa eliminado");
@@ -98,7 +113,11 @@ export default function Page() {
               Crea y administra programas para luego asignar voluntarios.
             </p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={openCreate}>
+
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={openCreate}
+          >
             + Nuevo programa
           </Button>
         </div>
@@ -110,56 +129,82 @@ export default function Page() {
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Nombre</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Lugar</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Descripción</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Límite</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Cupos</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 w-[160px]">
                   Acciones
                 </th>
               </tr>
             </thead>
+
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-4 py-6 text-slate-500" colSpan={4}>
+                  <td className="px-4 py-6 text-slate-500" colSpan={6}>
                     Cargando...
                   </td>
                 </tr>
               ) : programas.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-6 text-slate-500" colSpan={4}>
+                  <td className="px-4 py-6 text-slate-500" colSpan={6}>
                     No hay programas todavía. Creá el primero.
                   </td>
                 </tr>
               ) : (
-                programas.map((p: any) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="px-4 py-3">{p.nombre}</td>
-                    <td className="px-4 py-3">{p.lugar}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {p.descripcion ? p.descripcion : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                          onClick={() => handleDelete(p.id)}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                programas.map((p: any) => {
+                  const asignados = Array.isArray(p?.voluntarios) ? p.voluntarios.length : 0;
+                  const limite = Number(p?.limiteParticipantes ?? 0);
+                  const sinLimite = limite === 0;
+                  const disponibles = sinLimite ? null : Math.max(limite - asignados, 0);
+                  const lleno = !sinLimite && asignados >= limite;
+
+                  return (
+                    <tr key={p.id} className="border-t">
+                      <td className="px-4 py-3">{p.nombre}</td>
+                      <td className="px-4 py-3">{p.lugar}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {p.descripcion ? p.descripcion : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {sinLimite ? "Sin límite" : limite}
+                      </td>
+                      <td className="px-4 py-3">
+                        {sinLimite ? (
+                          <span className="text-slate-500">Ilimitado</span>
+                        ) : (
+                          <span className={lleno ? "text-red-600 font-medium" : "text-slate-700"}>
+                            {asignados}/{limite} · quedan {disponibles}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                            onClick={() => handleDelete(p.id)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Modal create/edit */}
-        <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Editar programa" : "Nuevo programa"}>
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          title={editing ? "Editar programa" : "Nuevo programa"}
+        >
           <div className="max-w-xl w-full space-y-4">
             <div className="space-y-2">
               <Label>Nombre</Label>
@@ -186,6 +231,25 @@ export default function Page() {
                 onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))}
                 placeholder="Opcional"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Límite de participantes</Label>
+              <Input
+                type="number"
+                min={0}
+                value={form.limiteParticipantes}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    limiteParticipantes: e.target.value,
+                  }))
+                }
+                placeholder="0 = sin límite"
+              />
+              <p className="text-xs text-slate-500">
+                Usa 0 si el programa no tendrá límite de participantes.
+              </p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t">

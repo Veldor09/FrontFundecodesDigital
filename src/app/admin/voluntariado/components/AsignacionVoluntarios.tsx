@@ -37,29 +37,37 @@ export default function AsignacionVoluntarios({
   const [voluntariosAsignados, setVoluntariosAsignados] = useState<Voluntario[]>([]);
   const [search, setSearch] = useState("");
 
+  const asignadosCount = programa.voluntariosAsignados?.length || 0;
+  const limite = Number(programa.limiteParticipantes ?? 0);
+  const sinLimite = limite === 0;
+  const disponiblesCount = sinLimite ? null : Math.max(limite - asignadosCount, 0);
+  const programaLleno = !sinLimite && asignadosCount >= limite;
+
   const voluntariosDisponibles: Voluntario[] = useMemo(
     () =>
-      voluntarios
-        .filter(
-          (v: Voluntario) =>
-            v.estado === "ACTIVO" && !programa.voluntariosAsignados.includes(v.id)
-        )
-        .filter((v: Voluntario) =>
-          [v.nombreCompleto, v.email].some((f) =>
-            f?.toLowerCase().includes(search.toLowerCase())
-          )
-        ),
-    [voluntarios, programa.voluntariosAsignados, search]
+      programaLleno
+        ? []
+        : voluntarios
+            .filter(
+              (v: Voluntario) =>
+                v.estado === "ACTIVO" &&
+                !(programa.voluntariosAsignados ?? []).map(String).includes(String(v.id))
+            )
+            .filter((v: Voluntario) =>
+              [v.nombreCompleto, v.email].some((f) =>
+                f?.toLowerCase().includes(search.toLowerCase())
+              )
+            ),
+    [voluntarios, programa.voluntariosAsignados, search, programaLleno]
   );
 
   useEffect(() => {
     const asignados = voluntarios.filter((v: Voluntario) =>
-      programa.voluntariosAsignados.includes(v.id)
+      (programa.voluntariosAsignados ?? []).map(String).includes(String(v.id))
     );
     setVoluntariosAsignados(asignados);
   }, [voluntarios, programa.voluntariosAsignados]);
 
-  // Payload por defecto (luego lo vamos a llenar desde un modal/form)
   const defaultPayload: AsignacionProgramaPayload = {
     pagoRealizado: false,
     origen: "CUENTA_PROPIA",
@@ -70,12 +78,18 @@ export default function AsignacionVoluntarios({
   };
 
   const handleAsignar = async (voluntarioId: string) => {
+    if (programaLleno) {
+      toast.error(`El programa ya alcanzó su límite de ${limite} participantes`);
+      return;
+    }
+
     setAsignando(true);
     try {
       await onAsignar(programa.id, voluntarioId, defaultPayload);
       toast.success("Voluntario asignado correctamente");
-    } catch (error) {
-      toast.error("Error al asignar voluntario");
+    } catch (error: any) {
+      const msg = error?.response?.data?.message ?? error?.message ?? "Error al asignar voluntario";
+      toast.error(Array.isArray(msg) ? msg.join(", ") : String(msg));
       console.error(error);
     } finally {
       setAsignando(false);
@@ -87,8 +101,9 @@ export default function AsignacionVoluntarios({
     try {
       await onDesasignar(programa.id, voluntarioId);
       toast.success("Voluntario desasignado correctamente");
-    } catch (error) {
-      toast.error("Error al desasignar voluntario");
+    } catch (error: any) {
+      const msg = error?.response?.data?.message ?? error?.message ?? "Error al desasignar voluntario";
+      toast.error(Array.isArray(msg) ? msg.join(", ") : String(msg));
       console.error(error);
     } finally {
       setAsignando(false);
@@ -98,23 +113,28 @@ export default function AsignacionVoluntarios({
   return (
     <Modal open={true} onClose={onClose} title="Gestión de Voluntarios">
       <div className="max-w-4xl w-full space-y-6">
-        {/* Info del programa */}
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <h3 className="font-semibold text-blue-900">{programa.nombre}</h3>
           <p className="text-sm text-blue-700 mt-1">{programa.descripcion}</p>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             {programa.lugar && (
               <Badge className="bg-blue-100 text-blue-800">Lugar: {programa.lugar}</Badge>
             )}
+
             <Badge className="bg-gray-100 text-gray-800">
               {voluntariosAsignados.length} voluntario
               {voluntariosAsignados.length !== 1 ? "s" : ""} asignado
               {voluntariosAsignados.length !== 1 ? "s" : ""}
             </Badge>
+
+            <Badge className={programaLleno ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}>
+              {sinLimite
+                ? "Sin límite"
+                : `Cupos: ${asignadosCount}/${limite} · disponibles: ${disponiblesCount}`}
+            </Badge>
           </div>
         </div>
 
-        {/* Voluntarios Asignados */}
         <div>
           <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
@@ -153,7 +173,6 @@ export default function AsignacionVoluntarios({
           )}
         </div>
 
-        {/* Buscador de Voluntarios Disponibles */}
         <div>
           <h4 className="font-semibold text-slate-900 mb-3">
             Voluntarios Disponibles ({voluntariosDisponibles.length})
@@ -174,7 +193,11 @@ export default function AsignacionVoluntarios({
             </div>
           </div>
 
-          {voluntariosDisponibles.length === 0 ? (
+          {programaLleno ? (
+            <div className="text-center py-8 text-red-600 bg-red-50 rounded-lg border border-red-200">
+              <p>Este programa ya alcanzó su límite de participantes.</p>
+            </div>
+          ) : voluntariosDisponibles.length === 0 ? (
             <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
               <Search className="h-8 w-8 mx-auto mb-2 text-slate-400" />
               <p>
@@ -197,7 +220,7 @@ export default function AsignacionVoluntarios({
                   <Button
                     size="sm"
                     onClick={() => handleAsignar(String(vol.id))}
-                    disabled={asignando}
+                    disabled={asignando || programaLleno}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <UserPlus className="h-3 w-3 mr-1" />
@@ -209,7 +232,6 @@ export default function AsignacionVoluntarios({
           )}
         </div>
 
-        {/* Cerrar */}
         <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200">
           <Button variant="outline" onClick={onClose} disabled={asignando}>
             <X className="h-4 w-4 mr-2" />

@@ -23,12 +23,25 @@ export function useProgramaVoluntariadoCrud() {
     { keepPreviousData: true, revalidateOnFocus: false }
   );
 
-  async function create(payload: { nombre: string; lugar: string; descripcion?: string }) {
+  async function create(payload: {
+    nombre: string;
+    lugar: string;
+    descripcion?: string;
+    limiteParticipantes?: number;
+  }) {
     await createProgramaVoluntariado(payload);
     await mutate(undefined, { revalidate: true });
   }
 
-  async function update(id: string | number, payload: any) {
+  async function update(
+    id: string | number,
+    payload: {
+      nombre?: string;
+      lugar?: string;
+      descripcion?: string;
+      limiteParticipantes?: number;
+    }
+  ) {
     await updateProgramaVoluntariado(id, payload);
     await mutate(undefined, { revalidate: true });
   }

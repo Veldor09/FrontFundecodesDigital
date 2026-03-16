@@ -24,7 +24,6 @@ export function useProgramaVoluntariado() {
     async () => {
       const raw = await fetchProgramasVoluntariado();
 
-      // Soporta tanto array directo como { data, total }
       const arr = Array.isArray(raw)
         ? raw
         : Array.isArray((raw as any)?.data)
@@ -39,15 +38,14 @@ export function useProgramaVoluntariado() {
     }
   );
 
+  function getErrorMessage(err: any) {
+    const rawMessage = err?.response?.data?.message ?? err?.message ?? "";
+    if (Array.isArray(rawMessage)) return rawMessage.join(", ");
+    return String(rawMessage);
+  }
+
   /* ====================== 🔄 Asignar / Quitar ====================== */
 
-  /**
-   * ✅ Asignar voluntario a programa.
-   * Ahora acepta payload parcial:
-   * - requerido: origen
-   * - opcional: intermediario, fechaEntrada, etc.
-   * El service completa defaults (pagoRealizado false, fechaEntrada hoy, horas 0...)
-   */
   async function assign(
     voluntarioId: string | number,
     programaId: string | number,
@@ -58,13 +56,12 @@ export function useProgramaVoluntariado() {
       await mutate(undefined, { revalidate: true });
       return { ok: true };
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? err.message ?? "";
+      const msg = getErrorMessage(err).toLowerCase();
 
-      // Si ya estaba asignado, no consideramos error
       if (
-        msg.toLowerCase().includes("ya está asignado") ||
-        msg.toLowerCase().includes("ya esta asignado") ||
-        msg.toLowerCase().includes("ya asignado")
+        msg.includes("ya está asignado") ||
+        msg.includes("ya esta asignado") ||
+        msg.includes("ya asignado")
       ) {
         console.warn("⚠️ Voluntario ya asignado a este programa");
         await mutate(undefined, { revalidate: true });
@@ -104,7 +101,6 @@ export function useProgramaVoluntariado() {
     }
   }
 
-  /** Helper directo para pago (lo vas a usar muchísimo en la UI) */
   async function setPago(
     voluntarioId: string | number,
     programaId: string | number,
@@ -113,7 +109,6 @@ export function useProgramaVoluntariado() {
     return updateAssignment(voluntarioId, programaId, { pagoRealizado });
   }
 
-  /* ====================== 🧩 Output ====================== */
   return {
     data: (data ?? []) as ProgramaVoluntariado[],
     loading: isLoading,
