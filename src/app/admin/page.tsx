@@ -11,6 +11,7 @@ import {
   BarChart3,
   FolderKanban,
   MessageSquare,
+  FileText,
 } from "lucide-react";
 import { DashboardMetrics } from "./components/DashboardMetrics";
 import { Button } from "@/components/ui/button";
@@ -84,11 +85,8 @@ export default function AdminDashboardPage() {
       }
 
       const data = await res.json();
-      console.log("pending-count response:", data);
-
       setPendingCommentsCount(Number(data?.count ?? 0));
-    } catch (error) {
-      console.log("pending-count error:", error);
+    } catch {
       setPendingCommentsCount(0);
     }
   }
@@ -218,6 +216,20 @@ export default function AdminDashboardPage() {
         roles: ["admin"],
         badgeCount: pendingCommentsCount,
       },
+      {
+        key: "respuestas",
+        title: "Respuestas de Formularios",
+        desc: "Visualiza y gestiona las respuestas de los formularios públicos",
+        href: "/admin/respuestas-formulario",
+        icon: FileText,
+        cardClasses:
+          "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-cyan-300",
+        badgeClasses:
+          "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-cyan-50 group-hover:border-cyan-200",
+        linkClasses:
+          "mt-4 text-sm font-medium text-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity",
+        roles: ["admin"],
+      },
     ],
     [pendingCommentsCount]
   );
@@ -229,7 +241,7 @@ export default function AdminDashboardPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Módulos del Sistema</h1>
           <p className="text-slate-500">Gestiona cada área de la organización</p>
@@ -252,7 +264,7 @@ export default function AdminDashboardPage() {
             return (
               <Link key={m.key} href={m.href} className={`group ${colSpan}`}>
                 <div
-                  className={`${m.cardClasses} h-full min-h-[170px] flex flex-col justify-between`}
+                  className={`${m.cardClasses} flex h-full min-h-[170px] flex-col justify-between`}
                 >
                   <div className="flex items-center gap-4">
                     <div className="relative shrink-0">
@@ -261,7 +273,7 @@ export default function AdminDashboardPage() {
                       </div>
 
                       {typeof m.badgeCount === "number" && m.badgeCount > 0 && (
-                        <span className="absolute -top-2 -right-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-xs font-bold leading-none text-white shadow-md ring-2 ring-white">
+                        <span className="absolute -top-2 -right-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
                           {m.badgeCount > 99 ? "99+" : m.badgeCount}
                         </span>
                       )}
