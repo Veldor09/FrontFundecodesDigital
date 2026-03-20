@@ -18,19 +18,16 @@ type FiltroLugar = "todos" | string;
 
 export default function Page() {
   const { data: voluntariosRaw } = useVoluntarios();
-
-  // Hook: programas + assign/unassign + setPago
   const { data: programas, assign, unassign, setPago } = useProgramaVoluntariado();
 
-  // Normaliza voluntarios
   const voluntarios: Voluntario[] = useMemo(() => {
     if (Array.isArray(voluntariosRaw)) return voluntariosRaw as Voluntario[];
-    if (voluntariosRaw && Array.isArray((voluntariosRaw as any).data))
+    if (voluntariosRaw && Array.isArray((voluntariosRaw as any).data)) {
       return (voluntariosRaw as any).data as Voluntario[];
+    }
     return [];
   }, [voluntariosRaw]);
 
-  // Filtros locales
   const [search, setSearch] = useState("");
   const [fEstado, setFEstado] = useState<EstadoFiltro>("todos");
   const [fLugar, setFLugar] = useState<FiltroLugar>("todos");
@@ -39,10 +36,24 @@ export default function Page() {
   const countProgramas = programas.length;
   const countVoluntariosActivos = voluntarios.filter((v) => v.estado === "ACTIVO").length;
 
-  // ✅ IMPORTANTE: usar string keys para evitar TS7015 (porque ids pueden ser number|string)
   const getVolId = (v: Voluntario) => String((v as any).id);
 
-  // Mapa: voluntarioId(string) -> programas asignados
+  const getProgramaStats = (p: ProgramaVoluntariado) => {
+    const asignados = p.voluntariosAsignados?.length || 0;
+    const limite = Number(p.limiteParticipantes ?? 0);
+    const sinLimite = limite === 0;
+    const disponibles = sinLimite ? null : Math.max(limite - asignados, 0);
+    const lleno = !sinLimite && asignados >= limite;
+
+    return {
+      asignados,
+      limite,
+      sinLimite,
+      disponibles,
+      lleno,
+    };
+  };
+
   const asignacionesPorVoluntario: Record<string, ProgramaVoluntariado[]> = useMemo(() => {
     const map: Record<string, ProgramaVoluntariado[]> = {};
     for (const v of voluntarios) map[getVolId(v)] = [];
@@ -54,6 +65,7 @@ export default function Page() {
         map[key].push(p);
       }
     }
+
     return map;
   }, [voluntarios, programas]);
 
@@ -95,25 +107,21 @@ export default function Page() {
       );
   }, [voluntarios, fEstado, fAsignacion, fLugar, search, asignacionesPorVoluntario]);
 
-  // =========================
-  // ✅ UI Estados por fila
-  // =========================
-
-  // Selección de programa por voluntario (string)
   const [seleccionPrograma, setSeleccionPrograma] = useState<Record<string, string>>({});
-
-  // Origen por voluntario
   const [origenPorVol, setOrigenPorVol] = useState<Record<string, OrigenVoluntariado>>({});
-
-  // Empresa/intermediario por voluntario
   const [empresaPorVol, setEmpresaPorVol] = useState<Record<string, string>>({});
 
   const programasDisponiblesPorVol = (volIdStr: string) =>
-    programas.filter((p) => !(p.voluntariosAsignados || []).map(String).includes(volIdStr));
+    programas.filter((p) => {
+      const yaAsignado = (p.voluntariosAsignados || []).map(String).includes(volIdStr);
+      if (yaAsignado) return false;
 
-  // =========================
-  // ✅ BULK ASSIGN (Selección múltiple)
-  // =========================
+      const stats = getProgramaStats(p);
+      if (stats.lleno) return false;
+
+      return true;
+    });
+
   const [bulkMode, setBulkMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkOrigen, setBulkOrigen] = useState<OrigenVoluntariado>("CUENTA_PROPIA");
@@ -121,8 +129,8 @@ export default function Page() {
   const [bulkProgramaId, setBulkProgramaId] = useState<string>("");
   const [bulkAssigning, setBulkAssigning] = useState(false);
   const [bulkPagoProgramaId, setBulkPagoProgramaId] = useState<string>("");
-const [bulkPagoValue, setBulkPagoValue] = useState<"PAGO" | "NO_PAGO">("PAGO");
-const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
+  const [bulkPagoValue, setBulkPagoValue] = useState<"PAGO" | "NO_PAGO">("PAGO");
+  const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
 
   const selectedIds = useMemo(
     () => Object.entries(selected).filter(([, v]) => v).map(([k]) => k),
@@ -141,7 +149,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
     const next: Record<string, boolean> = { ...selected };
     for (const v of filteredVols) {
       const id = getVolId(v);
-      // solo activos
       if (v.estado === "ACTIVO") next[id] = true;
     }
     setSelected(next);
@@ -161,10 +168,24 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
       toast.error("Selecciona un programa para asignar");
       return;
     }
+
     if (selectedCount === 0) {
       toast.error("Selecciona al menos 1 voluntario");
       return;
     }
+
+    const programa = programas.find((p) => String(p.id) === String(bulkProgramaId));
+    if (!programa) {
+      toast.error("Programa no encontrado");
+      return;
+    }
+
+    const stats = getProgramaStats(programa);
+    if (stats.lleno) {
+      toast.error(`El programa ya alcanzó su límite de ${stats.limite} participantes`);
+      return;
+    }
+
     const empresaTrim = bulkEmpresa.trim();
     if (bulkOrigen === "INTERMEDIARIO" && !empresaTrim) {
       toast.error("Debes indicar el nombre de la empresa/intermediario");
@@ -178,7 +199,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
     let failed = 0;
 
     try {
-      // Asignación en serie (más seguro para no saturar backend)
       for (const vid of selectedIds) {
         try {
           const res: any = await assign(vid, bulkProgramaId, {
@@ -188,13 +208,12 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
 
           if (res?.duplicated) duplicated += 1;
           else ok += 1;
-        } catch (e) {
+        } catch (e: any) {
           failed += 1;
           console.error("Bulk assign error for", vid, e);
         }
       }
 
-      // Limpieza
       clearSelection();
 
       toast.success(
@@ -206,10 +225,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
       setBulkAssigning(false);
     }
   };
-
-  // =========================
-  // Acciones por fila
-  // =========================
 
   const handleAsignar = async (vol: Voluntario) => {
     const vid = getVolId(vol);
@@ -236,8 +251,9 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
 
       toast.success("Voluntario asignado");
       setSeleccionPrograma((prev) => ({ ...prev, [vid]: "" }));
-    } catch (e) {
-      toast.error("No se pudo asignar");
+    } catch (e: any) {
+      const msg = e?.response?.data?.message ?? e?.message ?? "No se pudo asignar";
+      toast.error(Array.isArray(msg) ? msg.join(", ") : String(msg));
       console.error(e);
     }
   };
@@ -246,8 +262,10 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
     try {
       await unassign(volIdStr, String(programaId));
       toast.success("Asignación eliminada");
-    } catch (e) {
-      toast.error("No se pudo eliminar la asignación");
+    } catch (e: any) {
+      const msg =
+        e?.response?.data?.message ?? e?.message ?? "No se pudo eliminar la asignación";
+      toast.error(Array.isArray(msg) ? msg.join(", ") : String(msg));
       console.error(e);
     }
   };
@@ -259,8 +277,9 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
     try {
       await setPago(volIdStr, String(programa.id), !current);
       toast.success(!current ? "Marcado como pagado" : "Marcado como no pagado");
-    } catch (e) {
-      toast.error("No se pudo actualizar el pago");
+    } catch (e: any) {
+      const msg = e?.response?.data?.message ?? e?.message ?? "No se pudo actualizar el pago";
+      toast.error(Array.isArray(msg) ? msg.join(", ") : String(msg));
       console.error(e);
     }
   };
@@ -277,7 +296,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
           </p>
         </div>
 
-        {/* Tarjetas resumen */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="rounded-xl border bg-white p-4">
             <div className="text-slate-500 text-sm">Programas</div>
@@ -297,198 +315,205 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
           </div>
         </div>
 
-{/* ✅ BULK BAR */}
-<div className="rounded-xl border bg-white p-4 space-y-3">
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-    <div className="flex items-center gap-2">
-      <input
-        type="checkbox"
-        checked={bulkMode}
-        onChange={(e) => {
-          setBulkMode(e.target.checked);
-          if (!e.target.checked) clearSelection();
-        }}
-      />
-      <span className="text-sm font-medium text-slate-800">Selección múltiple</span>
+        <div className="rounded-xl border bg-white p-4 space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={bulkMode}
+                onChange={(e) => {
+                  setBulkMode(e.target.checked);
+                  if (!e.target.checked) clearSelection();
+                }}
+              />
+              <span className="text-sm font-medium text-slate-800">Selección múltiple</span>
 
-      {bulkMode && (
-        <span className="text-xs text-slate-500">({selectedCount} seleccionados)</span>
-      )}
-    </div>
+              {bulkMode && (
+                <span className="text-xs text-slate-500">({selectedCount} seleccionados)</span>
+              )}
+            </div>
 
-    {bulkMode && (
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={selectAllFiltered}>
-          Seleccionar todos (filtrados)
-        </Button>
-        <Button size="sm" variant="outline" onClick={unselectAllFiltered}>
-          Quitar selección (filtrados)
-        </Button>
-        <Button size="sm" variant="outline" onClick={clearSelection}>
-          Limpiar todo
-        </Button>
-      </div>
-    )}
-  </div>
-
-  {bulkMode && (
-    <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
-      {/* ===================== BULK ASSIGN ===================== */}
-      <div className="lg:col-span-6">
-        <div className="text-xs font-semibold text-slate-700 mb-2">Asignación masiva</div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Origen</label>
-            <select
-              value={bulkOrigen}
-              onChange={(e) => setBulkOrigen(e.target.value as OrigenVoluntariado)}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="CUENTA_PROPIA">Cuenta propia</option>
-              <option value="INTERMEDIARIO">Empresa / Intermediario</option>
-            </select>
+            {bulkMode && (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={selectAllFiltered}>
+                  Seleccionar todos (filtrados)
+                </Button>
+                <Button size="sm" variant="outline" onClick={unselectAllFiltered}>
+                  Quitar selección (filtrados)
+                </Button>
+                <Button size="sm" variant="outline" onClick={clearSelection}>
+                  Limpiar todo
+                </Button>
+              </div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              Empresa (si aplica)
-            </label>
-            <Input
-              value={bulkEmpresa}
-              onChange={(e) => setBulkEmpresa(e.target.value)}
-              placeholder="Nombre empresa/intermediario"
-              disabled={bulkOrigen !== "INTERMEDIARIO"}
-            />
-          </div>
+          {bulkMode && (
+            <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
+              <div className="lg:col-span-6">
+                <div className="text-xs font-semibold text-slate-700 mb-2">Asignación masiva</div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Origen
+                    </label>
+                    <select
+                      value={bulkOrigen}
+                      onChange={(e) => setBulkOrigen(e.target.value as OrigenVoluntariado)}
+                      className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="CUENTA_PROPIA">Cuenta propia</option>
+                      <option value="INTERMEDIARIO">Empresa / Intermediario</option>
+                    </select>
+                  </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Programa</label>
-            <select
-              value={bulkProgramaId}
-              onChange={(e) => setBulkProgramaId(e.target.value)}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Seleccionar programa</option>
-              {programas.map((p) => (
-                <option key={String(p.id)} value={String(p.id)}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Empresa (si aplica)
+                    </label>
+                    <Input
+                      value={bulkEmpresa}
+                      onChange={(e) => setBulkEmpresa(e.target.value)}
+                      placeholder="Nombre empresa/intermediario"
+                      disabled={bulkOrigen !== "INTERMEDIARIO"}
+                    />
+                  </div>
 
-          <div className="flex items-end">
-            <Button
-              className="w-full bg-blue-600 text-white hover:bg-blue-700"
-              disabled={bulkAssigning || selectedCount === 0 || !bulkProgramaId}
-              onClick={handleBulkAssign}
-            >
-              {bulkAssigning ? "Asignando..." : `Asignar (${selectedCount})`}
-            </Button>
-          </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Programa
+                    </label>
+                    <select
+                      value={bulkProgramaId}
+                      onChange={(e) => setBulkProgramaId(e.target.value)}
+                      className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="">Seleccionar programa</option>
+                      {programas.map((p) => {
+                        const stats = getProgramaStats(p);
+                        return (
+                          <option
+                            key={String(p.id)}
+                            value={String(p.id)}
+                            disabled={stats.lleno}
+                          >
+                            {stats.sinLimite
+                              ? `${p.nombre} — sin límite`
+                              : stats.lleno
+                              ? `${p.nombre} — lleno`
+                              : `${p.nombre} — ${stats.asignados}/${stats.limite} (${stats.disponibles} disponibles)`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button
+                      className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                      disabled={bulkAssigning || selectedCount === 0 || !bulkProgramaId}
+                      onClick={handleBulkAssign}
+                    >
+                      {bulkAssigning ? "Asignando..." : `Asignar (${selectedCount})`}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-6 pt-3 border-t">
+                <div className="text-xs font-semibold text-slate-700 mb-2">Pago masivo</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Programa (para pago)
+                    </label>
+                    <select
+                      value={bulkPagoProgramaId}
+                      onChange={(e) => setBulkPagoProgramaId(e.target.value)}
+                      className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="">Seleccionar programa</option>
+                      {programas.map((p) => (
+                        <option key={String(p.id)} value={String(p.id)}>
+                          {p.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Estado de pago
+                    </label>
+                    <select
+                      value={bulkPagoValue}
+                      onChange={(e) => setBulkPagoValue(e.target.value as "PAGO" | "NO_PAGO")}
+                      className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="PAGO">Pagó</option>
+                      <option value="NO_PAGO">No pagó</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2 flex items-end">
+                    <Button
+                      className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                      disabled={bulkPagoSaving || selectedCount === 0 || !bulkPagoProgramaId}
+                      onClick={async () => {
+                        if (!bulkPagoProgramaId || selectedCount === 0) return;
+
+                        setBulkPagoSaving(true);
+
+                        let ok = 0;
+                        let skipped = 0;
+                        let failed = 0;
+
+                        try {
+                          const pagoBool = bulkPagoValue === "PAGO";
+
+                          for (const vid of selectedIds) {
+                            try {
+                              const programa = programas.find(
+                                (p) => String(p.id) === String(bulkPagoProgramaId)
+                              );
+
+                              const estaAsignado = Boolean(
+                                programa?.voluntariosAsignados?.map(String).includes(String(vid))
+                              );
+
+                              if (!estaAsignado) {
+                                skipped += 1;
+                                continue;
+                              }
+
+                              await setPago(String(vid), String(bulkPagoProgramaId), pagoBool);
+                              ok += 1;
+                            } catch (e) {
+                              failed += 1;
+                              console.error("Bulk pago error for", vid, e);
+                            }
+                          }
+
+                          toast.success(
+                            `Pago masivo completado: ${ok} actualizados${
+                              skipped ? ` · ${skipped} no estaban asignados` : ""
+                            }${failed ? ` · ${failed} fallaron` : ""}`
+                          );
+                        } finally {
+                          setBulkPagoSaving(false);
+                        }
+                      }}
+                    >
+                      {bulkPagoSaving ? "Aplicando..." : `Aplicar pago (${selectedCount})`}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* ===================== BULK PAGO ===================== */}
-      <div className="lg:col-span-6 pt-3 border-t">
-        <div className="text-xs font-semibold text-slate-700 mb-2">Pago masivo</div>
-
-        {/* estados nuevos para pago masivo */}
-        {/* pegá estos useState arriba en tu componente:
-            const [bulkPagoProgramaId, setBulkPagoProgramaId] = useState<string>("");
-            const [bulkPagoValue, setBulkPagoValue] = useState<"PAGO" | "NO_PAGO">("PAGO");
-            const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
-        */}
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              Programa (para pago)
-            </label>
-            <select
-              value={bulkPagoProgramaId}
-              onChange={(e) => setBulkPagoProgramaId(e.target.value)}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Seleccionar programa</option>
-              {programas.map((p) => (
-                <option key={String(p.id)} value={String(p.id)}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Estado de pago</label>
-            <select
-              value={bulkPagoValue}
-              onChange={(e) => setBulkPagoValue(e.target.value as any)}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="PAGO">Pagó</option>
-              <option value="NO_PAGO">No pagó</option>
-            </select>
-          </div>
-
-          <div className="md:col-span-2 flex items-end">
-            <Button
-              className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
-              disabled={bulkPagoSaving || selectedCount === 0 || !bulkPagoProgramaId}
-              onClick={async () => {
-                if (!bulkPagoProgramaId) return;
-                if (selectedCount === 0) return;
-
-                setBulkPagoSaving(true);
-
-                let ok = 0;
-                let skipped = 0;
-                let failed = 0;
-
-                try {
-                  const pagoBool = bulkPagoValue === "PAGO";
-
-                  for (const vid of selectedIds) {
-                    try {
-                      // Solo actualizar si ese voluntario está asignado a ese programa
-                      const programa = programas.find((p) => String(p.id) === String(bulkPagoProgramaId));
-                      const estaAsignado = Boolean(
-                        programa?.voluntariosAsignados?.map(String).includes(String(vid))
-                      );
-
-                      if (!estaAsignado) {
-                        skipped += 1;
-                        continue;
-                      }
-
-                      await setPago(String(vid), String(bulkPagoProgramaId), pagoBool);
-                      ok += 1;
-                    } catch (e) {
-                      failed += 1;
-                      console.error("Bulk pago error for", vid, e);
-                    }
-                  }
-
-                  toast.success(
-                    `Pago masivo completado: ${ok} actualizados${
-                      skipped ? ` · ${skipped} no estaban asignados` : ""
-                    }${failed ? ` · ${failed} fallaron` : ""}`
-                  );
-                } finally {
-                  setBulkPagoSaving(false);
-                }
-              }}
-            >
-              {bulkPagoSaving ? "Aplicando..." : `Aplicar pago (${selectedCount})`}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
-</div>
-
-        {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -554,15 +579,12 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
           </div>
         </div>
 
-        {/* Tabla */}
         <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
                 {bulkMode && (
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                    Sel.
-                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Sel.</th>
                 )}
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Nombre</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Cédula</th>
@@ -611,7 +633,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                       </Badge>
                     </td>
 
-                    {/* Programas asignados + pago */}
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         {programasV.length === 0 && (
@@ -622,6 +643,7 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                           const info = p.asignacionesPorVoluntario?.[vid];
                           const pago = Boolean(info?.pagoRealizado);
                           const origen = info?.origen ?? "CUENTA_PROPIA";
+                          const stats = getProgramaStats(p);
 
                           return (
                             <span
@@ -631,11 +653,15 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                               <span className="text-xs">
                                 {p.nombre}
                                 <span className="ml-2 text-[10px] text-slate-500">
+                                  {stats.sinLimite
+                                    ? "(sin límite)"
+                                    : `(${stats.asignados}/${stats.limite})`}
+                                </span>
+                                <span className="ml-2 text-[10px] text-slate-500">
                                   ({origen === "INTERMEDIARIO" ? "empresa" : "solo"})
                                 </span>
                               </span>
 
-                              {/* Toggle pago */}
                               <button
                                 onClick={() => handleTogglePago(vid, p)}
                                 className={`text-[10px] px-2 py-0.5 rounded-full border ${
@@ -648,7 +674,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                                 {pago ? "Pagó" : "No pagó"}
                               </button>
 
-                              {/* Quitar */}
                               <button
                                 onClick={() => handleDesasignar(vid, p.id)}
                                 className="text-xs text-slate-500 hover:text-red-600"
@@ -662,13 +687,11 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                       </div>
                     </td>
 
-                    {/* Asignar individual */}
                     <td className="px-4 py-3">
                       {v.estado !== "ACTIVO" ? (
                         <span className="text-slate-400 text-xs">Voluntario inactivo</span>
                       ) : (
                         <div className="flex flex-col gap-2 min-w-[260px]">
-                          {/* Origen */}
                           <select
                             value={origenPorVol[vid] ?? "CUENTA_PROPIA"}
                             onChange={(e) =>
@@ -683,7 +706,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                             <option value="INTERMEDIARIO">Empresa / Intermediario</option>
                           </select>
 
-                          {/* Empresa si aplica */}
                           {(origenPorVol[vid] ?? "CUENTA_PROPIA") === "INTERMEDIARIO" && (
                             <Input
                               value={empresaPorVol[vid] ?? ""}
@@ -698,7 +720,6 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                             />
                           )}
 
-                          {/* Programa */}
                           <div className="flex items-center gap-2">
                             <select
                               value={seleccionPrograma[vid] ?? ""}
@@ -711,11 +732,16 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                               className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs flex-1"
                             >
                               <option value="">Seleccionar programa</option>
-                              {disponibles.map((p) => (
-                                <option key={String(p.id)} value={String(p.id)}>
-                                  {p.nombre}
-                                </option>
-                              ))}
+                              {disponibles.map((p) => {
+                                const stats = getProgramaStats(p);
+                                return (
+                                  <option key={String(p.id)} value={String(p.id)}>
+                                    {stats.sinLimite
+                                      ? `${p.nombre} — sin límite`
+                                      : `${p.nombre} — ${stats.asignados}/${stats.limite} (${stats.disponibles} disponibles)`}
+                                  </option>
+                                );
+                              })}
                             </select>
 
                             <Button
@@ -727,11 +753,17 @@ const [bulkPagoSaving, setBulkPagoSaving] = useState(false);
                               Asignar
                             </Button>
                           </div>
+
+                          {disponibles.length === 0 && (
+                            <span className="text-xs text-amber-600">
+                              No hay programas disponibles con cupo para este voluntario
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
 
-                    <td className="px-4 py-3">{/* Acciones adicionales */}</td>
+                    <td className="px-4 py-3"></td>
                   </tr>
                 );
               })}

@@ -14,12 +14,14 @@ function authHeader() {
 /* ===================== 🧭 Helpers ===================== */
 function buildQS(params?: Record<string, string | number | boolean>) {
   const base: Record<string, string> = {};
+
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v === undefined || v === null) continue;
       base[k] = typeof v === "boolean" ? (v ? "1" : "0") : String(v);
     }
   }
+
   const qs = new URLSearchParams(base).toString();
   return qs ? `?${qs}` : "";
 }
@@ -32,60 +34,78 @@ export type AsignacionProgramaPayload = {
   pagoRealizado: boolean;
   origen: OrigenVoluntariado;
   intermediario?: string | null;
-  fechaEntrada: string; // ISO string
-  fechaSalida?: string | null; // ISO string
+  fechaEntrada: string;
+  fechaSalida?: string | null;
   horasTotales: number;
 };
 
 /* ===================== 📦 CRUD Programas ===================== */
 
-/** POST /api/programa-voluntariado — crear programa */
 export async function createProgramaVoluntariado(payload: {
   nombre: string;
   lugar: string;
   descripcion?: string;
+  limiteParticipantes?: number;
 }) {
-  const { data } = await axios.post(`${API_URL}/api/programa-voluntariado`, payload, {
-    headers: { ...authHeader() },
-  });
+  const { data } = await axios.post(
+    `${API_URL}/api/programa-voluntariado`,
+    payload,
+    {
+      headers: { ...authHeader() },
+    }
+  );
+
   return data;
 }
 
-/** PATCH /api/programa-voluntariado/:id — editar programa */
 export async function updateProgramaVoluntariado(
   id: string | number,
-  payload: { nombre?: string; lugar?: string; descripcion?: string }
+  payload: {
+    nombre?: string;
+    lugar?: string;
+    descripcion?: string;
+    limiteParticipantes?: number;
+  }
 ) {
-  const { data } = await axios.patch(`${API_URL}/api/programa-voluntariado/${id}`, payload, {
-    headers: { ...authHeader() },
-  });
+  const { data } = await axios.patch(
+    `${API_URL}/api/programa-voluntariado/${id}`,
+    payload,
+    {
+      headers: { ...authHeader() },
+    }
+  );
+
   return data;
 }
 
-/** DELETE /api/programa-voluntariado/:id — eliminar programa */
 export async function deleteProgramaVoluntariado(id: string | number) {
-  const { data } = await axios.delete(`${API_URL}/api/programa-voluntariado/${id}`, {
-    headers: { ...authHeader() },
-  });
+  const { data } = await axios.delete(
+    `${API_URL}/api/programa-voluntariado/${id}`,
+    {
+      headers: { ...authHeader() },
+    }
+  );
+
   return data ?? { ok: true };
 }
 
 /* ===================== 📂 API Programa Voluntariado ===================== */
 
-/**
- * GET /api/programa-voluntariado — lista de programas
- */
 export async function fetchProgramasVoluntariado(
   params?: Record<string, string | number | boolean>
 ) {
   const qs = buildQS(params);
-  const { data } = await axios.get(`${API_URL}/api/programa-voluntariado${qs}`, {
-    headers: { ...authHeader() },
-  });
+
+  const { data } = await axios.get(
+    `${API_URL}/api/programa-voluntariado${qs}`,
+    {
+      headers: { ...authHeader() },
+    }
+  );
+
   return data;
 }
 
-/** Normaliza el programa a la forma que usa la UI de Voluntariado */
 export function normalizePrograma(p: any) {
   const asignaciones = Array.isArray(p?.voluntarios) ? p.voluntarios : [];
 
@@ -93,7 +113,6 @@ export function normalizePrograma(p: any) {
     .map((a: any) => a?.voluntarioId ?? a?.voluntario?.id ?? null)
     .filter((id: any) => typeof id === "number" || typeof id === "string");
 
-  // ✅ NUEVO: map por voluntarioId con datos de asignación (pago/origen/empresa/etc)
   const asignacionesPorVoluntario: Record<
     string,
     {
@@ -127,32 +146,14 @@ export function normalizePrograma(p: any) {
     nombre: p?.nombre ?? `Programa #${p?.id ?? "?"}`,
     lugar: p?.lugar ?? "N/D",
     descripcion: p?.descripcion ?? "",
+    limiteParticipantes: Number(p?.limiteParticipantes ?? 0),
     voluntariosAsignados,
     asignacionesPorVoluntario,
-  } as {
-    id: number | string;
-    nombre: string;
-    lugar: string;
-    descripcion: string;
-    voluntariosAsignados: (number | string)[];
-    asignacionesPorVoluntario: Record<string, {
-      pagoRealizado: boolean;
-      origen: OrigenVoluntariado;
-      intermediario: string | null;
-      fechaEntrada: string | null;
-      fechaSalida: string | null;
-      horasTotales: number;
-      assignedAt: string | null;
-    }>;
   };
 }
 
-/* ===================== 🤝 Asignaciones (Voluntario ↔ Programa) ===================== */
+/* ===================== 🤝 Asignaciones ===================== */
 
-/**
- * POST /api/programa-voluntariado/:programaId/voluntarios/:voluntarioId
- * ✅ Acepta payload parcial y completa defaults (para el flujo: origen → asignar)
- */
 export async function assignVolunteerToPrograma(
   voluntarioId: string | number,
   programaId: string | number,
@@ -173,15 +174,14 @@ export async function assignVolunteerToPrograma(
   const { data } = await axios.post(
     `${API_URL}/api/programa-voluntariado/${programaId}/voluntarios/${voluntarioId}`,
     body,
-    { headers: { ...authHeader() } }
+    {
+      headers: { ...authHeader() },
+    }
   );
+
   return data ?? { ok: true };
 }
 
-/**
- * PATCH /api/programa-voluntariado/:programaId/voluntarios/:voluntarioId
- * ✅ Ahora es parcial (ideal para: { pagoRealizado: true })
- */
 export async function updateVolunteerProgramaAssignment(
   voluntarioId: string | number,
   programaId: string | number,
@@ -190,22 +190,24 @@ export async function updateVolunteerProgramaAssignment(
   const { data } = await axios.patch(
     `${API_URL}/api/programa-voluntariado/${programaId}/voluntarios/${voluntarioId}`,
     payload,
-    { headers: { ...authHeader() } }
+    {
+      headers: { ...authHeader() },
+    }
   );
+
   return data ?? { ok: true };
 }
 
-/**
- * DELETE /api/programa-voluntariado/:programaId/voluntarios/:voluntarioId
- * Desasigna un voluntario de un programa
- */
 export async function unassignVolunteerFromPrograma(
   voluntarioId: string | number,
   programaId: string | number
 ) {
   const { data } = await axios.delete(
     `${API_URL}/api/programa-voluntariado/${programaId}/voluntarios/${voluntarioId}`,
-    { headers: { ...authHeader() } }
+    {
+      headers: { ...authHeader() },
+    }
   );
+
   return data ?? { ok: true };
 }

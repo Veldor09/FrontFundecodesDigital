@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { TransactionService } from "../services/transaction-service"
 import { ProjectsService } from "../services/projects-service"
+import type { Transaction } from "../types"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, Edit } from "lucide-react"
+import { Plus } from "lucide-react"
 
 interface TransactionUI {
   id: string
@@ -46,7 +47,12 @@ interface Filters {
 const MAX_CATEGORIA_CHARS = 50
 const MAX_DESCRIPCION_CHARS = 120
 
-const TransactionsList = () => {
+interface TransactionsListProps {
+  selectedProject?: string
+  onDataChange?: () => void
+}
+
+const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListProps) => {
   const [transactions, setTransactions] = useState<TransactionUI[]>([])
   const [projects, setProjects] = useState<{ id: number; title: string }[]>([])
   const [filters, setFilters] = useState<Filters>({ tipo: "all", categoria: "", fechaDesde: "", fechaHasta: "" })
@@ -90,6 +96,11 @@ const TransactionsList = () => {
       .catch(() => setProjects([]))
   }, [])
 
+  useEffect(() => {
+    if (!selectedProject) return
+    setNewTransaction((prev) => ({ ...prev, programa: selectedProject }))
+  }, [selectedProject])
+
   const projectTitles = useMemo(() => projects.map((p) => p.title), [projects])
 
   const proyectos = useMemo(() => {
@@ -104,12 +115,13 @@ const TransactionsList = () => {
   )
 
   const filteredTransactions = transactions.filter((transaction) => {
+    const matchesProject = !selectedProject || transaction.programa === selectedProject
     const matchesTipo = filters.tipo === "all" || transaction.tipo === filters.tipo
     const matchesCategoria =
       !filters.categoria || transaction.categoria.toLowerCase().includes(filters.categoria.toLowerCase())
     const matchesFechaDesde = !filters.fechaDesde || transaction.fecha >= filters.fechaDesde
     const matchesFechaHasta = !filters.fechaHasta || transaction.fecha <= filters.fechaHasta
-    return matchesTipo && matchesCategoria && matchesFechaDesde && matchesFechaHasta
+    return matchesProject && matchesTipo && matchesCategoria && matchesFechaDesde && matchesFechaHasta
   })
 
   const totals = filteredTransactions.reduce(
@@ -224,7 +236,7 @@ const TransactionsList = () => {
     if (!validateForm()) return
 
     if (isEditing) {
-      await TransactionService.updateTransaction(editingId!, {
+      const payload: Partial<Transaction> = {
         tipo: newTransaction.tipo!,
         categoria: newTransaction.categoria!,
         descripcion: newTransaction.descripcion!,
@@ -232,20 +244,25 @@ const TransactionsList = () => {
         fecha: newTransaction.fecha!,
         programa: newTransaction.programa!,
         moneda: newTransaction.moneda!,
-      } as any)
+      }
+      await TransactionService.updateTransaction(editingId!, {
+        ...payload,
+      })
     } else {
-      await TransactionService.createTransaction({
+      const payload: Omit<Transaction, "id" | "fechaCreacion"> = {
         tipo: newTransaction.tipo as "ingreso" | "egreso",
         categoria: newTransaction.categoria!,
         descripcion: newTransaction.descripcion!,
         monto: Number(newTransaction.monto!),
-        fecha: newTransaction.fecha!,
+        fecha: new Date(newTransaction.fecha!),
         programa: newTransaction.programa!,
         moneda: newTransaction.moneda!,
-      } as any)
+      }
+      await TransactionService.createTransaction(payload)
     }
 
     await load()
+    onDataChange?.()
     setIsDialogOpen(false)
     setIsEditing(false)
     setEditingId(null)
@@ -271,6 +288,7 @@ const TransactionsList = () => {
   const handleDelete = async (id: string) => {
     await TransactionService.deleteTransaction(id)
     await load()
+    onDataChange?.()
   }
 
   const formatCurrency = (amount: number, currency = "CRC") => {
@@ -375,7 +393,8 @@ const TransactionsList = () => {
                     <Label htmlFor="programa">Proyecto</Label>
                     <select
                       className={`w-full border rounded-md h-9 px-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.programa ? "border-red-500" : "border-gray-300"}`}
-                      value={newTransaction.programa}
+                      value={selectedProject ?? newTransaction.programa}
+                      disabled={Boolean(selectedProject)}
                       onChange={(e) => setNewTransaction({ ...newTransaction, programa: e.target.value })}
                     >
                       <option value="">Selecciona un proyecto</option>
