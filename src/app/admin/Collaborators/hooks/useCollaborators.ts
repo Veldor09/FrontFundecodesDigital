@@ -188,6 +188,7 @@ export function useCollaborators() {
     pageSize, setPageSize,
     search, setSearch: setSearchAndReset,
     estado, setEstado: setEstadoAndReset,
+    
 
     save,
     toggle,
