@@ -34,7 +34,7 @@ type CommentsResponse = {
   };
 };
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/comments`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/comments`;
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
