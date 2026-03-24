@@ -3,7 +3,6 @@
 export type CarouselPhoto = { id: string; src: string; alt?: string };
 
 export default function PhotoCarousel({ photos }: { photos?: CarouselPhoto[] }) {
-  // Fallback demo si no llegan props
   const list: CarouselPhoto[] =
     photos?.filter(p => !!p.src) ?? [
       { id: "1", src: "/Img/sinac.png", alt: "SINAC" },
@@ -19,31 +18,46 @@ export default function PhotoCarousel({ photos }: { photos?: CarouselPhoto[] }) 
     ];
 
   return (
-    <section className="bg-gradient-to-b from-gray-50 to-white py-16 lg:py-20 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4">
-      <h2 className="text-2xl lg:text-3xl font-bold text-green-600 mb-12 text-center tracking-tight">
-          NUESTROS ALIADOS
-        </h2>
-        {/* Carrusel infinito */}
+    <section className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mx-4 sm:mx-6">
+      {/* Top accent bar */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-green-500 to-blue-600" />
+
+      {/* Background decoration */}
+      <div className="absolute -top-16 -right-16 w-48 h-48 bg-blue-50 rounded-full opacity-50 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-green-50 rounded-full opacity-50 blur-3xl pointer-events-none" />
+
+      <div className="relative px-8 md:px-10 pt-10 pb-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+            Nuestros{" "}
+            <span className="text-green-600">Aliados</span>
+          </h2>
+          <p className="text-sm text-gray-400 mt-1.5">Organizaciones que confían y trabajan junto a nosotros</p>
+        </div>
+
+        {/* Carousel with fade masks */}
         <div className="relative">
-          <div className="flex animate-scroll gap-8">
+          {/* Left fade */}
+          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+          {/* Right fade */}
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+
+          <div className="flex animate-scroll gap-5">
             {[...list, ...list].map((foto, idx) => (
               <div
                 key={`${foto.id}-${idx}`}
-                className="flex-shrink-0 w-72 h-48 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-6 flex items-center justify-center border border-gray-100"
+                className="flex-shrink-0 w-44 h-28 bg-white rounded-2xl border border-gray-100 hover:border-blue-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 p-4 flex items-center justify-center"
               >
                 <img
                   src={foto.src || "/placeholder.svg"}
-                  alt={foto.alt || "Colaborador"}
-                  className="max-w-full max-h-full object-contain"
+                  alt={foto.alt || "Aliado"}
+                 className="max-w-full max-h-full object-contain opacity-75 hover:opacity-100 transition-opacity duration-300"
                 />
               </div>
             ))}
           </div>
-
-
         </div>
-       
       </div>
 
       <style jsx>{`
@@ -51,11 +65,11 @@ export default function PhotoCarousel({ photos }: { photos?: CarouselPhoto[] }) 
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        .animate-scroll { 
-          animation: scroll 40s linear infinite;
+        .animate-scroll {
+          animation: scroll 35s linear infinite;
           will-change: transform;
         }
-        .animate-scroll:hover { 
+        .animate-scroll:hover {
           animation-play-state: paused;
         }
       `}</style>

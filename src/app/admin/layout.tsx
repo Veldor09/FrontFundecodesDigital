@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "../../services/auth.service";
 import AdminHeaderMinimal from "./components/AdminHeaderMinimal";
+import { AdminSidebar } from "./Sidebard/page";
 
 // Helpers locales para token
 function getToken(): string | null {
@@ -26,7 +27,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const t = getToken();
     if (!t) {
-      location.href = "/landing"; // ← directo a landing
+      location.href = "/landing";
     }
   }, []);
 
@@ -44,13 +45,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     const t = getToken();
     if (!t) {
-      onLogout(); // ← cierra sesión y redirige a landing
+      onLogout();
     } else {
       setChecking(false);
     }
   }, [router]);
 
-  /* Fuerza recarga al retroceder para que se ejecute useEffect */
   useEffect(() => {
     const onPageshow = (e: PageTransitionEvent) => {
       if (e.persisted) {
@@ -62,8 +62,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   function onLogout() {
-    logout(); // limpia token
-    router.replace("/landing"); // ← a landing
+    logout();
+    router.replace("/landing");
   }
 
   if (checking) {
@@ -77,6 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <AdminHeaderMinimal />
+      <AdminSidebar />
       <AuthGate>
         <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
