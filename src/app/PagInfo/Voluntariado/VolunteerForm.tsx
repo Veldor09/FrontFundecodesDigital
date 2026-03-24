@@ -98,18 +98,6 @@ export default function VolunteerForm() {
           </div>
 
           <div>
-            <Label htmlFor="availability">Disponibilidad *</Label>
-            <Input
-              id="availability"
-              name="availability"
-              placeholder="¿Qué días y horarios tienes disponibles?"
-              value={formData.availability}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
             <Label htmlFor="observations">Observaciones</Label>
             <Textarea
               id="observations"
@@ -121,10 +109,10 @@ export default function VolunteerForm() {
             />
           </div>
 
-         <Button
+  <Button
   type="submit"
   disabled={loading}
-  className="w-full bg-black hover:bg-gray-800 text-white"
+  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
 >
   {loading ? "Enviando..." : "Registrarme como voluntario"}
 </Button>

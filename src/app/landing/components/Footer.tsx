@@ -1,100 +1,112 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Mail, Phone, MapPin, Facebook, Instagram, Youtube } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer id="footer" className="bg-gray-800 text-white py-8 mt-12">
-      <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Columna 1 */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 font-modern">FUNDECODES</h3>
-            <p className="text-gray-300 font-modern">
-              Transformando ideas en soluciones innovadoras desde 2020.
-            </p>
-          </div>
+    <footer id="footer" className="relative bg-[#0f1f3d] text-white overflow-hidden mt-12">
+      {/* Top accent bar */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-green-500 to-blue-600" />
 
-          {/* Columna 2 */}
+      {/* Background decoration */}
+      <div className="absolute -top-20 -right-20 w-72 h-72 bg-blue-900/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-green-900/20 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-6xl mx-auto px-6 md:px-10 pt-12 pb-8">
+        <div className="grid md:grid-cols-3 gap-10 mb-10">
+
+          {/* Col 1 - Brand */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 font-modern">Contacto</h3>
-            <div className="space-y-2 text-gray-300 font-modern">
-              <p>
-                📧{" "}
-                <a
-                  href="mailto:fundecodeshojancha@gmail.com"
-                  className="hover:underline text-blue-400"
-                >
-                  fundecodeshojancha@gmail.com
-                </a>
-              </p>
-              <p>
-                📞{" "}
-                <a
-                  href="tel:+50686703535"
-                  className="hover:underline text-blue-400"
-                >
-                  86703535
-                </a>
-              </p>
-              <p>
-                📍{" "}
-                <a
-                  href="https://maps.app.goo.gl/RBt2xJBbgamg9hPN6"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline text-blue-400"
-                >
-                  Guanacaste, Hojancha, Barrio Alto del Cementerio
-                </a>
-              </p>
+            <h3 className="text-xl font-bold mb-3 tracking-wide">
+              <span className="text-blue-400">FUNDE</span><span className="text-green-400">CODES</span>
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Gestionamos recursos para la conservación de la biodiversidad marina y terrestre, impulsando el desarrollo sostenible de Costa Rica.
+            </p>
+            <div className="flex gap-2 mt-5">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="w-2 h-2 rounded-full bg-blue-400" />
             </div>
           </div>
 
-          {/* Columna 3 */}
+          {/* Col 2 - Contact */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 font-modern">Síguenos</h3>
-            <div className="flex space-x-4">
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-5">Contacto</h3>
+            <div className="space-y-3">
+              <a
+                href="mailto:fundecodeshojancha@gmail.com"
+                className="flex items-center gap-3 text-sm text-slate-300 hover:text-green-400 transition-colors group"
+              >
+                <span className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-green-500/10 flex items-center justify-center transition-colors flex-shrink-0">
+                  <Mail className="w-4 h-4" />
+                </span>
+                fundecodeshojancha@gmail.com
+              </a>
+              <a
+                href="tel:+50686703535"
+                className="flex items-center gap-3 text-sm text-slate-300 hover:text-blue-400 transition-colors group"
+              >
+                <span className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-blue-500/10 flex items-center justify-center transition-colors flex-shrink-0">
+                  <Phone className="w-4 h-4" />
+                </span>
+                +506 8670-3535
+              </a>
+              <a
+                href="https://maps.app.goo.gl/RBt2xJBbgamg9hPN6"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 text-sm text-slate-300 hover:text-green-400 transition-colors group"
+              >
+                <span className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-green-500/10 flex items-center justify-center transition-colors flex-shrink-0 mt-0.5">
+                  <MapPin className="w-4 h-4" />
+                </span>
+                Guanacaste, Hojancha,<br />Barrio Alto del Cementerio
+              </a>
+            </div>
+          </div>
+
+          {/* Col 3 - Social */}
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-5">Síguenos</h3>
+            <div className="flex flex-col gap-3">
               <a
                 href="https://www.facebook.com/profile.php?id=100064332054124&locale=es_LA"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group"
+                className="group inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-blue-600/20 border border-white/10 hover:border-blue-500/40 text-sm text-slate-300 hover:text-blue-400 transition-all duration-300"
               >
-                <Button className="px-4 py-2 rounded-lg border border-transparent text-gray-300 font-modern transition-all duration-300 bg-transparent hover:bg-gradient-to-r hover:from-cyan-500 hover:to-blue-500 hover:text-white shadow-sm">
-                  Facebook
-                </Button>
+                <Facebook className="w-4 h-4" />
+                Facebook
               </a>
-
               <a
                 href="https://www.instagram.com/hojanchafundecodes?igsh=cGl4aDBtNjY1Mnp1"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group"
+                className="group inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-pink-600/20 border border-white/10 hover:border-pink-500/40 text-sm text-slate-300 hover:text-pink-400 transition-all duration-300"
               >
-                <Button className="px-4 py-2 rounded-lg border border-transparent text-gray-300 font-modern transition-all duration-300 bg-transparent hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500 hover:text-white shadow-sm">
-                  Instagram
-                </Button>
+                <Instagram className="w-4 h-4" />
+                Instagram
               </a>
-
               <a
                 href="https://www.youtube.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group"
+                className="group inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-red-600/20 border border-white/10 hover:border-red-500/40 text-sm text-slate-300 hover:text-red-400 transition-all duration-300"
               >
-                <Button className="px-4 py-2 rounded-lg border border-transparent text-gray-300 font-modern transition-all duration-300 bg-transparent hover:bg-gradient-to-r hover:from-red-500 hover:to-red-700 hover:text-white shadow-sm">
-                  YouTube
-                </Button>
+                <Youtube className="w-4 h-4" />
+                YouTube
               </a>
             </div>
           </div>
         </div>
 
-        {/* Pie final */}
-        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-          <p className="font-modern">
-            &copy; 2025 FUNDECODES. Todos los derechos reservados.
+        {/* Bottom bar */}
+        <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <p>&copy; 2025 FUNDECODES. Todos los derechos reservados.</p>
+          <p className="flex items-center gap-1">
+            Conservando Costa Rica
+            <span className="text-green-500">🌿</span>
           </p>
         </div>
       </div>
