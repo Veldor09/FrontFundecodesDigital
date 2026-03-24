@@ -14,11 +14,11 @@ type Comment = {
   visible?: boolean;
 };
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/comments`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/comments`;
 
 async function apiGetComments(): Promise<Comment[]> {
   const res = await fetch(`${API_BASE}/public`, { cache: "no-store" });
-  if (!res.ok) throw new Error("GET /api/comments/public failed");
+  if (!res.ok) throw new Error("GET api/comments/public failed");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
