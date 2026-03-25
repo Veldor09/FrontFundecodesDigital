@@ -20,7 +20,7 @@ function formatDate(date: string) {
 function prettyTipo(tipo: string) {
   switch (tipo) {
     case "CONTACTO":
-      return "Contacto";
+      return "Contáctenos";
     case "VOLUNTARIADO":
       return "Voluntariado";
     case "ALIANZA":
@@ -82,7 +82,8 @@ function renderPayloadFields(payload: Record<string, any>) {
   );
 }
 
-type EstadoFormulario = "PENDIENTE" | "REVISADO" | "RESPONDIDO";
+type EstadoFormulario = "PENDIENTE" | "ACEPTADO" | "RECHAZADO";
+type TipoGestionFormulario = "CONTACTO" | "VOLUNTARIADO";
 
 type RespuestaFormularioItem = {
   id: string;
@@ -100,9 +101,11 @@ export default function RespuestasFormularioAdminPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState("");
-  const [tipoFormulario, setTipoFormulario] = useState("");
   const [selectedItem, setSelectedItem] =
     useState<RespuestaFormularioItem | null>(null);
+
+  const [tipoActivo, setTipoActivo] =
+    useState<TipoGestionFormulario>("CONTACTO");
 
   const [estadoActivo, setEstadoActivo] =
     useState<EstadoFormulario>("PENDIENTE");
@@ -112,10 +115,10 @@ export default function RespuestasFormularioAdminPage() {
       page,
       limit,
       search: search.trim() || undefined,
-      tipoFormulario: tipoFormulario || undefined,
+      tipoFormulario: tipoActivo,
       estado: estadoActivo,
     }),
-    [page, limit, search, tipoFormulario, estadoActivo]
+    [page, limit, search, tipoActivo, estadoActivo]
   );
 
   const { data, isLoading, isError, error } = useRespuestasFormulario(params);
@@ -134,7 +137,6 @@ export default function RespuestasFormularioAdminPage() {
   function handleClearFilters() {
     setPage(1);
     setSearch("");
-    setTipoFormulario("");
   }
 
   return (
@@ -154,6 +156,42 @@ export default function RespuestasFormularioAdminPage() {
         </div>
       </section>
 
+      {/* TABS TIPO FORMULARIO */}
+      <section className="mb-4">
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            onClick={() => {
+              setTipoActivo("CONTACTO");
+              setPage(1);
+            }}
+            className={
+              tipoActivo === "CONTACTO"
+                ? "bg-sky-700 text-white hover:bg-sky-800"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }
+          >
+            Contáctenos
+          </Button>
+
+          <Button
+            type="button"
+            onClick={() => {
+              setTipoActivo("VOLUNTARIADO");
+              setPage(1);
+            }}
+            className={
+              tipoActivo === "VOLUNTARIADO"
+                ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }
+          >
+            Voluntariado
+          </Button>
+        </div>
+      </section>
+
+      {/* TABS ESTADO */}
       <section className="mb-6">
         <div className="flex flex-wrap gap-3">
           <Button
@@ -174,31 +212,31 @@ export default function RespuestasFormularioAdminPage() {
           <Button
             type="button"
             onClick={() => {
-              setEstadoActivo("REVISADO");
+              setEstadoActivo("ACEPTADO");
               setPage(1);
             }}
             className={
-              estadoActivo === "REVISADO"
+              estadoActivo === "ACEPTADO"
                 ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }
           >
-            Revisados
+            Aceptados
           </Button>
 
           <Button
             type="button"
             onClick={() => {
-              setEstadoActivo("RESPONDIDO");
+              setEstadoActivo("RECHAZADO");
               setPage(1);
             }}
             className={
-              estadoActivo === "RESPONDIDO"
-                ? "bg-green-600 text-white hover:bg-green-700"
+              estadoActivo === "RECHAZADO"
+                ? "bg-red-600 text-white hover:bg-red-700"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }
           >
-            Respondidos
+            Rechazados
           </Button>
         </div>
       </section>
@@ -206,16 +244,22 @@ export default function RespuestasFormularioAdminPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-slate-900">
-            {estadoActivo === "PENDIENTE" && "Formularios Pendientes"}
-            {estadoActivo === "REVISADO" && "Formularios Revisados"}
-            {estadoActivo === "RESPONDIDO" && "Formularios Respondidos"}
+            {tipoActivo === "CONTACTO" && estadoActivo === "PENDIENTE" && "Formularios de Contáctenos Pendientes"}
+            {tipoActivo === "CONTACTO" && estadoActivo === "ACEPTADO" && "Formularios de Contáctenos Aceptados"}
+            {tipoActivo === "CONTACTO" && estadoActivo === "RECHAZADO" && "Formularios de Contáctenos Rechazados"}
+
+            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "PENDIENTE" && "Formularios de Voluntariado Pendientes"}
+            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "ACEPTADO" && "Formularios de Voluntariado Aceptados"}
+            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "RECHAZADO" && "Formularios de Voluntariado Rechazados"}
           </h2>
+
           <p className="text-slate-500">
             Visualiza, filtra y gestiona las respuestas enviadas desde los formularios públicos.
           </p>
         </div>
 
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
+        {/* FILTROS */}
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
           <div>
             <input
               type="text"
@@ -230,23 +274,6 @@ export default function RespuestasFormularioAdminPage() {
           </div>
 
           <div>
-            <select
-              value={tipoFormulario}
-              onChange={(e) => {
-                setPage(1);
-                setTipoFormulario(e.target.value);
-              }}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
-            >
-              <option value="">Todos los tipos</option>
-              <option value="CONTACTO">Contacto</option>
-              <option value="VOLUNTARIADO">Voluntariado</option>
-              <option value="ALIANZA">Alianza</option>
-              <option value="COMENTARIO">Comentario</option>
-            </select>
-          </div>
-
-          <div>
             <button
               type="button"
               onClick={handleClearFilters}
@@ -257,6 +284,7 @@ export default function RespuestasFormularioAdminPage() {
           </div>
         </div>
 
+        {/* TABLA */}
         {isLoading ? (
           <div className="rounded-lg border border-slate-200 p-4 text-slate-600">
             Cargando respuestas...
@@ -297,6 +325,7 @@ export default function RespuestasFormularioAdminPage() {
                       <td className="px-4 py-3">{item.nombre || "—"}</td>
                       <td className="px-4 py-3">{item.correo || "—"}</td>
                       <td className="px-4 py-3">{item.telefono || "—"}</td>
+
                       <td className="px-4 py-3">
                         <select
                           value={item.estado}
@@ -309,10 +338,11 @@ export default function RespuestasFormularioAdminPage() {
                           className="rounded border border-slate-300 px-2 py-1"
                         >
                           <option value="PENDIENTE">Pendiente</option>
-                          <option value="REVISADO">Revisado</option>
-                          <option value="RESPONDIDO">Respondido</option>
+                          <option value="ACEPTADO">Aceptado</option>
+                          <option value="RECHAZADO">Rechazado</option>
                         </select>
                       </td>
+
                       <td className="px-4 py-3">{formatDate(item.createdAt)}</td>
                       <td className="px-4 py-3">
                         <Button
@@ -362,6 +392,7 @@ export default function RespuestasFormularioAdminPage() {
         ) : null}
       </section>
 
+      {/* MODAL */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl">
