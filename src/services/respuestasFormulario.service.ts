@@ -15,13 +15,12 @@ function authHeader() {
 export type TipoFormulario =
   | "CONTACTO"
   | "VOLUNTARIADO"
-  | "ALIANZA"
-  | "COMENTARIO";
+  | "ALIANZA";
 
 export type EstadoRespuestaFormulario =
   | "PENDIENTE"
-  | "REVISADO"
-  | "RESPONDIDO";
+  | "ACEPTADO"
+  | "RECHAZADO";
 
 export interface RespuestaFormulario {
   id: string;
