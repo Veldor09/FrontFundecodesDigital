@@ -57,7 +57,6 @@ export default function VoluntariadoPage() {
                         Conservación Tempisque.
                       </p>
 
-                      {/* Botón mostrar menos */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -75,7 +74,7 @@ export default function VoluntariadoPage() {
 
               <hr className="my-8 sm:my-10 border-slate-200" />
 
-              {/* TIPOS DE VOLUNTARIADO: Categorías oficiales */}
+              {/* TIPOS DE VOLUNTARIADO */}
               <section className="max-w-4xl mx-auto">
                 <div className="bg-slate-50 rounded-xl p-5 sm:p-6 lg:p-7 shadow-lg">
                   <h2 className="text-2xl sm:text-3xl font-bold mb-5 text-[#1e3a8a]">
