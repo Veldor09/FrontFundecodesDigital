@@ -177,70 +177,7 @@ export default function VoluntariadoPage() {
                       <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                         {item.d}
                       </p>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          const details = (e.currentTarget as HTMLButtonElement).closest("details");
-                          if (details) details.removeAttribute("open");
-                        }}
-                        className="text-green-600 text-sm font-semibold hover:underline mt-2 group-open:block hidden"
-                      >
-                        Mostrar menos
-                      </button>
                     </div>
-                  </details>
-                </div>
-              </section>
-
-              <hr className="my-8 sm:my-10 border-slate-200" />
-
-              {/* TIPOS DE VOLUNTARIADO */}
-              <section className="max-w-4xl mx-auto">
-                <div className="bg-slate-50 rounded-xl p-5 sm:p-6 lg:p-7 shadow-lg">
-                  <h2 className="text-2xl sm:text-3xl font-bold mb-5 text-[#1e3a8a]">
-                    TIPOS DE VOLUNTARIADO
-                  </h2>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-                    {[
-                      {
-                        t: "Conservación y manejo de áreas protegidas",
-                        d: "Apoyo en patrullajes, limpieza de playas y apoyo en parques y refugios.",
-                        icon: <Leaf className="w-7 h-7 text-green-600" />,
-                      },
-                      {
-                        t: "Monitoreo biológico y apoyo a investigación",
-                        d: "Registro de biodiversidad, monitoreo de tortugas y estudios ambientales.",
-                        icon: <Microscope className="w-7 h-7 text-green-600" />,
-                      },
-                      {
-                        t: "Educación y sensibilización ambiental",
-                        d: "Charlas, guías a visitantes, actividades con centros educativos.",
-                        icon: <BookOpen className="w-7 h-7 text-green-600" />,
-                      },
-                      {
-                        t: "Proyectos comunitarios y sostenibilidad",
-                        d: "Trabajo con comunidades, reciclaje y talleres e iniciativas productivas.",
-                        icon: <Users className="w-7 h-7 text-green-600" />,
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.t}
-                        className="flex items-start gap-4 p-4 sm:p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-                      >
-                        <div className="flex-shrink-0 bg-green-100 rounded-xl p-3 shadow-inner">
-                          {item.icon}
-                        </div>
-
-                        <div>
-                          <h3 className="text-[#1e3a8a] font-bold text-base sm:text-lg mb-1">
-                            {item.t}
-                          </h3>
-                          <p className="text-slate-600 text-sm sm:text-base">{item.d}</p>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
