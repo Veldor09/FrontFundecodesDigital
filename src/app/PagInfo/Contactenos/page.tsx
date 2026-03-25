@@ -1,12 +1,88 @@
 "use client";
 
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Mail, Phone, MapPin, Send, Clock, CheckCircle2, XCircle } from "lucide-react";
 import Header from "@/app/landing/components/Header";
 import Footer from "@/app/landing/components/Footer";
 import ContactForm from "./ContactForm";
 
 export default function ContactenosPage() {
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("sending");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setStatus("success");
+        setFormData({ name: "", email: "", message: "" });
+        setTimeout(() => setStatus("idle"), 3000);
+      } else {
+        setStatus("error");
+      }
+    } catch (error) {
+      setStatus("error");
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const contactInfo = [
+    {
+      icon: Phone,
+      title: "Teléfono",
+      value: "+506 2222-2222",
+      color: "bg-blue-100 text-blue-600",
+    },
+    {
+      icon: Mail,
+      title: "Correo",
+      value: "info@fundecodes.org",
+      color: "bg-green-100 text-green-600",
+    },
+    {
+      icon: MapPin,
+      title: "Ubicación",
+      value: "Guanacaste, Costa Rica",
+      color: "bg-amber-100 text-amber-600",
+    },
+    {
+      icon: Clock,
+      title: "Horario",
+      value: "Lun - Vie: 8am - 5pm",
+      color: "bg-purple-100 text-purple-600",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#1e3a8a] text-white">
+    <div className="min-h-screen bg-slate-50">
       <Header />
 
       <main className="px-3 py-8 sm:px-4 sm:py-10 md:px-6 lg:px-8 lg:py-14">
@@ -24,6 +100,9 @@ export default function ContactenosPage() {
                   ¿Tienes alguna pregunta o proyecto en mente? Estamos aquí para ayudarte.
                 </p>
               </div>
+            ))}
+          </div>
+        </section>
 
               <section className="mx-auto max-w-3xl">
                 <div className="rounded-xl bg-slate-50 p-5 shadow-md sm:p-6 lg:p-7">

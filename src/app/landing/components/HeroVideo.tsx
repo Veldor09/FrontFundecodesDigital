@@ -1,11 +1,11 @@
 "use client";
 
 type HeroVideoProps = {
-  videoUrl?: string; // <- opcional
+  videoUrl?: string;
 };
 
 export default function HeroVideo({
-  videoUrl = "/videos/VideoFUNDECODES.mp4", // <- valor por defecto
+  videoUrl = "/videos/VideoFUNDECODES.mp4",
 }: HeroVideoProps) {
   return (
     <section
@@ -29,20 +29,20 @@ export default function HeroVideo({
       {/* Texto principal */}
       <div className="relative z-10 text-white text-center px-4">
         <h1
-          className="leading-none tracking-tight font-bold text-[clamp(3rem,12vw,8rem)] drop-shadow-2xl"
-          style={{ fontFamily: "'Open Sans', sans-serif", letterSpacing: "0.02em" }}
+          className="leading-none font-light text-[clamp(3rem,12vw,8rem)] drop-shadow-2xl"
+          style={{ fontFamily: "'Raleway', sans-serif", letterSpacing: "0.08em" }}
         >
-          Fundecodes
+          FUNDECODES
         </h1>
         <div className="mt-6 flex items-center justify-center gap-3">
-          <div className="h-px w-12 sm:w-16 bg-gradient-to-r from-transparent to-green-400"></div>
-          <p 
-            className="text-lg sm:text-xl md:text-2xl font-light tracking-[0.15em] drop-shadow-lg uppercase"
-            style={{ fontFamily: "'Open Sans', sans-serif" }}
+          <div className="h-px w-12 sm:w-16 bg-gradient-to-r from-transparent to-green-400" />
+          <p
+            className="text-lg sm:text-xl md:text-2xl font-extralight tracking-[0.25em] drop-shadow-lg uppercase"
+            style={{ fontFamily: "'Raleway', sans-serif" }}
           >
             Equilibrio entre conservación y desarrollo
           </p>
-          <div className="h-px w-12 sm:w-16 bg-gradient-to-l from-transparent to-green-400"></div>
+          <div className="h-px w-12 sm:w-16 bg-gradient-to-l from-transparent to-green-400" />
         </div>
       </div>
 

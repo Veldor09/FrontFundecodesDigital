@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AdminSidebar } from "./Sidebard/page";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -240,67 +241,71 @@ export default function AdminDashboardPage() {
   }, [MODULES, role]);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Módulos del Sistema</h1>
-          <p className="text-slate-500">Gestiona cada área de la organización</p>
+    <>
+      <AdminSidebar pendingCommentsCount={pendingCommentsCount} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Módulos del Sistema</h1>
+            <p className="text-slate-500">Gestiona cada área de la organización</p>
+          </div>
+
+          <Link href="/">
+            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+              <ArrowLeft className="h-4 w-4" />
+              Volver al sitio
+            </Button>
+          </Link>
         </div>
 
-        <Link href="/">
-          <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-            <ArrowLeft className="h-4 w-4" />
-            Volver al sitio
-          </Button>
-        </Link>
-      </div>
+        <section className="mb-12">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleModules.map((m) => {
+              const Icon = m.icon;
+              const colSpan = m.fullWidth ? "lg:col-span-3" : "";
 
-      <section className="mb-12">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {visibleModules.map((m) => {
-            const Icon = m.icon;
-            const colSpan = m.fullWidth ? "lg:col-span-3" : "";
+              return (
+                <Link key={m.key} href={m.href} className={`group ${colSpan}`}>
+                  <div
+                    className={`${m.cardClasses} flex h-full min-h-[170px] flex-col justify-between`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="relative shrink-0">
+                        <div className={m.badgeClasses}>
+                          <Icon className="h-7 w-7" />
+                        </div>
 
-            return (
-              <Link key={m.key} href={m.href} className={`group ${colSpan}`}>
-                <div
-                  className={`${m.cardClasses} flex h-full min-h-[170px] flex-col justify-between`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="relative shrink-0">
-                      <div className={m.badgeClasses}>
-                        <Icon className="h-7 w-7" />
+                        {typeof m.badgeCount === "number" && m.badgeCount > 0 && (
+                          <span className="absolute -top-2 -right-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
+                            {m.badgeCount > 99 ? "99+" : m.badgeCount}
+                          </span>
+                        )}
                       </div>
 
-                      {typeof m.badgeCount === "number" && m.badgeCount > 0 && (
-                        <span className="absolute -top-2 -right-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
-                          {m.badgeCount > 99 ? "99+" : m.badgeCount}
-                        </span>
-                      )}
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-800">{m.title}</h3>
+                        <p className="text-sm text-slate-500">{m.desc}</p>
+                      </div>
                     </div>
 
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-800">{m.title}</h3>
-                      <p className="text-sm text-slate-500">{m.desc}</p>
-                    </div>
+                    <div className={m.linkClasses}>Ir →</div>
                   </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
 
-                  <div className={m.linkClasses}>Ir →</div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+        <section>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900">Resumen General</h2>
+            <p className="text-slate-500">Métricas actualizadas en tiempo real</p>
+          </div>
 
-      <section>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">Resumen General</h2>
-          <p className="text-slate-500">Métricas actualizadas en tiempo real</p>
-        </div>
-
-        {role ? <DashboardMetrics /> : null}
-      </section>
-    </main>
+          {role ? <DashboardMetrics /> : null}
+        </section>
+      </main>
+    </>
   );
 }
