@@ -14,7 +14,7 @@ type Comment = {
   visible?: boolean;
 };
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/comments`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/comments`;
 
 async function apiGetComments(): Promise<Comment[]> {
   const res = await fetch(`${API_BASE}/public`, { cache: "no-store" });
