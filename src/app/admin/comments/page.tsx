@@ -2,14 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  MessageSquare,
-  Search,
-  Trash2,
-  XCircle,
-} from "lucide-react";
+import { ArrowLeft, MessageSquare, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -261,13 +254,13 @@ export default function AdminCommentsPage() {
       </section>
 
       <section className="mb-6">
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <Button
             type="button"
             onClick={() => setStatus("PENDIENTE")}
             className={
               status === "PENDIENTE"
-                ? "bg-amber-600 text-white hover:bg-amber-700"
+                ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }
           >
@@ -279,7 +272,7 @@ export default function AdminCommentsPage() {
             onClick={() => setStatus("APROBADO")}
             className={
               status === "APROBADO"
-                ? "bg-green-600 text-white hover:bg-green-700"
+                ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }
           >
@@ -291,7 +284,7 @@ export default function AdminCommentsPage() {
             onClick={() => setStatus("DENEGADO")}
             className={
               status === "DENEGADO"
-                ? "bg-red-600 text-white hover:bg-red-700"
+                ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }
           >
@@ -346,7 +339,7 @@ export default function AdminCommentsPage() {
           </div>
 
           <div className="md:col-span-4 flex flex-wrap gap-3">
-            <Button type="submit" className="bg-slate-900 text-white hover:bg-slate-800">
+<Button type="submit" className="bg-blue-600 text-white hover:bg-blue-700">
               Buscar
             </Button>
 
@@ -434,9 +427,8 @@ export default function AdminCommentsPage() {
                         type="button"
                         onClick={() => approveComment(comment.id)}
                         disabled={processingId === comment.id}
-                        className="gap-2 bg-green-600 text-white hover:bg-green-700"
+                        className="bg-green-600 text-white hover:bg-green-700"
                       >
-                        <CheckCircle2 className="h-4 w-4" />
                         {processingId === comment.id ? "Procesando..." : "Aprobar"}
                       </Button>
                     )}
@@ -446,9 +438,8 @@ export default function AdminCommentsPage() {
                         type="button"
                         onClick={() => denyComment(comment.id)}
                         disabled={processingId === comment.id}
-                        className="gap-2 bg-red-600 text-white hover:bg-red-700"
+                        className="border border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
                       >
-                        <XCircle className="h-4 w-4" />
                         {processingId === comment.id ? "Procesando..." : "Denegar"}
                       </Button>
                     )}
@@ -457,9 +448,8 @@ export default function AdminCommentsPage() {
                       type="button"
                       onClick={() => setCommentToDelete(comment)}
                       disabled={processingId === comment.id}
-                      className="gap-2 bg-slate-900 text-white hover:bg-slate-800"
+                      className="bg-red-600 text-white hover:bg-red-700"
                     >
-                      <Trash2 className="h-4 w-4" />
                       Eliminar
                     </Button>
                   </div>
