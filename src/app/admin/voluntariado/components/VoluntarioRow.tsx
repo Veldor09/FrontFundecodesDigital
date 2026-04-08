@@ -2,6 +2,7 @@
 
 import { Voluntario } from "../types/voluntario";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,7 @@ import {
 interface Props {
   voluntario: Voluntario;
   onEdit: () => void;
-  onToggle: () => void;   // cambia ACTIVO <-> INACTIVO
+  onToggle: () => void; // cambia ACTIVO <-> INACTIVO
   onDelete: () => void;
 }
 
@@ -35,10 +36,13 @@ export default function VoluntarioRow({
       <td className="px-4 py-3">{voluntario.numeroDocumento}</td>
       <td className="px-4 py-3">{voluntario.email}</td>
       <td className="px-4 py-3">{voluntario.telefono ?? "—"}</td>
+
       <td className="px-4 py-3">
         <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-            isActivo ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-700"
+          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+            isActivo
+              ? "bg-green-100 text-green-800 border border-green-200"
+              : "bg-slate-100 text-slate-700 border border-slate-200"
           }`}
         >
           {isActivo ? "Activo" : "Inactivo"}
@@ -46,8 +50,14 @@ export default function VoluntarioRow({
       </td>
 
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          {/* Editar: botón azul */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <Switch
+            checked={isActivo}
+            onCheckedChange={onToggle}
+            aria-label={isActivo ? "Desactivar voluntario" : "Activar voluntario"}
+            className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-slate-400"
+          />
+
           <Button
             type="button"
             size="sm"
@@ -57,18 +67,6 @@ export default function VoluntarioRow({
             Editar
           </Button>
 
-          {/* Cambiar estado: botón ámbar */}
-          <Button
-            type="button"
-            size="sm"
-            onClick={onToggle}
-            className="bg-amber-500 hover:bg-amber-600 text-white"
-            title={isActivo ? "Marcar como inactivo" : "Marcar como activo"}
-          >
-            {isActivo ? "Desactivar" : "Activar"}
-          </Button>
-
-          {/* Eliminar: botón rojo con diálogo de confirmación */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -79,16 +77,23 @@ export default function VoluntarioRow({
                 Eliminar
               </Button>
             </AlertDialogTrigger>
+
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta acción no se puede deshacer. Se eliminará permanentemente el registro del voluntario <strong>{voluntario.nombreCompleto}</strong>.
+                  Esta acción no se puede deshacer. Se eliminará permanentemente
+                  el registro del voluntario{" "}
+                  <strong>{voluntario.nombreCompleto}</strong>.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={onDelete} className="bg-red-600 hover:bg-red-700">
+                <AlertDialogAction
+                  onClick={onDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
                   Eliminar
                 </AlertDialogAction>
               </AlertDialogFooter>
