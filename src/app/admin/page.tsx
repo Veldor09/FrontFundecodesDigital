@@ -296,15 +296,6 @@ export default function AdminDashboardPage() {
             })}
           </div>
         </section>
-
-        <section>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">Resumen General</h2>
-            <p className="text-slate-500">Métricas actualizadas en tiempo real</p>
-          </div>
-
-          {role ? <DashboardMetrics /> : null}
-        </section>
       </main>
     </>
   );

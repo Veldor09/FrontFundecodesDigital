@@ -126,11 +126,21 @@ export default function Page() {
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Nombre</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Lugar</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Descripción</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Límite</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Cupos</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                  Nombre
+                </th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                  Lugar
+                </th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                  Descripción
+                </th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                  Límite
+                </th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                  Cupos
+                </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 w-[160px]">
                   Acciones
                 </th>
@@ -152,10 +162,14 @@ export default function Page() {
                 </tr>
               ) : (
                 programas.map((p: any) => {
-                  const asignados = Array.isArray(p?.voluntarios) ? p.voluntarios.length : 0;
+                  const asignados = Array.isArray(p?.voluntarios)
+                    ? p.voluntarios.length
+                    : 0;
                   const limite = Number(p?.limiteParticipantes ?? 0);
                   const sinLimite = limite === 0;
-                  const disponibles = sinLimite ? null : Math.max(limite - asignados, 0);
+                  const disponibles = sinLimite
+                    ? null
+                    : Math.max(limite - asignados, 0);
                   const lleno = !sinLimite && asignados >= limite;
 
                   return (
@@ -172,21 +186,30 @@ export default function Page() {
                         {sinLimite ? (
                           <span className="text-slate-500">Ilimitado</span>
                         ) : (
-                          <span className={lleno ? "text-red-600 font-medium" : "text-slate-700"}>
+                          <span
+                            className={
+                              lleno
+                                ? "text-red-600 font-medium"
+                                : "text-slate-700"
+                            }
+                          >
                             {asignados}/{limite} · quedan {disponibles}
                           </span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
+                          <Button
+                            size="sm"
+                            onClick={() => openEdit(p)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
                             Editar
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-300 hover:bg-red-50"
                             onClick={() => handleDelete(p.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white"
                           >
                             Eliminar
                           </Button>
@@ -210,7 +233,9 @@ export default function Page() {
               <Label>Nombre</Label>
               <Input
                 value={form.nombre}
-                onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, nombre: e.target.value }))
+                }
                 placeholder="Ej: Reforestación 2026"
               />
             </div>
@@ -219,7 +244,9 @@ export default function Page() {
               <Label>Lugar</Label>
               <Input
                 value={form.lugar}
-                onChange={(e) => setForm((prev) => ({ ...prev, lugar: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, lugar: e.target.value }))
+                }
                 placeholder="Ej: Nicoya, Guanacaste"
               />
             </div>
@@ -228,7 +255,9 @@ export default function Page() {
               <Label>Descripción</Label>
               <Input
                 value={form.descripcion}
-                onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, descripcion: e.target.value }))
+                }
                 placeholder="Opcional"
               />
             </div>
@@ -253,7 +282,11 @@ export default function Page() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t">
-              <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={saving}
+              >
                 Cancelar
               </Button>
               <Button
