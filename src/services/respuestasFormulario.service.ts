@@ -3,12 +3,15 @@ import axios from "axios";
 const BASE_URL =
   (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
-// Este módulo sí necesita /api porque el backend lo expone con prefijo global
 const API_URL = `${BASE_URL}/api`;
 
 function authHeader() {
   if (typeof window === "undefined") return {};
-  const token = localStorage.getItem("token");
+
+  const token =
+    sessionStorage.getItem("token") ||
+    localStorage.getItem("token");
+
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -52,6 +55,12 @@ export interface GetRespuestasResponse {
   };
 }
 
+export interface PendingRespuestasFormularioCount {
+  contacto: number;
+  voluntariado: number;
+  total: number;
+}
+
 function buildQS(params?: Record<string, string | number | undefined>) {
   const qs = new URLSearchParams();
 
@@ -83,6 +92,20 @@ export async function getRespuestasFormulario(
     },
     withCredentials: true,
   });
+
+  return data;
+}
+
+export async function getPendingRespuestasFormularioCount(): Promise<PendingRespuestasFormularioCount> {
+  const { data } = await axios.get(
+    `${API_URL}/respuestas-formulario/pending-count`,
+    {
+      headers: {
+        ...authHeader(),
+      },
+      withCredentials: true,
+    }
+  );
 
   return data;
 }

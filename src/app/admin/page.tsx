@@ -72,6 +72,8 @@ function normalizeRole(v?: string | null): Role | null {
 export default function AdminDashboardPage() {
   const [role, setRole] = useState<Role | null>(null);
   const [pendingCommentsCount, setPendingCommentsCount] = useState(0);
+  const [pendingRespuestasFormulariosCount, setPendingRespuestasFormulariosCount] =
+    useState(0);
 
   async function loadPendingCommentsCount() {
     try {
@@ -82,13 +84,32 @@ export default function AdminDashboardPage() {
       });
 
       if (!res.ok) {
-        throw new Error("No se pudo cargar el conteo");
+        throw new Error("No se pudo cargar el conteo de comentarios");
       }
 
       const data = await res.json();
       setPendingCommentsCount(Number(data?.count ?? 0));
     } catch {
       setPendingCommentsCount(0);
+    }
+  }
+
+  async function loadPendingRespuestasFormulariosCount() {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/respuestas-formulario/pending-count`;
+
+      const res = await fetch(url, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("No se pudo cargar el conteo de respuestas de formularios");
+      }
+
+      const data = await res.json();
+      setPendingRespuestasFormulariosCount(Number(data?.total ?? 0));
+    } catch {
+      setPendingRespuestasFormulariosCount(0);
     }
   }
 
@@ -99,15 +120,18 @@ export default function AdminDashboardPage() {
     setRole(normalizeRole(p?.role ?? p?.rol ?? fromArray) ?? null);
 
     loadPendingCommentsCount();
+    loadPendingRespuestasFormulariosCount();
 
     const onFocus = () => {
       loadPendingCommentsCount();
+      loadPendingRespuestasFormulariosCount();
     };
 
     window.addEventListener("focus", onFocus);
 
     const interval = setInterval(() => {
       loadPendingCommentsCount();
+      loadPendingRespuestasFormulariosCount();
     }, 5000);
 
     return () => {
@@ -230,9 +254,10 @@ export default function AdminDashboardPage() {
         linkClasses:
           "mt-4 text-sm font-medium text-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin"],
+        badgeCount: pendingRespuestasFormulariosCount,
       },
     ],
-    [pendingCommentsCount]
+    [pendingCommentsCount, pendingRespuestasFormulariosCount]
   );
 
   const visibleModules = useMemo(() => {

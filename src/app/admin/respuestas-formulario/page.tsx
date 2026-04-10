@@ -7,6 +7,7 @@ import {
   useRespuestasFormulario,
   useUpdateEstadoRespuestaFormulario,
 } from "@/hooks/useRespuestasFormulario";
+import { usePendingRespuestasFormularioCount } from "@/hooks/usePendingRespuestasFormularioCount";
 import { Button } from "@/components/ui/button";
 
 function formatDate(date: string) {
@@ -124,11 +125,26 @@ export default function RespuestasFormularioAdminPage() {
   const { data, isLoading, isError, error } = useRespuestasFormulario(params);
   const updateEstado = useUpdateEstadoRespuestaFormulario();
 
+  const {
+    data: pendingCounts,
+    refetch: refetchPendingCounts,
+  } = usePendingRespuestasFormularioCount();
+
+  const contactoCount = pendingCounts?.contacto ?? 0;
+  const voluntariadoCount = pendingCounts?.voluntariado ?? 0;
+
   const items = (data?.data ?? []) as RespuestaFormularioItem[];
   const meta = data?.meta;
 
   function handleChangeEstado(id: string, nuevoEstado: EstadoFormulario) {
-    updateEstado.mutate({ id, estado: nuevoEstado });
+    updateEstado.mutate(
+      { id, estado: nuevoEstado },
+      {
+        onSuccess: () => {
+          refetchPendingCounts();
+        },
+      }
+    );
   }
 
   function handleClearFilters() {
@@ -175,13 +191,25 @@ export default function RespuestasFormularioAdminPage() {
               setTipoActivo("CONTACTO");
               setPage(1);
             }}
-            className={
+            className={`relative gap-2 ${
               tipoActivo === "CONTACTO"
                 ? "bg-sky-700 text-white hover:bg-sky-800"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
+            }`}
           >
-            Contáctenos
+            <span>Contáctenos</span>
+
+            {contactoCount > 0 && (
+              <span
+                className={`inline-flex min-w-[24px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                  tipoActivo === "CONTACTO"
+                    ? "bg-white text-sky-700"
+                    : "bg-red-600 text-white"
+                }`}
+              >
+                {contactoCount > 99 ? "99+" : contactoCount}
+              </span>
+            )}
           </Button>
 
           <Button
@@ -190,13 +218,25 @@ export default function RespuestasFormularioAdminPage() {
               setTipoActivo("VOLUNTARIADO");
               setPage(1);
             }}
-            className={
+            className={`relative gap-2 ${
               tipoActivo === "VOLUNTARIADO"
                 ? "bg-emerald-700 text-white hover:bg-emerald-800"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
+            }`}
           >
-            Voluntariado
+            <span>Voluntariado</span>
+
+            {voluntariadoCount > 0 && (
+              <span
+                className={`inline-flex min-w-[24px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                  tipoActivo === "VOLUNTARIADO"
+                    ? "bg-white text-emerald-700"
+                    : "bg-red-600 text-white"
+                }`}
+              >
+                {voluntariadoCount > 99 ? "99+" : voluntariadoCount}
+              </span>
+            )}
           </Button>
         </div>
       </section>
