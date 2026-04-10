@@ -10,11 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 
 function formatDate(date: string) {
-  try {
-    return new Date(date).toLocaleString("es-CR");
-  } catch {
-    return date;
-  }
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleString("es-CR");
 }
 
 function prettyTipo(tipo: string) {
@@ -60,13 +58,18 @@ function renderPayloadFields(payload: Record<string, any>) {
   });
 
   if (entries.length === 0) {
-    return <p className="text-sm text-slate-500">No hay contenido disponible.</p>;
+    return (
+      <p className="text-sm text-slate-500">No hay contenido disponible.</p>
+    );
   }
 
   return (
     <div className="space-y-4">
       {entries.map(([key, value]) => (
-        <div key={key} className="rounded-xl border border-slate-200 bg-white p-4">
+        <div
+          key={key}
+          className="rounded-xl border border-slate-200 bg-white p-4"
+        >
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {prettyPayloadKey(key)}
           </p>
@@ -78,7 +81,6 @@ function renderPayloadFields(payload: Record<string, any>) {
     </div>
   );
 }
-
 
 type EstadoFormulario = "PENDIENTE" | "ACEPTADO" | "RECHAZADO";
 type TipoGestionFormulario = "CONTACTO" | "VOLUNTARIADO";
@@ -99,7 +101,6 @@ export default function RespuestasFormularioAdminPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState("");
-
   const [selectedItem, setSelectedItem] =
     useState<RespuestaFormularioItem | null>(null);
 
@@ -114,7 +115,6 @@ export default function RespuestasFormularioAdminPage() {
       page,
       limit,
       search: search.trim() || undefined,
-
       tipoFormulario: tipoActivo,
       estado: estadoActivo,
     }),
@@ -136,25 +136,18 @@ export default function RespuestasFormularioAdminPage() {
     setSearch("");
   }
 
-  function handleTabClick(modo: ModoVista) {
-    setModoVista(modo);
-    setPage(1);
-  }
-
-  const tabBaseClass = "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
-  const tabActiveClass = "bg-blue-600 text-white hover:bg-blue-700";
-
-  function tabClass(modo: ModoVista) {
-    return modoVista === modo ? tabActiveClass : tabBaseClass;
-  }
-
-  const tituloSeccion = {
-    PENDIENTE: "Formularios Pendientes",
-    REVISADO: "Formularios Revisados",
-    RESPONDIDO: "Formularios Respondidos",
-    VOLUNTARIADO: "Formularios de Voluntariado",
-    CONTACTO: "Formularios de Contáctenos",
-  }[modoVista];
+  const tituloSeccion =
+    tipoActivo === "CONTACTO"
+      ? estadoActivo === "PENDIENTE"
+        ? "Formularios de Contáctenos Pendientes"
+        : estadoActivo === "ACEPTADO"
+        ? "Formularios de Contáctenos Aceptados"
+        : "Formularios de Contáctenos Rechazados"
+      : estadoActivo === "PENDIENTE"
+      ? "Formularios de Voluntariado Pendientes"
+      : estadoActivo === "ACEPTADO"
+      ? "Formularios de Voluntariado Aceptados"
+      : "Formularios de Voluntariado Rechazados";
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -162,6 +155,7 @@ export default function RespuestasFormularioAdminPage() {
         <h1 className="text-center text-3xl font-bold text-slate-900">
           Bienvenido al área Gestión de Respuestas de Formularios
         </h1>
+
         <div className="mt-6">
           <Link href="/admin">
             <Button variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -171,7 +165,6 @@ export default function RespuestasFormularioAdminPage() {
           </Link>
         </div>
       </section>
-
 
       {/* TABS TIPO FORMULARIO */}
       <section className="mb-4">
@@ -225,10 +218,6 @@ export default function RespuestasFormularioAdminPage() {
           >
             Pendientes
           </Button>
-          <Button type="button" onClick={() => handleTabClick("CONTACTO")} className={tabClass("CONTACTO")}>
-            Contáctenos
-          </Button>
-        </div>
 
           <Button
             type="button"
@@ -264,18 +253,11 @@ export default function RespuestasFormularioAdminPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">
-            {tipoActivo === "CONTACTO" && estadoActivo === "PENDIENTE" && "Formularios de Contáctenos Pendientes"}
-            {tipoActivo === "CONTACTO" && estadoActivo === "ACEPTADO" && "Formularios de Contáctenos Aceptados"}
-            {tipoActivo === "CONTACTO" && estadoActivo === "RECHAZADO" && "Formularios de Contáctenos Rechazados"}
-
-            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "PENDIENTE" && "Formularios de Voluntariado Pendientes"}
-            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "ACEPTADO" && "Formularios de Voluntariado Aceptados"}
-            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "RECHAZADO" && "Formularios de Voluntariado Rechazados"}
-          </h2>
+          <h2 className="text-2xl font-bold text-slate-900">{tituloSeccion}</h2>
 
           <p className="text-slate-500">
-            Visualiza, filtra y gestiona las respuestas enviadas desde los formularios públicos.
+            Visualiza, filtra y gestiona las respuestas enviadas desde los
+            formularios públicos.
           </p>
         </div>
 
@@ -286,7 +268,10 @@ export default function RespuestasFormularioAdminPage() {
               type="text"
               placeholder="Buscar por nombre, correo o teléfono"
               value={search}
-              onChange={(e) => { setPage(1); setSearch(e.target.value); }}
+              onChange={(e) => {
+                setPage(1);
+                setSearch(e.target.value);
+              }}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
             />
           </div>
@@ -319,26 +304,49 @@ export default function RespuestasFormularioAdminPage() {
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-left">
                 <tr>
-                  <th className="px-4 py-3 font-semibold text-slate-800">Tipo</th>
-                  <th className="px-4 py-3 font-semibold text-slate-800">Nombre</th>
-                  <th className="px-4 py-3 font-semibold text-slate-800">Correo</th>
-                  <th className="px-4 py-3 font-semibold text-slate-800">Teléfono</th>
-                  <th className="px-4 py-3 font-semibold text-slate-800">Estado</th>
-                  <th className="px-4 py-3 font-semibold text-slate-800">Fecha</th>
-                  <th className="px-4 py-3 font-semibold text-slate-800">Detalle</th>
+                  <th className="px-4 py-3 font-semibold text-slate-800">
+                    Tipo
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-slate-800">
+                    Nombre
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-slate-800">
+                    Correo
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-slate-800">
+                    Teléfono
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-slate-800">
+                    Estado
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-slate-800">
+                    Fecha
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-slate-800">
+                    Detalle
+                  </th>
                 </tr>
               </thead>
+
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-6 text-center text-slate-500"
+                    >
                       No hay formularios en esta sección.
                     </td>
                   </tr>
                 ) : (
                   items.map((item) => (
-                    <tr key={item.id} className="border-t border-slate-200 align-top">
-                      <td className="px-4 py-3">{prettyTipo(item.tipoFormulario)}</td>
+                    <tr
+                      key={item.id}
+                      className="border-t border-slate-200 align-top"
+                    >
+                      <td className="px-4 py-3">
+                        {prettyTipo(item.tipoFormulario)}
+                      </td>
                       <td className="px-4 py-3">{item.nombre || "—"}</td>
                       <td className="px-4 py-3">{item.correo || "—"}</td>
                       <td className="px-4 py-3">{item.telefono || "—"}</td>
@@ -346,7 +354,12 @@ export default function RespuestasFormularioAdminPage() {
                       <td className="px-4 py-3">
                         <select
                           value={item.estado}
-                          onChange={(e) => handleChangeEstado(item.id, e.target.value as EstadoFormulario)}
+                          onChange={(e) =>
+                            handleChangeEstado(
+                              item.id,
+                              e.target.value as EstadoFormulario
+                            )
+                          }
                           className="rounded border border-slate-300 px-2 py-1"
                         >
                           <option value="PENDIENTE">Pendiente</option>
@@ -356,6 +369,7 @@ export default function RespuestasFormularioAdminPage() {
                       </td>
 
                       <td className="px-4 py-3">{formatDate(item.createdAt)}</td>
+
                       <td className="px-4 py-3">
                         <Button
                           type="button"
@@ -380,6 +394,7 @@ export default function RespuestasFormularioAdminPage() {
             <div className="text-sm text-slate-600">
               Página {meta.page} de {meta.totalPages} · Total: {meta.total}
             </div>
+
             <div className="flex gap-2">
               <button
                 type="button"
@@ -389,6 +404,7 @@ export default function RespuestasFormularioAdminPage() {
               >
                 Anterior
               </button>
+
               <button
                 type="button"
                 disabled={meta.page >= meta.totalPages}
@@ -408,11 +424,14 @@ export default function RespuestasFormularioAdminPage() {
           <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 p-6">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Detalle del formulario</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  Detalle del formulario
+                </h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Revisa toda la información enviada por el usuario.
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
@@ -425,28 +444,57 @@ export default function RespuestasFormularioAdminPage() {
             <div className="max-h-[75vh] overflow-y-auto p-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">{prettyTipo(selectedItem.tipoFormulario)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Tipo
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    {prettyTipo(selectedItem.tipoFormulario)}
+                  </p>
                 </div>
+
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estado</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">{selectedItem.estado}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Estado
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    {selectedItem.estado}
+                  </p>
                 </div>
+
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">{selectedItem.nombre || "—"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Nombre
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    {selectedItem.nombre || "—"}
+                  </p>
                 </div>
+
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Correo</p>
-                  <p className="mt-1 break-all text-sm font-medium text-slate-900">{selectedItem.correo || "—"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Correo
+                  </p>
+                  <p className="mt-1 break-all text-sm font-medium text-slate-900">
+                    {selectedItem.correo || "—"}
+                  </p>
                 </div>
+
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Teléfono</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">{selectedItem.telefono || "—"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Teléfono
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    {selectedItem.telefono || "—"}
+                  </p>
                 </div>
+
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fecha de envío</p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">{formatDate(selectedItem.createdAt)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Fecha de envío
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    {formatDate(selectedItem.createdAt)}
+                  </p>
                 </div>
               </div>
 
@@ -454,7 +502,9 @@ export default function RespuestasFormularioAdminPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Contenido del formulario
                 </p>
-                <div className="mt-3">{renderPayloadFields(selectedItem.payload)}</div>
+                <div className="mt-3">
+                  {renderPayloadFields(selectedItem.payload)}
+                </div>
               </div>
             </div>
 
