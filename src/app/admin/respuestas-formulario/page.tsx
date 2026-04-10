@@ -66,10 +66,7 @@ function renderPayloadFields(payload: Record<string, any>) {
   return (
     <div className="space-y-4">
       {entries.map(([key, value]) => (
-        <div
-          key={key}
-          className="rounded-xl border border-slate-200 bg-white p-4"
-        >
+        <div key={key} className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {prettyPayloadKey(key)}
           </p>
@@ -83,6 +80,7 @@ function renderPayloadFields(payload: Record<string, any>) {
 }
 
 type EstadoFormulario = "PENDIENTE" | "REVISADO" | "RESPONDIDO";
+type ModoVista = EstadoFormulario | "VOLUNTARIADO" | "CONTACTO";
 
 type RespuestaFormularioItem = {
   id: string;
@@ -100,22 +98,30 @@ export default function RespuestasFormularioAdminPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState("");
-  const [tipoFormulario, setTipoFormulario] = useState("");
-  const [selectedItem, setSelectedItem] =
-    useState<RespuestaFormularioItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<RespuestaFormularioItem | null>(null);
+  const [modoVista, setModoVista] = useState<ModoVista>("PENDIENTE");
 
-  const [estadoActivo, setEstadoActivo] =
-    useState<EstadoFormulario>("PENDIENTE");
+  // Derivar estado y tipoFormulario según el modo activo
+  const estadoActivo = (["PENDIENTE", "REVISADO", "RESPONDIDO"].includes(modoVista)
+    ? modoVista
+    : undefined) as EstadoFormulario | undefined;
+
+  const tipoFormularioActivo =
+    modoVista === "VOLUNTARIADO"
+      ? "VOLUNTARIADO"
+      : modoVista === "CONTACTO"
+      ? "CONTACTO"
+      : undefined;
 
   const params = useMemo(
     () => ({
       page,
       limit,
       search: search.trim() || undefined,
-      tipoFormulario: tipoFormulario || undefined,
+      tipoFormulario: tipoFormularioActivo,
       estado: estadoActivo,
     }),
-    [page, limit, search, tipoFormulario, estadoActivo]
+    [page, limit, search, tipoFormularioActivo, estadoActivo]
   );
 
   const { data, isLoading, isError, error } = useRespuestasFormulario(params);
@@ -125,17 +131,33 @@ export default function RespuestasFormularioAdminPage() {
   const meta = data?.meta;
 
   function handleChangeEstado(id: string, nuevoEstado: EstadoFormulario) {
-    updateEstado.mutate({
-      id,
-      estado: nuevoEstado,
-    });
+    updateEstado.mutate({ id, estado: nuevoEstado });
   }
 
   function handleClearFilters() {
     setPage(1);
     setSearch("");
-    setTipoFormulario("");
   }
+
+  function handleTabClick(modo: ModoVista) {
+    setModoVista(modo);
+    setPage(1);
+  }
+
+  const tabBaseClass = "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
+  const tabActiveClass = "bg-blue-600 text-white hover:bg-blue-700";
+
+  function tabClass(modo: ModoVista) {
+    return modoVista === modo ? tabActiveClass : tabBaseClass;
+  }
+
+  const tituloSeccion = {
+    PENDIENTE: "Formularios Pendientes",
+    REVISADO: "Formularios Revisados",
+    RESPONDIDO: "Formularios Respondidos",
+    VOLUNTARIADO: "Formularios de Voluntariado",
+    CONTACTO: "Formularios de Contáctenos",
+  }[modoVista];
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -143,7 +165,6 @@ export default function RespuestasFormularioAdminPage() {
         <h1 className="text-center text-3xl font-bold text-slate-900">
           Bienvenido al área Gestión de Respuestas de Formularios
         </h1>
-
         <div className="mt-6">
           <Link href="/admin">
             <Button variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -154,50 +175,27 @@ export default function RespuestasFormularioAdminPage() {
         </div>
       </section>
 
-      <section className="mb-6">
-        <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            onClick={() => {
-              setEstadoActivo("PENDIENTE");
-              setPage(1);
-            }}
-            className={
-              estadoActivo === "PENDIENTE"
-                ? "bg-amber-600 text-white hover:bg-amber-700"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
-          >
+      {/* Tabs — dos filas centradas */}
+      <section className="mb-6 flex flex-col items-center gap-3">
+        {/* Fila 1: Voluntariado y Contáctenos */}
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button type="button" onClick={() => handleTabClick("VOLUNTARIADO")} className={tabClass("VOLUNTARIADO")}>
+            Voluntariado
+          </Button>
+          <Button type="button" onClick={() => handleTabClick("CONTACTO")} className={tabClass("CONTACTO")}>
+            Contáctenos
+          </Button>
+        </div>
+
+        {/* Fila 2: Pendientes, Revisados, Respondidos */}
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button type="button" onClick={() => handleTabClick("PENDIENTE")} className={tabClass("PENDIENTE")}>
             Pendientes
           </Button>
-
-          <Button
-            type="button"
-            onClick={() => {
-              setEstadoActivo("REVISADO");
-              setPage(1);
-            }}
-            className={
-              estadoActivo === "REVISADO"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
-          >
+          <Button type="button" onClick={() => handleTabClick("REVISADO")} className={tabClass("REVISADO")}>
             Revisados
           </Button>
-
-          <Button
-            type="button"
-            onClick={() => {
-              setEstadoActivo("RESPONDIDO");
-              setPage(1);
-            }}
-            className={
-              estadoActivo === "RESPONDIDO"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
-          >
+          <Button type="button" onClick={() => handleTabClick("RESPONDIDO")} className={tabClass("RESPONDIDO")}>
             Respondidos
           </Button>
         </div>
@@ -205,11 +203,7 @@ export default function RespuestasFormularioAdminPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">
-            {estadoActivo === "PENDIENTE" && "Formularios Pendientes"}
-            {estadoActivo === "REVISADO" && "Formularios Revisados"}
-            {estadoActivo === "RESPONDIDO" && "Formularios Respondidos"}
-          </h2>
+          <h2 className="text-2xl font-bold text-slate-900">{tituloSeccion}</h2>
           <p className="text-slate-500">
             Visualiza, filtra y gestiona las respuestas enviadas desde los formularios públicos.
           </p>
@@ -221,29 +215,9 @@ export default function RespuestasFormularioAdminPage() {
               type="text"
               placeholder="Buscar por nombre, correo o teléfono"
               value={search}
-              onChange={(e) => {
-                setPage(1);
-                setSearch(e.target.value);
-              }}
+              onChange={(e) => { setPage(1); setSearch(e.target.value); }}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
             />
-          </div>
-
-          <div>
-            <select
-              value={tipoFormulario}
-              onChange={(e) => {
-                setPage(1);
-                setTipoFormulario(e.target.value);
-              }}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
-            >
-              <option value="">Todos los tipos</option>
-              <option value="CONTACTO">Contacto</option>
-              <option value="VOLUNTARIADO">Voluntariado</option>
-              <option value="ALIANZA">Alianza</option>
-              <option value="COMENTARIO">Comentario</option>
-            </select>
           </div>
 
           <div>
@@ -282,7 +256,6 @@ export default function RespuestasFormularioAdminPage() {
                   <th className="px-4 py-3 font-semibold text-slate-800">Detalle</th>
                 </tr>
               </thead>
-
               <tbody>
                 {items.length === 0 ? (
                   <tr>
@@ -300,12 +273,7 @@ export default function RespuestasFormularioAdminPage() {
                       <td className="px-4 py-3">
                         <select
                           value={item.estado}
-                          onChange={(e) =>
-                            handleChangeEstado(
-                              item.id,
-                              e.target.value as EstadoFormulario
-                            )
-                          }
+                          onChange={(e) => handleChangeEstado(item.id, e.target.value as EstadoFormulario)}
                           className="rounded border border-slate-300 px-2 py-1"
                         >
                           <option value="PENDIENTE">Pendiente</option>
@@ -338,7 +306,6 @@ export default function RespuestasFormularioAdminPage() {
             <div className="text-sm text-slate-600">
               Página {meta.page} de {meta.totalPages} · Total: {meta.total}
             </div>
-
             <div className="flex gap-2">
               <button
                 type="button"
@@ -348,7 +315,6 @@ export default function RespuestasFormularioAdminPage() {
               >
                 Anterior
               </button>
-
               <button
                 type="button"
                 disabled={meta.page >= meta.totalPages}
@@ -367,14 +333,11 @@ export default function RespuestasFormularioAdminPage() {
           <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 p-6">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  Detalle del formulario
-                </h3>
+                <h3 className="text-xl font-bold text-slate-900">Detalle del formulario</h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Revisa toda la información enviada por el usuario.
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
@@ -387,57 +350,28 @@ export default function RespuestasFormularioAdminPage() {
             <div className="max-h-[75vh] overflow-y-auto p-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Tipo
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    {prettyTipo(selectedItem.tipoFormulario)}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{prettyTipo(selectedItem.tipoFormulario)}</p>
                 </div>
-
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Estado
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    {selectedItem.estado}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estado</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{selectedItem.estado}</p>
                 </div>
-
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Nombre
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    {selectedItem.nombre || "—"}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{selectedItem.nombre || "—"}</p>
                 </div>
-
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Correo
-                  </p>
-                  <p className="mt-1 break-all text-sm font-medium text-slate-900">
-                    {selectedItem.correo || "—"}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Correo</p>
+                  <p className="mt-1 break-all text-sm font-medium text-slate-900">{selectedItem.correo || "—"}</p>
                 </div>
-
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Teléfono
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    {selectedItem.telefono || "—"}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Teléfono</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{selectedItem.telefono || "—"}</p>
                 </div>
-
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Fecha de envío
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    {formatDate(selectedItem.createdAt)}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fecha de envío</p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">{formatDate(selectedItem.createdAt)}</p>
                 </div>
               </div>
 
@@ -445,10 +379,7 @@ export default function RespuestasFormularioAdminPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Contenido del formulario
                 </p>
-
-                <div className="mt-3">
-                  {renderPayloadFields(selectedItem.payload)}
-                </div>
+                <div className="mt-3">{renderPayloadFields(selectedItem.payload)}</div>
               </div>
             </div>
 
