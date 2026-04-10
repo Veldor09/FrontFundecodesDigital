@@ -24,7 +24,6 @@ export function DocumentsManager() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  /* proyectos que ya tienen docs (para el filtro) */
   const programas = Array.from(new Set(documents.map((d) => d.programa))).sort()
 
   async function load() {
@@ -37,7 +36,6 @@ export function DocumentsManager() {
     }
   }
 
-  /* carga inicial */
   useEffect(() => {
     load()
     ProjectsService.list()
@@ -45,7 +43,6 @@ export function DocumentsManager() {
       .catch(() => setProjects([]))
   }, [])
 
-  /* filtros */
   useEffect(() => {
     let filtered = documents
     if (filters.programa !== "todos") filtered = filtered.filter((doc) => doc.programa === filters.programa)
@@ -53,7 +50,6 @@ export function DocumentsManager() {
     setFilteredDocuments(filtered)
   }, [filters, documents])
 
-  /* subida */
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault()
     const file = fileInputRef.current?.files?.[0]
@@ -80,7 +76,6 @@ export function DocumentsManager() {
     }
   }
 
-  /* descarga */
   const handleDownload = (doc: Document) => {
     try {
       const link = document.createElement("a")
@@ -95,7 +90,6 @@ export function DocumentsManager() {
     }
   }
 
-  /* mensajes automáticos */
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(null), 3000)
@@ -103,7 +97,6 @@ export function DocumentsManager() {
     }
   }, [message])
 
-  /* helpers */
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes"
     const k = 1024
@@ -120,7 +113,8 @@ export function DocumentsManager() {
           <CardTitle>Gestión de Documentos</CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) { setUploadData({ programa: "", mes: "", año: new Date().getFullYear() }); setMessage(null) } }}>
             <DialogTrigger asChild>
-              <Button>
+              {/* Botón 1: azul */}
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                 <Upload className="h-4 w-4 mr-2" />
                 Subir Documento
               </Button>
@@ -130,14 +124,12 @@ export function DocumentsManager() {
                 <DialogTitle>Subir Nuevo Documento</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleFileUpload} className="space-y-4">
-                {/* archivo */}
                 <div>
                   <Label htmlFor="file">Archivo *</Label>
                   <Input ref={fileInputRef} id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" required />
                   <p className="text-sm text-muted-foreground mt-1">Formatos permitidos: PDF, JPG, PNG, Excel. Máximo 10MB.</p>
                 </div>
 
-                {/* proyecto → select con todos los proyectos */}
                 <div>
                   <Label htmlFor="proyecto">Proyecto *</Label>
                   <select
@@ -149,14 +141,11 @@ export function DocumentsManager() {
                   >
                     <option value="">Seleccionar proyecto</option>
                     {projects.map((p) => (
-                      <option key={p.id} value={p.title}>
-                        {p.title}
-                      </option>
+                      <option key={p.id} value={p.title}>{p.title}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* mes */}
                 <div>
                   <Label htmlFor="mes">Mes *</Label>
                   <select
@@ -168,14 +157,11 @@ export function DocumentsManager() {
                   >
                     <option value="">Seleccionar mes</option>
                     {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
+                      <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* año */}
                 <div>
                   <Label htmlFor="anio">Año</Label>
                   <Input
@@ -189,7 +175,8 @@ export function DocumentsManager() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                {/* Botón 2: azul */}
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
                   {loading ? "Subiendo..." : "Subir Documento"}
                 </Button>
               </form>
@@ -197,7 +184,6 @@ export function DocumentsManager() {
           </Dialog>
         </div>
 
-        {/* mensajes */}
         {message && (
           <div className={`flex items-center gap-2 p-3 rounded-md mt-3 ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
             {message.type === "success" ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
@@ -205,7 +191,6 @@ export function DocumentsManager() {
           </div>
         )}
 
-        {/* filtros */}
         <div className="flex gap-6 flex-wrap items-end mt-4">
           <div className="min-w-[200px]">
             <Label className="text-sm font-medium mb-2 block">Programa</Label>
@@ -216,9 +201,7 @@ export function DocumentsManager() {
             >
               <option value="todos">Todos los programas</option>
               {programas.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
+                <option key={p} value={p}>{p}</option>
               ))}
             </select>
           </div>
@@ -232,15 +215,15 @@ export function DocumentsManager() {
             >
               <option value="todos">Todos los meses</option>
               {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
+                <option key={m} value={m}>{m}</option>
               ))}
             </select>
           </div>
         </div>
 
-        <div className="text-sm text-muted-foreground mt-2">Mostrando {filteredDocuments.length} de {documents.length} documentos</div>
+        <div className="text-sm text-muted-foreground mt-2">
+          Mostrando {filteredDocuments.length} de {documents.length} documentos
+        </div>
       </CardHeader>
 
       <CardContent>

@@ -44,6 +44,7 @@ export default function ProjectFilesModal({ open, onOpenChange, projectId }: Pro
             Omitir
           </Button>
           <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white"
             onClick={() => {
               setClosing(true);
               onOpenChange(false);
