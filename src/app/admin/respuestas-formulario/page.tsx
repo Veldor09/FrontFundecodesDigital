@@ -20,7 +20,7 @@ function formatDate(date: string) {
 function prettyTipo(tipo: string) {
   switch (tipo) {
     case "CONTACTO":
-      return "Contacto";
+      return "Contáctenos";
     case "VOLUNTARIADO":
       return "Voluntariado";
     case "ALIANZA":
@@ -79,8 +79,9 @@ function renderPayloadFields(payload: Record<string, any>) {
   );
 }
 
-type EstadoFormulario = "PENDIENTE" | "REVISADO" | "RESPONDIDO";
-type ModoVista = EstadoFormulario | "VOLUNTARIADO" | "CONTACTO";
+
+type EstadoFormulario = "PENDIENTE" | "ACEPTADO" | "RECHAZADO";
+type TipoGestionFormulario = "CONTACTO" | "VOLUNTARIADO";
 
 type RespuestaFormularioItem = {
   id: string;
@@ -98,30 +99,26 @@ export default function RespuestasFormularioAdminPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState("");
-  const [selectedItem, setSelectedItem] = useState<RespuestaFormularioItem | null>(null);
-  const [modoVista, setModoVista] = useState<ModoVista>("PENDIENTE");
 
-  // Derivar estado y tipoFormulario según el modo activo
-  const estadoActivo = (["PENDIENTE", "REVISADO", "RESPONDIDO"].includes(modoVista)
-    ? modoVista
-    : undefined) as EstadoFormulario | undefined;
+  const [selectedItem, setSelectedItem] =
+    useState<RespuestaFormularioItem | null>(null);
 
-  const tipoFormularioActivo =
-    modoVista === "VOLUNTARIADO"
-      ? "VOLUNTARIADO"
-      : modoVista === "CONTACTO"
-      ? "CONTACTO"
-      : undefined;
+  const [tipoActivo, setTipoActivo] =
+    useState<TipoGestionFormulario>("CONTACTO");
+
+  const [estadoActivo, setEstadoActivo] =
+    useState<EstadoFormulario>("PENDIENTE");
 
   const params = useMemo(
     () => ({
       page,
       limit,
       search: search.trim() || undefined,
-      tipoFormulario: tipoFormularioActivo,
+
+      tipoFormulario: tipoActivo,
       estado: estadoActivo,
     }),
-    [page, limit, search, tipoFormularioActivo, estadoActivo]
+    [page, limit, search, tipoActivo, estadoActivo]
   );
 
   const { data, isLoading, isError, error } = useRespuestasFormulario(params);
@@ -175,41 +172,115 @@ export default function RespuestasFormularioAdminPage() {
         </div>
       </section>
 
-      {/* Tabs — dos filas centradas */}
-      <section className="mb-6 flex flex-col items-center gap-3">
-        {/* Fila 1: Voluntariado y Contáctenos */}
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button type="button" onClick={() => handleTabClick("VOLUNTARIADO")} className={tabClass("VOLUNTARIADO")}>
+
+      {/* TABS TIPO FORMULARIO */}
+      <section className="mb-4">
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            onClick={() => {
+              setTipoActivo("CONTACTO");
+              setPage(1);
+            }}
+            className={
+              tipoActivo === "CONTACTO"
+                ? "bg-sky-700 text-white hover:bg-sky-800"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }
+          >
+            Contáctenos
+          </Button>
+
+          <Button
+            type="button"
+            onClick={() => {
+              setTipoActivo("VOLUNTARIADO");
+              setPage(1);
+            }}
+            className={
+              tipoActivo === "VOLUNTARIADO"
+                ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }
+          >
             Voluntariado
+          </Button>
+        </div>
+      </section>
+
+      {/* TABS ESTADO */}
+      <section className="mb-6">
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            onClick={() => {
+              setEstadoActivo("PENDIENTE");
+              setPage(1);
+            }}
+            className={
+              estadoActivo === "PENDIENTE"
+                ? "bg-amber-600 text-white hover:bg-amber-700"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }
+          >
+            Pendientes
           </Button>
           <Button type="button" onClick={() => handleTabClick("CONTACTO")} className={tabClass("CONTACTO")}>
             Contáctenos
           </Button>
         </div>
 
-        {/* Fila 2: Pendientes, Revisados, Respondidos */}
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button type="button" onClick={() => handleTabClick("PENDIENTE")} className={tabClass("PENDIENTE")}>
-            Pendientes
+          <Button
+            type="button"
+            onClick={() => {
+              setEstadoActivo("ACEPTADO");
+              setPage(1);
+            }}
+            className={
+              estadoActivo === "ACEPTADO"
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }
+          >
+            Aceptados
           </Button>
-          <Button type="button" onClick={() => handleTabClick("REVISADO")} className={tabClass("REVISADO")}>
-            Revisados
-          </Button>
-          <Button type="button" onClick={() => handleTabClick("RESPONDIDO")} className={tabClass("RESPONDIDO")}>
-            Respondidos
+
+          <Button
+            type="button"
+            onClick={() => {
+              setEstadoActivo("RECHAZADO");
+              setPage(1);
+            }}
+            className={
+              estadoActivo === "RECHAZADO"
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }
+          >
+            Rechazados
           </Button>
         </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">{tituloSeccion}</h2>
+          <h2 className="text-2xl font-bold text-slate-900">
+            {tipoActivo === "CONTACTO" && estadoActivo === "PENDIENTE" && "Formularios de Contáctenos Pendientes"}
+            {tipoActivo === "CONTACTO" && estadoActivo === "ACEPTADO" && "Formularios de Contáctenos Aceptados"}
+            {tipoActivo === "CONTACTO" && estadoActivo === "RECHAZADO" && "Formularios de Contáctenos Rechazados"}
+
+            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "PENDIENTE" && "Formularios de Voluntariado Pendientes"}
+            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "ACEPTADO" && "Formularios de Voluntariado Aceptados"}
+            {tipoActivo === "VOLUNTARIADO" && estadoActivo === "RECHAZADO" && "Formularios de Voluntariado Rechazados"}
+          </h2>
+
           <p className="text-slate-500">
             Visualiza, filtra y gestiona las respuestas enviadas desde los formularios públicos.
           </p>
         </div>
 
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
+        {/* FILTROS */}
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
           <div>
             <input
               type="text"
@@ -231,6 +302,7 @@ export default function RespuestasFormularioAdminPage() {
           </div>
         </div>
 
+        {/* TABLA */}
         {isLoading ? (
           <div className="rounded-lg border border-slate-200 p-4 text-slate-600">
             Cargando respuestas...
@@ -270,6 +342,7 @@ export default function RespuestasFormularioAdminPage() {
                       <td className="px-4 py-3">{item.nombre || "—"}</td>
                       <td className="px-4 py-3">{item.correo || "—"}</td>
                       <td className="px-4 py-3">{item.telefono || "—"}</td>
+
                       <td className="px-4 py-3">
                         <select
                           value={item.estado}
@@ -277,10 +350,11 @@ export default function RespuestasFormularioAdminPage() {
                           className="rounded border border-slate-300 px-2 py-1"
                         >
                           <option value="PENDIENTE">Pendiente</option>
-                          <option value="REVISADO">Revisado</option>
-                          <option value="RESPONDIDO">Respondido</option>
+                          <option value="ACEPTADO">Aceptado</option>
+                          <option value="RECHAZADO">Rechazado</option>
                         </select>
                       </td>
+
                       <td className="px-4 py-3">{formatDate(item.createdAt)}</td>
                       <td className="px-4 py-3">
                         <Button
@@ -328,6 +402,7 @@ export default function RespuestasFormularioAdminPage() {
         ) : null}
       </section>
 
+      {/* MODAL */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl">

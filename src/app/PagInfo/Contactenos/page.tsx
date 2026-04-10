@@ -1,56 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Send, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import Header from "@/app/landing/components/Header";
 import Footer from "@/app/landing/components/Footer";
+import ContactForm from "./ContactForm";
 
 export default function ContactenosPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    message: "",
-  });
-  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus("sending");
-
-    try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        setStatus("success");
-        setFormData({ name: "", email: "", message: "" });
-        setTimeout(() => setStatus("idle"), 3000);
-      } else {
-        setStatus("error");
-      }
-    } catch (error) {
-      setStatus("error");
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
   const contactInfo = [
     {
       icon: Phone,
@@ -122,7 +77,9 @@ export default function ContactenosPage() {
                 key={index}
                 className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-100 hover:border-slate-200 group"
               >
-                <div className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                <div
+                  className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
+                >
                   <item.icon className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-medium text-slate-500 mb-1">{item.title}</h3>
@@ -139,107 +96,7 @@ export default function ContactenosPage() {
             <div className="lg:col-span-3">
               <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-8 lg:p-10">
-                  <div className="flex items-center gap-3 mb-8">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/25">
-                      <Send className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900">
-                        Envíanos un mensaje
-                      </h2>
-                      <p className="text-slate-500 text-sm">Te responderemos lo antes posible</p>
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="text-slate-700 font-medium text-sm">
-                            Nombre completo <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="name"
-                            name="name"
-                            type="text"
-                            placeholder="Ej: Juan Pérez"
-                            value={formData.name}
-                            onChange={handleChange}
-                            required
-                            className="h-12 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-green-500 focus:ring-green-500/20 rounded-xl transition-all duration-200"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="text-slate-700 font-medium text-sm">
-                            Correo electrónico <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            placeholder="tu@email.com"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                            className="h-12 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-green-500 focus:ring-green-500/20 rounded-xl transition-all duration-200"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="message" className="text-slate-700 font-medium text-sm">
-                          Tu mensaje <span className="text-red-500">*</span>
-                        </Label>
-                        <Textarea
-                          id="message"
-                          name="message"
-                          placeholder="Cuéntanos en qué podemos ayudarte..."
-                          rows={6}
-                          value={formData.message}
-                          onChange={handleChange}
-                          required
-                          className="resize-none border-slate-200 bg-slate-50/50 focus:bg-white focus:border-green-500 focus:ring-green-500/20 rounded-xl transition-all duration-200"
-                        />
-                      </div>
-                    </div>
-
-                    {status === "success" && (
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        <p className="text-green-700 font-medium text-sm">
-                          Mensaje enviado correctamente. Te responderemos pronto.
-                        </p>
-                      </div>
-                    )}
-
-                    {status === "error" && (
-                      <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
-                        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                        <p className="text-red-700 font-medium text-sm">
-                          Error al enviar el mensaje. Por favor, intenta de nuevo.
-                        </p>
-                      </div>
-                    )}
-
-                    <Button
-                      type="submit"
-                      disabled={status === "sending"}
-                      className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold h-14 text-base rounded-xl transition-all duration-300 shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30"
-                    >
-                      {status === "sending" ? (
-                        <span className="flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                          Enviando...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <Send className="w-5 h-5" />
-                          Enviar mensaje
-                        </span>
-                      )}
-                    </Button>
-                  </form>
+                  <ContactForm />
                 </div>
               </div>
             </div>
