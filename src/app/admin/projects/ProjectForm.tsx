@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -149,6 +149,8 @@ function PresetSelectInput({
   minLength,
   required,
   onBlur,
+  isOpen,
+  onToggle,
 }: {
   label: string;
   value: string;
@@ -160,8 +162,9 @@ function PresetSelectInput({
   minLength?: number;
   required?: boolean;
   onBlur?: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const hasValue = value.trim().length > 0;
   const isValid = hasValue && !error;
 
@@ -171,14 +174,14 @@ function PresetSelectInput({
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className="flex gap-2 items-center">
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-w-0">
           <Input
             className={`pr-8 ${
-              error 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : isValid 
-                ? 'border-green-300 focus:border-green-500 focus:ring-green-500'
-                : 'border-gray-300'
+              error
+                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                : isValid
+                ? "border-green-300 focus:border-green-500 focus:ring-green-500"
+                : "border-gray-300"
             }`}
             value={value}
             placeholder={placeholder}
@@ -202,8 +205,8 @@ function PresetSelectInput({
         </div>
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
-          className="w-9 h-9 flex items-center justify-center rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+          onClick={onToggle}
+          className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
           aria-label="Seleccionar de la lista"
           title="Seleccionar de la lista"
         >
@@ -211,8 +214,9 @@ function PresetSelectInput({
         </button>
       </div>
 
-      {open && (
-        <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+      {/* FIX RESPONSIVE: left-0 + w-full en vez de right-0 + w-64 fijo */}
+      {isOpen && (
+        <div className="absolute left-0 mt-1 w-full min-w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg z-10">
           <ul className="max-h-48 overflow-y-auto">
             {options.map((o) => (
               <li
@@ -220,7 +224,7 @@ function PresetSelectInput({
                 className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer transition-colors"
                 onClick={() => {
                   onChange(o);
-                  setOpen(false);
+                  onToggle();
                 }}
               >
                 {o}
@@ -228,7 +232,7 @@ function PresetSelectInput({
             ))}
             <li
               className="px-3 py-2 text-sm text-gray-500 italic hover:bg-gray-50 cursor-pointer border-t"
-              onClick={() => setOpen(false)}
+              onClick={onToggle}
             >
               ✏️ Escribir otro manualmente
             </li>
@@ -268,9 +272,26 @@ export default function ProjectForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-
   const [projectFiles, setProjectFiles] = useState<any[]>([]);
   const [projectId, setProjectId] = useState<number>(initial?.id || 0);
+  const [openDropdown, setOpenDropdown] = useState<"category" | "place" | "area" | null>(null);
+
+  // FIX CLICK OUTSIDE: ref que envuelve el grid de los tres selectores
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    }
+    if (openDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdown]);
 
   useEffect(() => {
     if (!initial) return;
@@ -366,18 +387,23 @@ export default function ProjectForm({
     const isOverLimit = current > max;
     const isUnderMin = min && current > 0 && current < min;
     const isValid = current >= (min || 0) && current <= max;
-    
+
     return (
       <div className="flex items-center gap-1 mt-1">
         {isOverLimit && <AlertCircle className="w-3 h-3 text-red-500" />}
         {isUnderMin && <Info className="w-3 h-3 text-amber-500" />}
         {isValid && current > 0 && <CheckCircle2 className="w-3 h-3 text-green-500" />}
-        <span className={`text-xs ${
-          isOverLimit ? 'text-red-600 font-medium' : 
-          isUnderMin ? 'text-amber-600' : 
-          isValid && current > 0 ? 'text-green-600' :
-          'text-gray-500'
-        }`}>
+        <span
+          className={`text-xs ${
+            isOverLimit
+              ? "text-red-600 font-medium"
+              : isUnderMin
+              ? "text-amber-600"
+              : isValid && current > 0
+              ? "text-green-600"
+              : "text-gray-500"
+          }`}
+        >
           {current}/{max}{min ? ` (mín: ${min})` : ""}
         </span>
       </div>
@@ -388,10 +414,10 @@ export default function ProjectForm({
   const getInputClassName = (fieldName: keyof FormState, hasValue: boolean) => {
     const hasError = errors[fieldName];
     const isTouched = touched[fieldName];
-    
-    if (hasError) return 'border-red-300 focus:border-red-500 focus:ring-red-500';
-    if (isTouched && hasValue) return 'border-green-300 focus:border-green-500 focus:ring-green-500';
-    return 'border-gray-300 focus:border-blue-500 focus:ring-blue-500';
+
+    if (hasError) return "border-red-300 focus:border-red-500 focus:ring-red-500";
+    if (isTouched && hasValue) return "border-green-300 focus:border-green-500 focus:ring-green-500";
+    return "border-gray-300 focus:border-blue-500 focus:ring-blue-500";
   };
 
   return (
@@ -404,7 +430,7 @@ export default function ProjectForm({
           </label>
           <div className="relative">
             <Input
-              className={`pr-8 ${getInputClassName('title', form.title.length > 0)}`}
+              className={`pr-8 ${getInputClassName("title", form.title.length > 0)}`}
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               onBlur={() => validateField("title")}
@@ -434,8 +460,8 @@ export default function ProjectForm({
           <CharacterCounter current={form.title.length} max={LIMITS.title.max} min={LIMITS.title.min} />
         </div>
 
-        {/* Grid de selectores */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        {/* FIX: Grid con ref para detectar clicks fuera */}
+        <div className="grid sm:grid-cols-3 gap-4" ref={dropdownRef}>
           <div>
             <PresetSelectInput
               label="Categoría"
@@ -448,6 +474,8 @@ export default function ProjectForm({
               maxLength={LIMITS.select.max}
               minLength={LIMITS.select.min}
               required
+              isOpen={openDropdown === "category"}
+              onToggle={() => setOpenDropdown(openDropdown === "category" ? null : "category")}
             />
             <CharacterCounter current={form.category.length} max={LIMITS.select.max} min={LIMITS.select.min} />
           </div>
@@ -464,6 +492,8 @@ export default function ProjectForm({
               maxLength={LIMITS.select.max}
               minLength={LIMITS.select.min}
               required
+              isOpen={openDropdown === "place"}
+              onToggle={() => setOpenDropdown(openDropdown === "place" ? null : "place")}
             />
             <CharacterCounter current={form.place.length} max={LIMITS.select.max} min={LIMITS.select.min} />
           </div>
@@ -480,6 +510,8 @@ export default function ProjectForm({
               maxLength={LIMITS.select.max}
               minLength={LIMITS.select.min}
               required
+              isOpen={openDropdown === "area"}
+              onToggle={() => setOpenDropdown(openDropdown === "area" ? null : "area")}
             />
             <CharacterCounter current={form.area.length} max={LIMITS.select.max} min={LIMITS.select.min} />
           </div>
@@ -518,7 +550,7 @@ export default function ProjectForm({
               className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
             />
             <label htmlFor="published" className="text-sm font-medium text-gray-700 select-none cursor-pointer">
-              {form.published ? ' Publicado' : 'No publicado'}
+              {form.published ? " Publicado" : "No publicado"}
             </label>
           </div>
         </div>
@@ -528,7 +560,7 @@ export default function ProjectForm({
           <label className="text-sm font-medium text-gray-700">URL de portada</label>
           <div className="relative">
             <Input
-              className={getInputClassName('coverUrl', (form.coverUrl ?? '').length > 0)}
+              className={getInputClassName("coverUrl", (form.coverUrl ?? "").length > 0)}
               value={form.coverUrl ?? ""}
               onChange={(e) => set("coverUrl", e.target.value)}
               onBlur={() => validateField("coverUrl")}
@@ -553,7 +585,7 @@ export default function ProjectForm({
           <label className="text-sm font-medium text-gray-700">Resumen (opcional)</label>
           <div className="relative">
             <Input
-              className={getInputClassName('summary', (form.summary ?? '').length > 0)}
+              className={getInputClassName("summary", (form.summary ?? "").length > 0)}
               value={form.summary ?? ""}
               onChange={(e) => set("summary", e.target.value)}
               onBlur={() => validateField("summary")}
@@ -577,7 +609,7 @@ export default function ProjectForm({
         <div>
           <label className="text-sm font-medium text-gray-700">Contenido (opcional)</label>
           <textarea
-            className={`border rounded-md px-3 py-2 w-full min-h-[120px] focus:outline-none focus:ring-2 ${getInputClassName('content', (form.content ?? '').length > 0)}`}
+            className={`border rounded-md px-3 py-2 w-full min-h-[120px] focus:outline-none focus:ring-2 ${getInputClassName("content", (form.content ?? "").length > 0)}`}
             value={form.content ?? ""}
             onChange={(e) => set("content", e.target.value)}
             onBlur={() => validateField("content")}
@@ -621,16 +653,16 @@ export default function ProjectForm({
 
         {/* Botones de acción */}
         <div className="flex gap-3 justify-end pt-4 border-t">
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={onCancel}
             className="px-6"
           >
             Cancelar
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={busy}
             className="px-6 bg-blue-600 hover:bg-blue-700 text-white"
           >
@@ -639,8 +671,10 @@ export default function ProjectForm({
                 <span className="animate-spin">⏳</span>
                 Guardando…
               </span>
+            ) : mode === "create" ? (
+              "Siguiente"
             ) : (
-              mode === "create" ? "Siguiente" : "Guardar cambios"
+              "Guardar cambios"
             )}
           </Button>
         </div>

@@ -73,20 +73,19 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
 
   async function load() {
     const data = await TransactionService.getTransactions()
-   setTransactions(
-  data.map((t) => ({
-    id: t.id,
-    tipo: t.tipo,
-    categoria: t.categoria,
-    descripcion: t.descripcion,
-    programa: t.programa ?? "",
-    monto: t.monto,
-    moneda: (["CRC", "USD", "EUR"].includes(t.moneda) ? t.moneda : "CRC") as "CRC" | "USD" | "EUR",
-    fecha: new Date(t.fecha).toISOString().slice(0, 10),
-    fechaCreacion: new Date(t.fechaCreacion).toISOString(),
-  })),
-);
-
+    setTransactions(
+      data.map((t) => ({
+        id: t.id,
+        tipo: t.tipo,
+        categoria: t.categoria,
+        descripcion: t.descripcion,
+        programa: t.programa ?? "",
+        monto: t.monto,
+        moneda: (["CRC", "USD", "EUR"].includes(t.moneda) ? t.moneda : "CRC") as "CRC" | "USD" | "EUR",
+        fecha: new Date(t.fecha).toISOString().slice(0, 10),
+        fechaCreacion: new Date(t.fechaCreacion).toISOString(),
+      })),
+    )
   }
 
   useEffect(() => {
@@ -124,27 +123,6 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
     return matchesProject && matchesTipo && matchesCategoria && matchesFechaDesde && matchesFechaHasta
   })
 
-  const totals = filteredTransactions.reduce(
-    (acc, t) => {
-      const currency = t.moneda || "CRC"
-      if (!acc[currency]) {
-        acc[currency] = { ingresos: 0, egresos: 0, balance: 0 }
-      }
-      if (t.tipo === "ingreso") {
-        acc[currency].ingresos += t.monto
-      } else {
-        acc[currency].egresos += t.monto
-      }
-      acc[currency].balance = acc[currency].ingresos - acc[currency].egresos
-      return acc
-    },
-    {} as Record<string, { ingresos: number; egresos: number; balance: number }>,
-  )
-
-  const activeCurrencies = Object.keys(totals).filter((c) => totals[c].ingresos > 0 || totals[c].egresos > 0)
-  const allCurrencies = ["CRC", "USD", "EUR"]
-  const displayCurrencies = activeCurrencies.length > 0 ? activeCurrencies : allCurrencies
-
   const categoriaCharCount = (newTransaction.categoria || "").length
   const descripcionCharCount = (newTransaction.descripcion || "").length
 
@@ -158,14 +136,12 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
     const target = e.target as HTMLInputElement | HTMLTextAreaElement
     let selectionLen = 0
 
-    // Calcular longitud de selección
     try {
       if (typeof target.selectionStart === "number" && typeof target.selectionEnd === "number") {
         selectionLen = Math.max(0, target.selectionEnd - target.selectionStart)
       }
     } catch {}
 
-    // Longitud resultante si pegamos completo
     const resulting = current.length - selectionLen + pasted.length
     if (resulting > max) {
       e.preventDefault()
@@ -183,7 +159,6 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
 
       setNewTransaction({ ...newTransaction, [field]: valueAfter })
 
-      // Limpiar error si existe
       if (formErrors[field as string]) {
         setFormErrors({ ...formErrors, [field as string]: "" })
       }
@@ -245,9 +220,7 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
         programa: newTransaction.programa!,
         moneda: newTransaction.moneda!,
       }
-      await TransactionService.updateTransaction(editingId!, {
-        ...payload,
-      })
+      await TransactionService.updateTransaction(editingId!, { ...payload })
     } else {
       const payload: Omit<Transaction, "id" | "fechaCreacion"> = {
         tipo: newTransaction.tipo as "ingreso" | "egreso",
@@ -467,6 +440,7 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
           </Dialog>
         </div>
 
+        {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label>Tipo</Label>
@@ -508,36 +482,6 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
               onChange={(e) => setFilters({ ...filters, fechaHasta: e.target.value })}
             />
           </div>
-        </div>
-
-        <div className="space-y-4 mt-4">
-          {displayCurrencies.map((currency) => {
-            const data = totals[currency] || { ingresos: 0, egresos: 0, balance: 0 }
-
-            return (
-              <div key={currency}>
-                <div className="text-sm font-semibold text-gray-700 mb-2">
-                  {currency === "CRC" ? "₡ Colones (CRC)" : currency === "USD" ? "$ Dólares (USD)" : "€ Euros (EUR)"}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="text-sm text-green-600 font-medium">Total Ingresos</div>
-                    <div className="text-2xl font-bold text-green-700">{formatCurrency(data.ingresos, currency)}</div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                    <div className="text-sm text-red-600 font-medium">Total Egresos</div>
-                    <div className="text-2xl font-bold text-red-700">{formatCurrency(data.egresos, currency)}</div>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-sm text-blue-600 font-medium">Balance Neto</div>
-                    <div className={`text-2xl font-bold ${data.balance >= 0 ? "text-blue-700" : "text-red-700"}`}>
-                      {formatCurrency(data.balance, currency)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
         </div>
 
         <div className="text-sm text-gray-600 mt-2">
