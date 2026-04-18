@@ -2,9 +2,9 @@
 "use client";
 
 import axios from "axios";
+import { resolveApiOrigin } from "@/lib/api-origin";
 
-export const API_URL =
-  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+export const API_URL = resolveApiOrigin();
 
 export type ProjectOption = { id: number; title: string };
 

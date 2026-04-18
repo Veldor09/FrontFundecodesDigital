@@ -1,13 +1,13 @@
 // src/app/admin/Billing/services/axiosInstance.ts
 import axios from "axios";
+import { resolveApiOrigin } from "@/lib/api-origin";
 
 /**
  * Usa NEXT_PUBLIC_API_URL para tu backend Nest (ej: http://localhost:3000)
  * Asegúrate de definirlo en tu .env.local:
  * NEXT_PUBLIC_API_URL=http://localhost:3000
  */
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ?? "http://localhost:3000";
+export const API_URL = resolveApiOrigin();
 
 const axiosInstance = axios.create({
   baseURL: API_URL, // Usando API_URL en lugar de baseURL

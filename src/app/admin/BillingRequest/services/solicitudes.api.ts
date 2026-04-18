@@ -1,12 +1,12 @@
 "use client";
 
 import axiosInstance from "./axiosInstance";
+import { resolveApiOrigin } from "@/lib/api-origin";
 
 /* =========================
  * Configuración base
  * ========================= */
-export const API_URL =
-  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+export const API_URL = resolveApiOrigin();
 
 function authHeader() {
   const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;

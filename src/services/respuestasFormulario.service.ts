@@ -1,7 +1,7 @@
 import axios from "axios";
+import { resolveApiOrigin } from "@/lib/api-origin";
 
-const BASE_URL =
-  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+const BASE_URL = resolveApiOrigin();
 
 const API_URL = `${BASE_URL}/api`;
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, MessageSquare, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { resolveApiOrigin } from "@/lib/api-origin";
 
 type CommentStatus = "PENDIENTE" | "APROBADO" | "DENEGADO";
 
@@ -27,7 +28,7 @@ type CommentsResponse = {
   };
 };
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/comments`;
+const API_BASE = `${resolveApiOrigin()}/api/comments`;
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;

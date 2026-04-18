@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { DashboardMetrics } from "./components/DashboardMetrics";
 import { Button } from "@/components/ui/button";
+import { resolveApiOrigin } from "@/lib/api-origin";
 
 type Role =
   | "admin"
@@ -77,7 +78,7 @@ export default function AdminDashboardPage() {
 
   async function loadPendingCommentsCount() {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/comments/admin/pending-count`;
+      const url = `${resolveApiOrigin()}/api/comments/admin/pending-count`;
 
       const res = await fetch(url, {
         cache: "no-store",
@@ -96,7 +97,7 @@ export default function AdminDashboardPage() {
 
   async function loadPendingRespuestasFormulariosCount() {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/respuestas-formulario/pending-count`;
+      const url = `${resolveApiOrigin()}/api/respuestas-formulario/pending-count`;
 
       const res = await fetch(url, {
         cache: "no-store",

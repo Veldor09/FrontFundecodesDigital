@@ -1,10 +1,10 @@
 "use client";
 
 import axios from "axios";
+import { resolveApiOrigin } from "@/lib/api-origin";
 import type { Sancion, SancionCreateDTO, SancionUpdateDTO } from "../types/sancion";
 
-export const API_URL =
-  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+export const API_URL = resolveApiOrigin();
 
 function authHeader() {
   const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;

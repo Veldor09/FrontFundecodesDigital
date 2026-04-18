@@ -1,6 +1,7 @@
 "use client";
 
-import axios from "axios"; // para axios.isAxiosError
+import axios from "axios";
+import { resolveApiOrigin } from "@/lib/api-origin"; // para axios.isAxiosError
 import axiosInstance from "./axiosInstance";
 import type {
   CreatePaymentDto,
@@ -14,9 +15,7 @@ import { getSolicitud } from "../services/solicitudes.api";
    🔧 CONFIG GENERAL
 =========================================================== */
 
-export const API_URL =
-  (process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ??
-    "http://localhost:4000/api/") as string;
+export const API_URL = resolveApiOrigin();
 
 /** Headers automáticos con token localStorage si existe */
 function authHeader() {
