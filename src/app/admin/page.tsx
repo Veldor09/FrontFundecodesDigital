@@ -259,6 +259,7 @@ export default function AdminDashboardPage() {
     ],
     [pendingCommentsCount, pendingRespuestasFormulariosCount]
   );
+  
 
   const visibleModules = useMemo(() => {
     if (!role || role === "admin") return MODULES;
