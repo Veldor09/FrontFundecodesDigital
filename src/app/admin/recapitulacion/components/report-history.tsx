@@ -25,6 +25,8 @@ export default function ReportHistory({ reports, onLoadReport, onDeleteReport }:
   const reportTypeNames: Record<string, string> = {
     proyectos: "Proyectos",
     voluntariado: "Voluntariado",
+    programas: "Programas de voluntariado",
+    sanciones: "Sanciones",
     facturacion: "Facturación",
     solicitudes: "Solicitudes",
     colaboradores: "Colaboradores",

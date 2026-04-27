@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "../../services/auth.service";
 import AdminHeaderMinimal from "./components/AdminHeaderMinimal";
-import { AdminSidebar } from "./Sidebard/page";
+import { AdminSidebar } from "./_components/AdminSidebar";
 
 // Helpers locales para token
 function getToken(): string | null {

@@ -125,10 +125,31 @@ export function ProjectFilesManager({
 
   const handleDownloadFile = (file: ProjectFile) => {
     const filename = file.url.split("/").pop() || "";
-    window.open(
-      `http://localhost:4000/api/files/download/${encodeURIComponent(filename)}`,
-      "_blank"
-    );
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+    // Si el API base ya termina en /api no lo duplicamos
+    const apiRoot = base.endsWith("/api") ? base : `${base}/api`;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    // download protegido con JWT — usamos fetch para poder enviar el header
+    fetch(`${apiRoot}/files/download/${encodeURIComponent(filename)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al descargar");
+        return res.blob();
+      })
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      })
+      .catch((err) => alert(err?.message || "No se pudo descargar el archivo"));
   };
 
   const handlePreviewFile = (file: ProjectFile) => {
@@ -138,10 +159,25 @@ export function ProjectFilesManager({
       return;
     }
     if (file.mimeType.startsWith("image/") || file.mimeType === "application/pdf") {
-      window.open(
-        `http://localhost:4000/api/files/preview/${encodeURIComponent(filename)}`,
-        "_blank"
-      );
+      const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+      const apiRoot = base.endsWith("/api") ? base : `${base}/api`;
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+      fetch(`${apiRoot}/files/preview/${encodeURIComponent(filename)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Error al previsualizar");
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          window.open(url, "_blank");
+          // liberamos el object URL pasado un tiempo razonable
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        })
+        .catch((err) => alert(err?.message || "No se pudo previsualizar"));
     } else {
       alert("Vista previa no disponible para este tipo de archivo");
     }

@@ -177,7 +177,7 @@ export default function InformationalAdminPage() {
             />
             <section className="bg-[#1e3a8a] text-white px-4 py-10 space-y-10">
               <div className="max-w-7xl mx-auto">
-                <ProjectPortfolio projects={data.projects} />
+                <ProjectPortfolio />
                 <div className="mt-10">
                   <PhotoCarousel photos={data.collaborators.map((c) => ({ id: c.id, src: c.photoUrl, alt: c.name }))} />
                 </div>
@@ -364,7 +364,14 @@ function CommentEditRow({ comment, onChange, onToggle, onDelete }: any) {
   );
 }
 
-function SelectField({ label, options, value, onChange }: any) {
+type SelectFieldProps = {
+  label: string;
+  options: readonly string[];
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function SelectField({ label, options, value, onChange }: SelectFieldProps) {
   return (
     <div>
       <Label className="text-sm font-medium">{label}</Label>
@@ -373,7 +380,7 @@ function SelectField({ label, options, value, onChange }: any) {
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
       >
-        {options.map((opt: string) => (
+        {options.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>

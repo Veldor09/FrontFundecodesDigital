@@ -13,6 +13,7 @@ import {
   rejectSolicitud,
   type SolicitudListItem,
 } from "../services/solicitudes.api";
+import { describeDestino, describeSolicitante } from "../services/destinos.api";
 
 function LocalAlert({
   kind,
@@ -147,10 +148,11 @@ export default function DirectorApprovalTable() {
           <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-20">ID</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-16">ID</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-36">Programa</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-28">Monto</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Solicitante</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Destino</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-700 w-32">Monto</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 w-56">Acciones</th>
               </tr>
             </thead>
@@ -158,7 +160,20 @@ export default function DirectorApprovalTable() {
               {visible.map((r) => (
                 <DirectorRow
                   key={r.id}
-                  req={{ id: r.id, concept: r.titulo, program: undefined, amount: null }}
+                  req={{
+                    id: r.id,
+                    concept: r.titulo,
+                    solicitante: describeSolicitante(r),
+                    solicitanteEmail: r.usuario?.email ?? null,
+                    destino: describeDestino(r),
+                    destinoTipo:
+                      r.tipoOrigen === "PROGRAMA"
+                        ? "Programa"
+                        : r.tipoOrigen === "PROYECTO"
+                        ? "Proyecto"
+                        : "",
+                    amount: r.monto ?? null,
+                  }}
                   onApprove={() => openApprove(r.id)}
                   onRejectClick={() => openReject(r.id)}
                   onViewClick={() => openDetails(r.id)}

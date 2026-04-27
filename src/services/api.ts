@@ -17,25 +17,25 @@ function isProd() {
 }
 
 /** Resuelve la base del API en este orden:
- *  1) NEXT_PUBLIC_API_URL
- *  2) NEXT_PUBLIC_API_BASE
- *  3) VITE_API_URL
- *  4) window.__API_BASE__ (por si lo inyectas en HTML)
- *  5) fallback: en prod -> backend Render; en dev -> http://localhost:4000
+ *  1) NEXT_PUBLIC_API_URL (única variable oficial)
+ *  2) window.__API_BASE__ (por si se inyecta en HTML)
+ *  3) fallback: same-origin (usa el rewrite del next.config.ts)
  */
 function resolveApiBase() {
   const envBase =
     process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.VITE_API_URL ||
     (typeof window !== 'undefined' && (window as any).__API_BASE__);
 
   if (envBase) return envBase;
 
-  // Fallbacks seguros
-  return isProd()
-    ? 'https://backfundecodesdigital.onrender.com' // ✅ producción
-    : 'http://localhost:4000';                      // ✅ desarrollo
+  // Fallback: en cliente, same-origin (el rewrite /api/* del next.config.ts
+  // enruta al backend). En server-side sin env var, log y usa localhost:4000.
+  if (typeof window !== 'undefined') return window.location.origin;
+  if (!isProd()) return 'http://localhost:4000';
+
+  // eslint-disable-next-line no-console
+  console.warn('[API] NEXT_PUBLIC_API_URL no definida en producción.');
+  return '';
 }
 
 const RAW_BASE = resolveApiBase();
@@ -121,10 +121,17 @@ API.interceptors.response.use(
 
     const reqUrl: string = error?.config?.url ?? '';
     const isLoginCall = /\/auth\/login\b/.test(reqUrl);
-    if ((status === 401 || status === 403) && !isLoginCall) {
-      // Limpieza opcional del token si quieres:
-      // setAuthToken(undefined);
-      window.location.href = '/error/unauthorized';
+    if (status === 401 && !isLoginCall) {
+      // Token inválido o expirado: limpiamos sesión y mandamos al login
+      setAuthToken(undefined);
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+    } else if (status === 403 && !isLoginCall) {
+      // Autenticado pero sin permisos suficientes
+      if (window.location.pathname !== '/error/unauthorized') {
+        window.location.href = '/error/unauthorized';
+      }
     }
 
     return Promise.reject(error);

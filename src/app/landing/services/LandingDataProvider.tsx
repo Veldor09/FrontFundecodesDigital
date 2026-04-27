@@ -11,8 +11,9 @@ export function LandingDataProvider({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
-    fetch(`${API_BASE}/informational-page`, { headers: { "Content-Type": "application/json" }, cache: "no-store" })
+    // Usamos el rewrite /api/* del next.config.ts, así no dependemos de otra env var
+    const API_ROOT = "/api";
+    fetch(`${API_ROOT}/informational-page`, { headers: { "Content-Type": "application/json" }, cache: "no-store" })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();

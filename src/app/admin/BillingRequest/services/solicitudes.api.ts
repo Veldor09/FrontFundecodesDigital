@@ -37,13 +37,44 @@ function handleAxiosError(err: any): never {
  * ========================= */
 export type EstadoContadora = "VALIDADA" | "PENDIENTE" | "DEVUELTA";
 export type EstadoDirector = "APROBADA" | "RECHAZADA" | "PENDIENTE";
+export type TipoOrigenSolicitud = "PROGRAMA" | "PROYECTO";
+
+export interface UsuarioSolicitante {
+  id: number;
+  name: string | null;
+  email: string;
+}
+
+export interface ProgramaRef {
+  id: number;
+  nombre: string;
+}
+
+export interface ProyectoRef {
+  id: number;
+  title: string;
+  slug?: string;
+}
 
 export interface Solicitud {
   id: number;
   titulo: string;
   descripcion: string | null;
   archivos: string[];
+
   usuarioId: number | null;
+  /** Datos del usuario que creó la solicitud — los incluye el back en findAll/findOne. */
+  usuario?: UsuarioSolicitante | null;
+
+  /** Monto solicitado (Decimal serializado como string desde Prisma). */
+  monto: string | number | null;
+
+  tipoOrigen: TipoOrigenSolicitud | null;
+  programaId: number | null;
+  programa?: ProgramaRef | null;
+  projectId: number | null;
+  project?: ProyectoRef | null;
+
   estadoContadora: EstadoContadora;
   estadoDirector: EstadoDirector;
   comentarioContadora?: string | null;
@@ -52,14 +83,34 @@ export interface Solicitud {
   updatedAt: string;
 }
 
+/**
+ * Item del listado: incluye lo necesario para mostrar las tablas
+ * (RequestsTable, AccountantValidationTable, DirectorApprovalTable).
+ */
 export type SolicitudListItem = Pick<
   Solicitud,
-  "id" | "titulo" | "descripcion" | "estadoContadora" | "estadoDirector"
+  | "id"
+  | "titulo"
+  | "descripcion"
+  | "estadoContadora"
+  | "estadoDirector"
+  | "monto"
+  | "tipoOrigen"
+  | "programa"
+  | "project"
+  | "usuario"
+  | "createdAt"
 >;
 
 export type CreateSolicitudPayload = {
   titulo: string;
   descripcion: string;
+  /** Monto requerido en centavos del CRC (>0). */
+  monto: number;
+  /** Tipo de destino — y exactamente uno de programaId/projectId. */
+  tipoOrigen: TipoOrigenSolicitud;
+  programaId?: number;
+  projectId?: number;
   usuarioId?: number;
   files?: File[];
 };
@@ -75,9 +126,29 @@ export async function createSolicitud(
   payload: CreateSolicitudPayload
 ): Promise<Solicitud> {
   try {
+    // Validación cliente — el back también valida, pero preferimos errores tempranos.
+    if (!payload.titulo?.trim()) throw new Error("El título es obligatorio.");
+    if (!payload.descripcion?.trim()) throw new Error("La descripción es obligatoria.");
+    if (!Number.isFinite(payload.monto) || payload.monto <= 0)
+      throw new Error("El monto debe ser un número mayor a 0.");
+    if (payload.tipoOrigen === "PROGRAMA" && !payload.programaId)
+      throw new Error("Selecciona un programa.");
+    if (payload.tipoOrigen === "PROYECTO" && !payload.projectId)
+      throw new Error("Selecciona un proyecto.");
+    if (payload.tipoOrigen === "PROGRAMA" && payload.projectId)
+      throw new Error("No se puede enviar projectId con tipoOrigen=PROGRAMA.");
+    if (payload.tipoOrigen === "PROYECTO" && payload.programaId)
+      throw new Error("No se puede enviar programaId con tipoOrigen=PROYECTO.");
+
     const fd = new FormData();
     fd.set("titulo", payload.titulo);
     fd.set("descripcion", payload.descripcion);
+    fd.set("monto", String(payload.monto));
+    fd.set("tipoOrigen", payload.tipoOrigen);
+    if (payload.programaId !== undefined)
+      fd.set("programaId", String(payload.programaId));
+    if (payload.projectId !== undefined)
+      fd.set("projectId", String(payload.projectId));
     if (payload.usuarioId !== undefined)
       fd.set("usuarioId", String(payload.usuarioId));
     (payload.files ?? []).forEach((f) => fd.append("archivos", f));
@@ -102,7 +173,8 @@ export async function fetchSolicitudes(opts?: {
       withCredentials: true,
     });
 
-    let out: SolicitudListItem[] = Array.isArray(data) ? data : [];
+    // El back ya devuelve usuario/programa/project; los preservamos al filtrar.
+    let out: Solicitud[] = Array.isArray(data) ? data : [];
 
     if (opts?.estado && opts.estado !== "TODAS") {
       out = out.filter(
@@ -110,13 +182,9 @@ export async function fetchSolicitudes(opts?: {
       );
     }
     if (opts?.bandeja === "contadora") {
-      out = out.filter(
-        (r) => normalize(r.estadoContadora) === "PENDIENTE"
-      );
+      out = out.filter((r) => normalize(r.estadoContadora) === "PENDIENTE");
     } else if (opts?.bandeja === "director") {
-      out = out.filter(
-        (r) => normalize(r.estadoContadora) === "VALIDADA"
-      );
+      out = out.filter((r) => normalize(r.estadoContadora) === "VALIDADA");
     }
     return out;
   } catch (err) {

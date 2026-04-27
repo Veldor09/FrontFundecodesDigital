@@ -1,10 +1,11 @@
 // SOLO lectura para la landing
 import type { InformationalPage } from "@/app/admin/informational-page/types/informational";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
+// Usamos el rewrite /api/* del next.config.ts (funciona en server y en cliente)
+const API_ROOT = "/api";
 
 export async function getInformationalPagePublic(): Promise<InformationalPage> {
-  const res = await fetch(`${API_BASE}/informational-page`, {
+  const res = await fetch(`${API_ROOT}/informational-page`, {
     headers: { "Content-Type": "application/json" },
     cache: "no-store", // evita contenido stale
   });

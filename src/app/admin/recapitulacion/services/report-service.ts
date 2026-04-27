@@ -271,7 +271,9 @@ export class ReportService {
 
   private static mapDepartmentToModules(department: string): string {
     if (department === "todos") {
-      return "projects,billing,solicitudes,collaborators,volunteers";
+      // Incluye TODOS los módulos del back. Si añades uno nuevo en
+      // reportes.service.ts → obtenerDatosModulo, agrégalo también aquí.
+      return "projects,billing,solicitudes,collaborators,volunteers,programas,sanciones,contabilidad";
     }
     const mapping: Record<string, string> = {
       proyectos: "projects",
@@ -279,7 +281,9 @@ export class ReportService {
       facturacion: "billing",
       solicitudes: "solicitudes",
       colaboradores: "collaborators",
-      contabilidad: "billing,solicitudes",
+      contabilidad: "contabilidad",
+      programas: "programas",
+      sanciones: "sanciones",
     };
     if (department.includes(",")) {
       return department
@@ -336,7 +340,10 @@ export class ReportService {
     return records > 0 ? total / records : 0;
   }
 
-  private static calculateGrowth(): string {
+  // TODO: implementar cálculo real de crecimiento usando `detalles`.
+  // De momento, mantiene el placeholder original (Math.random) pero acepta
+  // el parámetro para que la firma coincida con el call-site (línea ~302).
+  private static calculateGrowth(_detalles: unknown): string {
     return (Math.random() * 30 - 10).toFixed(1);
   }
 

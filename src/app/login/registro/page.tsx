@@ -102,7 +102,7 @@ export default function RegistroPage() {
           <PhoneInput
             defaultCountry="cr"
             value={form.telefono}
-            onChange={(tel) => setForm((prev) => ({ ...prev, telefono: tel }))}
+            onChange={(tel: string) => setForm((prev) => ({ ...prev, telefono: tel }))}
             inputClassName={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
               errores.telefono ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-teal-500"
             }`}

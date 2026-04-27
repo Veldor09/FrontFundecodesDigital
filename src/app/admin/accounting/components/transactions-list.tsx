@@ -216,7 +216,7 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
         categoria: newTransaction.categoria!,
         descripcion: newTransaction.descripcion!,
         monto: Number(newTransaction.monto!),
-        fecha: newTransaction.fecha!,
+        fecha: new Date(newTransaction.fecha!),
         programa: newTransaction.programa!,
         moneda: newTransaction.moneda!,
       }

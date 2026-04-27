@@ -47,32 +47,27 @@ export async function apiCreateVoluntario(payload: any) {
   return data;
 }
 
-// UPDATE
+// UPDATE — backend expone PUT /:id, no PATCH
 export async function apiUpdateVoluntario(id: number | string, patch: any) {
-  const { data } = await axios.patch(`${API_URL}/api/voluntarios/${id}`, patch, {
+  const { data } = await axios.put(`${API_URL}/api/voluntarios/${id}`, patch, {
     headers: { "Content-Type": "application/json", ...authHeader() },
   });
   return data;
 }
 
-// TOGGLE (activar / desactivar)
-export async function apiDeactivateVoluntario(id: number | string) {
+// TOGGLE (activar / desactivar) — backend solo expone PATCH /:id/toggle o /:id/toggle-status
+export async function apiToggleVoluntario(id: number | string) {
   const { data } = await axios.patch(
-    `${API_URL}/api/voluntarios/${id}/deactivate`,
+    `${API_URL}/api/voluntarios/${id}/toggle`,
     {},
     { headers: { ...authHeader() } }
   );
   return data;
 }
 
-export async function apiActivateVoluntario(id: number | string) {
-  const { data } = await axios.patch(
-    `${API_URL}/api/voluntarios/${id}`,
-    { estado: "ACTIVO" },
-    { headers: { "Content-Type": "application/json", ...authHeader() } }
-  );
-  return data;
-}
+// Alias de compatibilidad con el resto del código (equivalen al toggle)
+export const apiDeactivateVoluntario = apiToggleVoluntario;
+export const apiActivateVoluntario = apiToggleVoluntario;
 
 // DELETE
 export async function apiDeleteVoluntario(id: number | string) {

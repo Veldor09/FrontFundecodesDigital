@@ -186,7 +186,7 @@ export default function ReportGenerator() {
                     <label className="flex items-center gap-3 p-3 hover:bg-blue-50 cursor-pointer transition-colors bg-slate-50">
                       <input
                         type="checkbox"
-                        checked={!!(department === "todos" || (department && department.split(",").length === 6))}
+                        checked={!!(department === "todos" || (department && department.split(",").length === 8))}
                         onChange={(e) => {
                           if (e.target.checked) {
                             setDepartment("todos")
@@ -202,6 +202,8 @@ export default function ReportGenerator() {
                     {/* Módulos individuales */}
                     {[
                       { value: "voluntariado", label: "Voluntariado" },
+                      { value: "programas", label: "Programas de voluntariado" },
+                      { value: "sanciones", label: "Sanciones" },
                       { value: "proyectos", label: "Proyectos" },
                       { value: "facturacion", label: "Facturación" },
                       { value: "solicitudes", label: "Solicitudes" },
@@ -252,7 +254,7 @@ export default function ReportGenerator() {
                     </p>
                   ) : department ? (
                     <p className="text-slate-700 font-medium">
-                      {department.split(",").length} de 6 módulos seleccionados
+                      {department.split(",").length} de 8 módulos seleccionados
                     </p>
                   ) : (
                     <p className="text-slate-500">Ningún módulo seleccionado</p>

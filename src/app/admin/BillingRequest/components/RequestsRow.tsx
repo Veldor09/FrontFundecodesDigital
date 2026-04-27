@@ -4,13 +4,15 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getBillingStatusForSolicitud } from '../services/billing.api';
+import {
+  describeDestino,
+  describeSolicitante,
+  formatCRC,
+} from '../services/destinos.api';
 
-/** 
- * Este tipo local acepta exactamente lo que le manda RequestsTable:
- * - id (requerido)
- * - titulo/descripcion (opcionales)
- * - estado (string derivado: APROBADA | RECHAZADA | VALIDADA | DEVUELTA | PENDIENTE)
- * - createdAt (ISO opcional)
+/**
+ * Item recibido por la fila. Acepta los campos enriquecidos que el back
+ * ahora incluye (usuario, monto, programa, project, tipoOrigen).
  */
 type RowItem = {
   id: number;
@@ -18,6 +20,12 @@ type RowItem = {
   descripcion?: string | null;
   estado?: string | null;
   createdAt?: string | null;
+
+  monto?: string | number | null;
+  tipoOrigen?: 'PROGRAMA' | 'PROYECTO' | null;
+  programa?: { id: number; nombre: string } | null;
+  project?: { id: number; title: string } | null;
+  usuario?: { id: number; name: string | null; email: string } | null;
 };
 
 function statusClasses(estado?: string) {
@@ -40,7 +48,7 @@ function formatDate(iso?: string | null) {
 }
 
 type Props = {
-  item?: RowItem | null;       // seguro ante null/undefined
+  item?: RowItem | null;
   onView?: (id: number) => void;
 };
 
@@ -64,20 +72,26 @@ export default function RequestsRow({ item, onView }: Props) {
     return item?.estado ?? 'PENDIENTE';
   }, [billingStatus, item?.estado]);
 
+  const solicitante = describeSolicitante(item ?? {});
+  const destino = describeDestino(item ?? {});
+  const tipoLabel = item?.tipoOrigen === 'PROGRAMA'
+    ? 'Programa'
+    : item?.tipoOrigen === 'PROYECTO'
+    ? 'Proyecto'
+    : '';
+
   return (
     <tr className="border-t">
       <td className="px-4 py-3">
         <div className="min-w-0">
-          {/* ✅ Igual que en contadora/director: elipsis con anchos máximos por breakpoint */}
           <div
-            className="max-w-[18rem] sm:max-w-[26rem] md:max-w-[32rem] truncate font-medium text-slate-800"
+            className="max-w-[18rem] sm:max-w-[24rem] md:max-w-[28rem] truncate font-medium text-slate-800"
             title={titulo}
           >
             {titulo}
           </div>
-          {/* Descripción en una línea con elipsis y mismo ancho para alinear */}
           <div
-            className="max-w-[18rem] sm:max-w-[26rem] md:max-w-[32rem] text-xs text-slate-500 line-clamp-1"
+            className="max-w-[18rem] sm:max-w-[24rem] md:max-w-[28rem] text-xs text-slate-500 line-clamp-1"
             title={descripcion ?? undefined}
           >
             {descripcion}
@@ -85,8 +99,32 @@ export default function RequestsRow({ item, onView }: Props) {
         </div>
       </td>
 
-      {/* Solicitante (reservado por ahora) */}
-      <td className="px-4 py-3">—</td>
+      {/* ✅ Solicitante real: nombre o correo del usuario que creó la solicitud */}
+      <td className="px-4 py-3">
+        <div className="text-sm text-slate-800 truncate" title={solicitante}>
+          {solicitante}
+        </div>
+        {item?.usuario?.name && (
+          <div className="text-xs text-slate-500 truncate" title={item.usuario.email}>
+            {item.usuario.email}
+          </div>
+        )}
+      </td>
+
+      {/* ✅ Destino: programa o proyecto */}
+      <td className="px-4 py-3">
+        <div className="text-sm text-slate-800 truncate" title={destino}>
+          {destino}
+        </div>
+        {tipoLabel && (
+          <div className="text-xs text-slate-500">{tipoLabel}</div>
+        )}
+      </td>
+
+      {/* ✅ Monto */}
+      <td className="px-4 py-3 text-right tabular-nums">
+        {formatCRC(item?.monto)}
+      </td>
 
       <td className="px-4 py-3">
         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs ${statusClasses(estado)}`}>

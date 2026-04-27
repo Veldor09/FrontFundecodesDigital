@@ -1,8 +1,14 @@
 import type { InformationalPage, Collaborator, CommentItem } from "../types/informational";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+// Resuelve la base API. Prioriza NEXT_PUBLIC_API_URL (backend NestJS completo),
+// y como último recurso usa el rewrite /api del next.config.ts.
+function apiRoot(): string {
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+  if (!base) return "/api"; // pasa por el rewrite del frontend
+  return base.endsWith("/api") ? base : `${base}/api`;
+}
 
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -10,7 +16,7 @@ function authHeaders() {
 
 // ===== CRUD PRINCIPAL =====
 export async function getInformationalPage(): Promise<InformationalPage> {
-  const res = await fetch(`${API_BASE}/informational-page`, {
+  const res = await fetch(`${apiRoot()}/informational-page`, {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     cache: "no-store",
   });
@@ -19,7 +25,7 @@ export async function getInformationalPage(): Promise<InformationalPage> {
 }
 
 export async function updateInformationalPage(payload: InformationalPage): Promise<InformationalPage> {
-  const res = await fetch(`${API_BASE}/informational-page`, {
+  const res = await fetch(`${apiRoot()}/informational-page`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload),
@@ -30,7 +36,7 @@ export async function updateInformationalPage(payload: InformationalPage): Promi
 
 // ===== CRUD Colaboradores =====
 export async function addCollaborator(newColab: Collaborator) {
-  const res = await fetch(`${API_BASE}/informational-page/collaborators`, {
+  const res = await fetch(`${apiRoot()}/informational-page/collaborators`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(newColab),
@@ -40,7 +46,7 @@ export async function addCollaborator(newColab: Collaborator) {
 }
 
 export async function deleteCollaborator(id: string) {
-  const res = await fetch(`${API_BASE}/informational-page/collaborators/${id}`, {
+  const res = await fetch(`${apiRoot()}/informational-page/collaborators/${id}`, {
     method: "DELETE",
     headers: { ...authHeaders() },
   });
@@ -50,7 +56,7 @@ export async function deleteCollaborator(id: string) {
 
 // ===== CRUD Comentarios =====
 export async function addComment(newComment: CommentItem) {
-  const res = await fetch(`${API_BASE}/informational-page/comments`, {
+  const res = await fetch(`${apiRoot()}/informational-page/comments`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(newComment),
@@ -60,7 +66,7 @@ export async function addComment(newComment: CommentItem) {
 }
 
 export async function deleteComment(id: string) {
-  const res = await fetch(`${API_BASE}/informational-page/comments/${id}`, {
+  const res = await fetch(`${apiRoot()}/informational-page/comments/${id}`, {
     method: "DELETE",
     headers: { ...authHeaders() },
   });

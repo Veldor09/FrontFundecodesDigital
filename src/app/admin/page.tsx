@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AdminSidebar } from "./Sidebard/page";
+import { AdminSidebar } from "./_components/AdminSidebar";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   FolderKanban,
   MessageSquare,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 import { DashboardMetrics } from "./components/DashboardMetrics";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,20 @@ export default function AdminDashboardPage() {
           "mt-4 text-sm font-medium text-cyan-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin"],
         badgeCount: pendingRespuestasFormulariosCount,
+      },
+      {
+        key: "auditoria",
+        title: "Auditoría",
+        desc: "Quién hizo qué: registro de acciones de todos los usuarios del sistema",
+        href: "/admin/auditoria",
+        icon: ShieldCheck,
+        cardClasses:
+          "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-amber-300",
+        badgeClasses:
+          "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-amber-50 group-hover:border-amber-200",
+        linkClasses:
+          "mt-4 text-sm font-medium text-amber-700 opacity-0 group-hover:opacity-100 transition-opacity",
+        roles: ["admin"], // ⚠️ solo admin
       },
     ],
     [pendingCommentsCount, pendingRespuestasFormulariosCount]

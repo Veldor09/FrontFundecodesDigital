@@ -41,6 +41,8 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
 
   const reportTypeNames: Record<string, string> = {
     voluntariado: "Voluntariado",
+    programas: "Programas de voluntariado",
+    sanciones: "Sanciones",
     proyectos: "Proyectos",
     facturacion: "Facturación",
     solicitudes: "Solicitudes",
@@ -72,6 +74,8 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
     todos: "Todos los módulos",
     proyectos: "Proyectos",
     voluntariado: "Voluntariado",
+    programas: "Programas de voluntariado",
+    sanciones: "Sanciones",
     facturacion: "Facturación",
     solicitudes: "Solicitudes",
     colaboradores: "Colaboradores",

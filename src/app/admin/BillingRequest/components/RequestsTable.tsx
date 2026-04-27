@@ -121,28 +121,30 @@ export default function RequestsTable() {
           <thead className="bg-slate-50 text-left">
             <tr className="text-slate-700">
               <th className="px-4 py-3">Título</th>
-              <th className="px-4 py-3 w-36">Solicitante</th>
+              <th className="px-4 py-3 w-44">Solicitante</th>
+              <th className="px-4 py-3 w-44">Destino</th>
+              <th className="px-4 py-3 w-32 text-right">Monto</th>
               <th className="px-4 py-3 w-28">Estado</th>
               <th className="px-4 py-3 w-40">Creada</th>
-              <th className="px-4 py-3 w-32 text-right">Acciones</th>
+              <th className="px-4 py-3 w-24 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-center" colSpan={5}>
+                <td className="px-4 py-6 text-center" colSpan={7}>
                   Cargando…
                 </td>
               </tr>
             ) : errorMsg ? (
               <tr>
-                <td className="px-4 py-6 text-center text-red-600" colSpan={5}>
+                <td className="px-4 py-6 text-center text-red-600" colSpan={7}>
                   {errorMsg}
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={5}>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={7}>
                   No hay solicitudes
                 </td>
               </tr>
