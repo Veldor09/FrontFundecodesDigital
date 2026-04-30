@@ -108,24 +108,31 @@ export default function Header() {
 
   return (
     <header className="bg-gradient-to-r from-teal-600 to-blue-600 shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="bg-white rounded-full p-2 shadow-md">
+          <Link
+            href="/landing"
+            className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink"
+          >
+            <div className="flex-shrink-0 bg-white rounded-full p-1.5 sm:p-2 shadow-md flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12">
               <Image
                 src="/Img/FUNDECODES_Logo.png"
                 alt="Logo Fundación"
                 width={40}
                 height={40}
-                className="h-8 w-8 object-contain"
+                className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
               />
             </div>
-            <div className="text-white">
-              <h1 className="text-xl font-bold font-modern tracking-wide">Fundecodes</h1>
-              <p className="text-sm text-blue-100 font-medium font-modern">Haciendo la diferencia</p>
+            <div className="text-white min-w-0 hidden xs:block sm:block">
+              <h1 className="text-base sm:text-xl font-bold font-modern tracking-wide leading-tight truncate">
+                Fundecodes
+              </h1>
+              <p className="text-[11px] sm:text-sm text-blue-100 font-medium font-modern leading-tight truncate">
+                Haciendo la diferencia
+              </p>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-10">
@@ -141,7 +148,7 @@ export default function Header() {
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             {/* Botón/auth adaptativo */}
             <AuthButton />
 
@@ -151,6 +158,7 @@ export default function Header() {
               size="icon"
               onClick={toggleMenu}
               className="lg:hidden text-white hover:bg-white/20"
+              aria-label="Abrir menú"
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>

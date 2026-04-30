@@ -191,7 +191,7 @@ export default function ContactForm() {
       <Button
         type="submit"
         disabled={loading}
-        className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold h-14 text-base rounded-xl transition-all duration-300 shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30"
+        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-emerald-600 text-white font-semibold h-14 text-base rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-60"
       >
         {loading ? (
           <span className="flex items-center gap-2">

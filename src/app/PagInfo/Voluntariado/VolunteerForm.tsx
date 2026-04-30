@@ -12,8 +12,6 @@ export default function VolunteerForm() {
     fullname: "",
     emailvolunteer: "",
     phonevolunteer: "",
-    availability: "",
-    areaInteres: "",
     observations: "",
   });
 
@@ -42,8 +40,6 @@ export default function VolunteerForm() {
       correo: formData.emailvolunteer,
       telefono: formData.phonevolunteer,
       payload: {
-        disponibilidad: formData.availability,
-        areaInteres: formData.areaInteres,
         mensaje: formData.observations,
       },
     };
@@ -59,8 +55,6 @@ export default function VolunteerForm() {
         fullname: "",
         emailvolunteer: "",
         phonevolunteer: "",
-        availability: "",
-        areaInteres: "",
         observations: "",
       });
     } catch (error: any) {
@@ -114,30 +108,6 @@ export default function VolunteerForm() {
 
 
       <div>
-        <Label htmlFor="availability">Disponibilidad *</Label>
-        <Input
-          id="availability"
-          name="availability"
-          placeholder="¿Qué días y horarios tienes disponibles?"
-          value={formData.availability}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="areaInteres">Área de interés *</Label>
-        <Input
-          id="areaInteres"
-          name="areaInteres"
-          placeholder="Conservación, educación ambiental, monitoreo, etc."
-          value={formData.areaInteres}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div>
         <Label htmlFor="observations">Observaciones</Label>
         <Textarea
           id="observations"
@@ -164,7 +134,7 @@ export default function VolunteerForm() {
       <Button
         type="submit"
         disabled={loading}
-        className="w-full bg-black hover:bg-gray-800 text-white"
+        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-emerald-600 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-60"
       >
         {loading ? "Enviando..." : "Registrarme como voluntario"}
       </Button>

@@ -90,7 +90,7 @@ export default function VoluntariadoPage() {
                 Quiero ser voluntario
               </a>
               <a
-                href="#tipos"
+                href="#sobre-nosotros"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl backdrop-blur-sm border border-white/20 transition-all duration-300"
               >
                 Conocer más
@@ -112,7 +112,7 @@ export default function VoluntariadoPage() {
       <main className="bg-white">
 
         {/* ¿Qué es el voluntariado? */}
-        <section className="py-16 sm:py-20 lg:py-24">
+        <section id="sobre-nosotros" className="py-16 sm:py-20 lg:py-24 scroll-mt-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto">
               <div className="text-center mb-8">

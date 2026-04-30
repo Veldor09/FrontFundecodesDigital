@@ -142,24 +142,24 @@ export default function AdminProjectsPage() {
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0">
+            <Link href="/admin" className="self-start">
               {/* 🎨 Navegación secundaria: outline neutral */}
               <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-100">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver al dashboard
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold">Proyectos (Admin)</h1>
-              <p className="text-slate-600">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold">Proyectos (Admin)</h1>
+              <p className="text-sm text-slate-600">
                 Administra proyectos, crea nuevos y edita los existentes.
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* 🎨 Acción secundaria: gris neutro */}
             <Button
               variant="secondary"
@@ -168,7 +168,7 @@ export default function AdminProjectsPage() {
                 setPage(1);
                 load(1);
               }}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 flex-1 sm:flex-none"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Recargar
@@ -179,7 +179,7 @@ export default function AdminProjectsPage() {
               onClick={() => {
                 setMode({ kind: "create" });
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
             >
               <Plus className="h-4 w-4 mr-2" />
               Añadir proyecto

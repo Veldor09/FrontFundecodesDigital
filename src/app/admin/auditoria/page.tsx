@@ -274,7 +274,7 @@ export default function AuditoriaPage() {
           <Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </div>
         <div className="lg:col-span-6 flex flex-wrap items-center gap-2">
-          <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white">
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
             <Filter className="h-4 w-4 mr-2" />
             Aplicar filtros
           </Button>
