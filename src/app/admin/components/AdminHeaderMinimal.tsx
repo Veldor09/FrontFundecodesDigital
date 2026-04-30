@@ -45,10 +45,23 @@ export default function AdminHeaderMinimal() {
 
   const goPublic = () => router.push("/");
 
-  // Dispara el evento global que abre/cierra el AdminSidebar
+  // Dispara el evento global que abre/cierra el AdminSidebar (click)
   const toggleSidebar = () => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("admin-sidebar-toggle"));
+    }
+  };
+
+  // En desktop, abrir el sidebar al pasar el mouse por encima del botón.
+  // El propio AdminSidebar ignora estos eventos en móvil/tablet.
+  const onSidebarHoverEnter = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("admin-sidebar-hover-enter"));
+    }
+  };
+  const onSidebarHoverLeave = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("admin-sidebar-hover-leave"));
     }
   };
 
@@ -67,6 +80,8 @@ export default function AdminHeaderMinimal() {
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={toggleSidebar}
+              onMouseEnter={onSidebarHoverEnter}
+              onMouseLeave={onSidebarHoverLeave}
               aria-label="Abrir menú de módulos"
               className="flex h-10 w-10 sm:h-11 sm:w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-all duration-200"
               title="Módulos del sistema"

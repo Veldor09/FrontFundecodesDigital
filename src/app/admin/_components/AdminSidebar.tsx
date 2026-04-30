@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -138,10 +138,12 @@ const ALL_MODULES: ModuleItem[] = [
   },
 ];
 
-export function AdminSidebar({ pendingCommentsCount = 0 }: { pendingCommentsCount?: number }) {
+export function AdminSidebar({ pendingCommentsCount: initialPendingCount = 0 }: { pendingCommentsCount?: number }) {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
   const [navbarHeight, setNavbarHeight] = useState(72);
+  const [pendingCommentsCount, setPendingCommentsCount] = useState(initialPendingCount);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -179,13 +181,61 @@ export function AdminSidebar({ pendingCommentsCount = 0 }: { pendingCommentsCoun
     const onToggle = () => setOpen((v) => !v);
     const onOpen = () => setOpen(true);
     const onClose = () => setOpen(false);
+    const onPendingCount = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && typeof detail.count === "number") {
+        setPendingCommentsCount(detail.count);
+      }
+    };
     window.addEventListener("admin-sidebar-toggle", onToggle);
     window.addEventListener("admin-sidebar-open", onOpen);
     window.addEventListener("admin-sidebar-close", onClose);
+    window.addEventListener("admin-pending-comments", onPendingCount);
     return () => {
       window.removeEventListener("admin-sidebar-toggle", onToggle);
       window.removeEventListener("admin-sidebar-open", onOpen);
       window.removeEventListener("admin-sidebar-close", onClose);
+      window.removeEventListener("admin-pending-comments", onPendingCount);
+    };
+  }, []);
+
+  // Hover en desktop: abre el sidebar al pasar el mouse sobre el aside o el
+  // botón de módulos del header. En móvil/tablet (touch), estos handlers
+  // simplemente no se disparan, así que el comportamiento se mantiene click-only.
+  const handleMouseEnter = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  };
+
+  // Permitimos que el botón del header (en otro componente) avise sobre hover
+  // mediante eventos globales — así no hace falta refactor de props.
+  useEffect(() => {
+    const isDesktop = () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 1024px)").matches;
+
+    const onHoverEnter = () => {
+      if (!isDesktop()) return;
+      handleMouseEnter();
+    };
+    const onHoverLeave = () => {
+      if (!isDesktop()) return;
+      handleMouseLeave();
+    };
+
+    window.addEventListener("admin-sidebar-hover-enter", onHoverEnter);
+    window.addEventListener("admin-sidebar-hover-leave", onHoverLeave);
+    return () => {
+      window.removeEventListener("admin-sidebar-hover-enter", onHoverEnter);
+      window.removeEventListener("admin-sidebar-hover-leave", onHoverLeave);
     };
   }, []);
 
@@ -209,6 +259,8 @@ export function AdminSidebar({ pendingCommentsCount = 0 }: { pendingCommentsCoun
       {/* Sidebar — w-96 más ancho */}
       <aside
         aria-label="Navegación de módulos"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         style={{
           top: navbarHeight,
           height: `calc(100vh - ${navbarHeight}px)`,

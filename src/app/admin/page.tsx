@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AdminSidebar } from "./_components/AdminSidebar";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -281,10 +280,20 @@ export default function AdminDashboardPage() {
     return MODULES.filter((m) => m.roles.includes(role));
   }, [MODULES, role]);
 
+  // Le notificamos al AdminSidebar (renderizado por el layout) cuántos
+  // comentarios están pendientes para que muestre el badge.
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("admin-pending-comments", {
+          detail: { count: pendingCommentsCount },
+        }),
+      );
+    }
+  }, [pendingCommentsCount]);
+
   return (
     <>
-      <AdminSidebar pendingCommentsCount={pendingCommentsCount} />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
