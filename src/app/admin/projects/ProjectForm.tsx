@@ -8,6 +8,7 @@ import type { Project, ProjectStatus } from "@/lib/projects.types";
 import { ProjectFilesManager } from "./ProjectFilesManager";
 import { Upload, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { getProjectFiles } from "@/services/projects.service";
+import { normalizeImageUrl } from "@/lib/image-url";
 
 /* Opciones predefinidas */
 const CATEGORIES = [
@@ -362,7 +363,8 @@ export default function ProjectForm({
       slug: form.slug?.trim() || undefined,
       summary: form.summary?.trim() || undefined,
       content: form.content || undefined,
-      coverUrl: form.coverUrl?.trim() || undefined,
+      // Normaliza URLs de Google Drive a un formato que sí renderice como imagen
+      coverUrl: normalizeImageUrl(form.coverUrl) || undefined,
       category: form.category.trim(),
       place: form.place.trim(),
       area: form.area.trim(),

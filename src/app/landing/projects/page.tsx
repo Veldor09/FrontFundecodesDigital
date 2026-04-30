@@ -232,14 +232,27 @@ export default function ProjectsPublicPage() {
                   >
                     <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
                       {p.coverUrl ? (
-                        <img src={p.coverUrl} alt={p.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center">
-                          <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center">
-                            <Layers className="w-8 h-8 text-slate-400" />
-                          </div>
+                        <img
+                          src={p.coverUrl}
+                          alt={p.title}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.style.display = "none";
+                            const fallback = img.nextElementSibling as HTMLElement | null;
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="h-full w-full items-center justify-center"
+                        style={{ display: p.coverUrl ? "none" : "flex" }}
+                      >
+                        <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center">
+                          <Layers className="w-8 h-8 text-slate-400" />
                         </div>
-                      )}
+                      </div>
                       {p.status && (
                         <span className={`absolute top-4 right-4 px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(p.status)}`}>
                           {p.status === "EN_PROCESO" ? "En proceso" : p.status === "FINALIZADO" ? "Finalizado" : p.status === "PAUSADO" ? "Pausado" : p.status}

@@ -304,7 +304,12 @@ export default function AdminProjectsPage() {
                   <img
                     src={p.coverUrl}
                     alt={p.title}
-                    className="w-full h-36 object-cover rounded mb-3"
+                    className="w-full h-36 object-cover rounded mb-3 bg-slate-100"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const el = e.currentTarget as HTMLImageElement;
+                      el.style.display = "none";
+                    }}
                   />
                 )}
                 <div className="flex items-start justify-between gap-3">

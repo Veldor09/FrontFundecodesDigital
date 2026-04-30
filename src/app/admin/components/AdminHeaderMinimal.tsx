@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Open_Sans } from "next/font/google";
-import { User } from "lucide-react";
+import { User, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -32,7 +32,7 @@ export default function AdminHeaderMinimal() {
       const t = e.target as Node;
       if (menuRef.current?.contains(t) || btnRef.current?.contains(t)) return;
       setOpen(false);
-    };''
+    };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
 
     document.addEventListener("mousedown", onDocClick);
@@ -45,6 +45,13 @@ export default function AdminHeaderMinimal() {
 
   const goPublic = () => router.push("/");
 
+  // Dispara el evento global que abre/cierra el AdminSidebar
+  const toggleSidebar = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("admin-sidebar-toggle"));
+    }
+  };
+
   // 👉 Nueva función onLogout: limpia token y redirige
   const onLogout = () => {
     setOpen(false);
@@ -54,31 +61,42 @@ export default function AdminHeaderMinimal() {
 
   return (
     <header className={`sticky top-0 z-50 bg-gradient-to-r from-teal-600 to-blue-600 shadow-lg ${openSans.className}`}>
-      <div className="mx-auto max-w-7xl px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Logo + texto */}
-          <button
-            onClick={goPublic}
-            aria-label="Volver a la página informativa"
-            className="flex items-center gap-3 hover:opacity-90"
-          >
-            <div className="bg-white rounded-full p-2 shadow-md">
-              <Image
-                src="/Img/FUNDECODES_Logo.png"
-                alt="Fundecodes"
-                width={40}
-                height={40}
-                className="h-8 w-8 object-contain"
-                priority
-              />
-            </div>
-            <div className="text-white text-left">
-              <h1 className="text-xl font-bold tracking-wide">Fundecodes</h1>
-              <p className="text-sm text-blue-100 font-medium">Panel administrativo</p>
-            </div>
-          </button>
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 py-3">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          {/* Botón de módulos + Logo */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={toggleSidebar}
+              aria-label="Abrir menú de módulos"
+              className="flex h-10 w-10 sm:h-11 sm:w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-all duration-200"
+              title="Módulos del sistema"
+            >
+              <LayoutGrid className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
 
-          
+            <button
+              onClick={goPublic}
+              aria-label="Volver a la página informativa"
+              className="flex items-center gap-2 sm:gap-3 hover:opacity-90 min-w-0"
+            >
+              <div className="flex-shrink-0 bg-white rounded-full p-1.5 sm:p-2 shadow-md flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12">
+                <Image
+                  src="/Img/FUNDECODES_Logo.png"
+                  alt="Fundecodes"
+                  width={40}
+                  height={40}
+                  className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
+                  priority
+                />
+              </div>
+              <div className="text-white text-left min-w-0">
+                <h1 className="text-base sm:text-xl font-bold tracking-wide leading-tight truncate">Fundecodes</h1>
+                <p className="text-[11px] sm:text-sm text-blue-100 font-medium leading-tight truncate">Panel administrativo</p>
+              </div>
+            </button>
+          </div>
+
+
 
           {/* Perfil (icono + menú desplegable) */}
           <div className="relative">

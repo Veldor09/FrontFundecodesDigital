@@ -104,12 +104,21 @@ export default function PortafolioProyectos() {
                       src={p.coverUrl}
                       alt={p.title}
                       className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        img.style.display = "none";
+                        const fallback = img.nextElementSibling as HTMLElement | null;
+                        if (fallback) fallback.style.display = "flex";
+                      }}
                     />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center">
-                      <Layers className="w-10 h-10 text-slate-300" />
-                    </div>
-                  )}
+                  ) : null}
+                  <div
+                    className="h-full w-full items-center justify-center"
+                    style={{ display: p.coverUrl ? "none" : "flex" }}
+                  >
+                    <Layers className="w-10 h-10 text-slate-300" />
+                  </div>
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   {p.status && (

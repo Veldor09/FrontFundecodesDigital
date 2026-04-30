@@ -193,7 +193,7 @@ export default function LoginPage() {
       {/* Imagen de fondo usando Next.js Image */}
       <div className="absolute inset-0">
         <Image
-          src="/img/playa-tortuga.jpg"
+          src="/Img/playa-tortuga.jpg"
           alt="Fondo playa"
           fill
           priority

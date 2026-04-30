@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -142,7 +142,6 @@ export function AdminSidebar({ pendingCommentsCount = 0 }: { pendingCommentsCoun
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
   const [navbarHeight, setNavbarHeight] = useState(72);
-  const closeTimer = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -174,14 +173,21 @@ export function AdminSidebar({ pendingCommentsCount = 0 }: { pendingCommentsCoun
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  const handleMouseEnter = () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    closeTimer.current = setTimeout(() => setOpen(false), 100);
-  };
+  // Permite que cualquier botón en el header (u otro componente) abra/cierre el sidebar
+  // mediante un evento global, sin necesidad de prop drilling.
+  useEffect(() => {
+    const onToggle = () => setOpen((v) => !v);
+    const onOpen = () => setOpen(true);
+    const onClose = () => setOpen(false);
+    window.addEventListener("admin-sidebar-toggle", onToggle);
+    window.addEventListener("admin-sidebar-open", onOpen);
+    window.addEventListener("admin-sidebar-close", onClose);
+    return () => {
+      window.removeEventListener("admin-sidebar-toggle", onToggle);
+      window.removeEventListener("admin-sidebar-open", onOpen);
+      window.removeEventListener("admin-sidebar-close", onClose);
+    };
+  }, []);
 
   const visibleModules = ALL_MODULES
     .filter((m) => !role || role === "admin" || m.roles.includes(role))
@@ -191,22 +197,6 @@ export function AdminSidebar({ pendingCommentsCount = 0 }: { pendingCommentsCoun
 
   return (
     <>
-      {/* Botón flotante */}
-      <button
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        aria-label="Abrir menú de módulos"
-        style={{ top: navbarHeight + 12 }}
-        className="fixed left-4 z-40 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/35 hover:from-blue-400 hover:to-blue-500 transition-all duration-300 group"
-      >
-        <LayoutGrid className="h-6 w-6 text-white transition-transform group-hover:scale-110" />
-        {pendingCommentsCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white px-1 shadow-md">
-            {pendingCommentsCount > 9 ? "9+" : pendingCommentsCount}
-          </span>
-        )}
-      </button>
-
       {/* Backdrop */}
       <div
         onClick={() => setOpen(false)}
@@ -218,8 +208,6 @@ export function AdminSidebar({ pendingCommentsCount = 0 }: { pendingCommentsCoun
 
       {/* Sidebar — w-96 más ancho */}
       <aside
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         aria-label="Navegación de módulos"
         style={{
           top: navbarHeight,
