@@ -11,6 +11,7 @@ import {
 import { useCreatePayment, formatApiError } from "../hooks/useBilling";
 import { ensureBillingRequestFromSolicitud } from "../services/billing.api";
 import { listProjects } from "@/services/projects.service";
+import { getSolicitud, type Solicitud } from "../services/solicitudes.api";
 import type { Project } from "@/lib/projects.types";
 
 /* ===== Límites UI ===== */
@@ -78,6 +79,10 @@ export default function PaymentForm(props: Props) {
   const [projects, setProjects] = useState<Array<Pick<Project, "id" | "title">>>([]);
   const [loadingProjects, setLoadingProjects] = useState<boolean>(true);
 
+  // Datos de la solicitud original, usados para prefill (proyecto/programa/monto).
+  const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
+  const [loadingSolicitud, setLoadingSolicitud] = useState<boolean>(true);
+
   // hoy en formato YYYY-MM-DD para usar en el input date y validaciones
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -107,17 +112,57 @@ export default function PaymentForm(props: Props) {
     };
   }, []);
 
-  /* ===== Inicialización ===== */
+  /* ===== Cargar datos de la solicitud para prefill =====
+     Trae proyecto/programa y monto que el usuario ya ingresó al crear la
+     solicitud. Eso evita pedirle dos veces los mismos datos. */
   useEffect(() => {
+    let mounted = true;
+    if (!props.requestId) return;
+    (async () => {
+      try {
+        setLoadingSolicitud(true);
+        const data = await getSolicitud(props.requestId);
+        if (!mounted) return;
+        setSolicitud(data);
+      } catch {
+        if (mounted) setSolicitud(null);
+      } finally {
+        if (mounted) setLoadingSolicitud(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [props.requestId]);
+
+  /* ===== Inicialización + prefill desde la solicitud ===== */
+  useEffect(() => {
+    // Convertimos el monto de la solicitud (puede venir como string Decimal
+    // de Prisma o como number) a un string con 2 decimales para el input.
+    const formattedAmount = (() => {
+      const raw = solicitud?.monto;
+      if (raw === null || raw === undefined || raw === "") return "";
+      const n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? n.toFixed(2) : "";
+    })();
+
     setModel((m) => ({
       ...m,
       requestId: props.requestId,
-      projectId: (props as any).projectId ?? m.projectId,
+      // Si la solicitud era de un PROYECTO, lo usamos; sino respetamos lo
+      // que vino por props (legacy) o lo que ya tenía el modelo.
+      projectId:
+        (props as any).projectId ??
+        solicitud?.projectId ??
+        m.projectId,
+      // Prefill del monto solo si el campo está vacío (el contador puede
+      // sobrescribir si paga parcial o el monto cambió).
+      amount: m.amount || formattedAmount,
       currency: props.defaultCurrency ?? "CRC",
       date: m.date || today,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.requestId, (props as any).projectId, props.defaultCurrency, today]);
+  }, [props.requestId, (props as any).projectId, props.defaultCurrency, today, solicitud]);
 
   function setField<K extends keyof PaymentFormModel>(key: K, value: PaymentFormModel[K]) {
     setModel((m) => ({ ...m, [key]: value }));
@@ -224,13 +269,24 @@ export default function PaymentForm(props: Props) {
     }
   }
 
-  const busy = createPayment.isPending || loadingProjects;
+  const busy = createPayment.isPending || loadingProjects || loadingSolicitud;
 
   const selectedProjectName = useMemo(() => {
+    // Prioridad 1: si la solicitud trae el proyecto embebido (back lo incluye)
+    if (solicitud?.project?.title) return solicitud.project.title;
+    // Prioridad 2: si conocemos el id, lo buscamos en la lista
     const pid = Number(model.projectId ?? 0);
     const p = projects.find((x) => x.id === pid);
     return p?.title ?? (pid ? `Proyecto #${pid}` : "");
-  }, [projects, model.projectId]);
+  }, [projects, model.projectId, solicitud]);
+
+  // Cuando la solicitud vino con un destino claro, el contador no debería
+  // re-elegirlo: lo bloqueamos para evitar redundancias e inconsistencias.
+  const lockProjectFromSolicitud =
+    !!solicitud && solicitud.tipoOrigen === "PROYECTO" && !!solicitud.projectId;
+
+  const programaName =
+    solicitud?.tipoOrigen === "PROGRAMA" ? solicitud.programa?.nombre ?? null : null;
 
   const disableSubmit =
     busy ||
@@ -264,29 +320,75 @@ export default function PaymentForm(props: Props) {
 
       {/* Contenido scrollable */}
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 pt-4 space-y-4">
-        {/* Proyecto */}
+        {/* Destino (Proyecto/Programa) — prellenado desde la solicitud */}
         <div>
           <label className="text-sm font-medium">
-            Proyecto <span className="text-red-600">*</span>
+            {programaName ? "Programa" : "Proyecto"}{" "}
+            <span className="text-red-600">*</span>
           </label>
-          <select
-            value={model.projectId ?? 0}
-            onChange={(e) => setField("projectId", Number(e.target.value) || undefined)}
-            className={`mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 ${
-              triedSubmit && projectInvalid ? "ring-red-500" : "ring-blue-500"
-            } focus:ring-2`}
-            disabled={busy || typeof (props as any).projectId === "number"}
-            required
-          >
-            <option value={0} disabled>
-              {loadingProjects ? "Cargando proyectos…" : "Selecciona un proyecto"}
-            </option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
+
+          {programaName ? (
+            // La solicitud era de un PROGRAMA: mostramos el nombre como info
+            // y debajo pedimos al contador a qué Proyecto se imputa el pago
+            // (la tabla Payment requiere projectId).
+            <>
+              <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                Solicitud para programa: <span className="font-semibold">{programaName}</span>
+              </div>
+              <label className="mt-3 block text-xs font-medium text-slate-600">
+                Imputar pago al proyecto
+              </label>
+              <select
+                value={model.projectId ?? 0}
+                onChange={(e) =>
+                  setField("projectId", Number(e.target.value) || undefined)
+                }
+                className={`mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 ${
+                  triedSubmit && projectInvalid ? "ring-red-500" : "ring-blue-500"
+                }`}
+                disabled={busy}
+                required
+              >
+                <option value={0} disabled>
+                  {loadingProjects ? "Cargando proyectos…" : "Selecciona un proyecto"}
+                </option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : lockProjectFromSolicitud ? (
+            // La solicitud era para un PROYECTO concreto: mostramos solo lectura.
+            <div className="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+              {selectedProjectName || "Cargando…"}
+              <span className="ml-2 text-xs text-slate-500">
+                (autocompletado desde la solicitud)
+              </span>
+            </div>
+          ) : (
+            // Fallback: la solicitud no tiene destino aún → select editable.
+            <select
+              value={model.projectId ?? 0}
+              onChange={(e) => setField("projectId", Number(e.target.value) || undefined)}
+              className={`mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 ${
+                triedSubmit && projectInvalid ? "ring-red-500" : "ring-blue-500"
+              }`}
+              disabled={busy || typeof (props as any).projectId === "number"}
+              required
+            >
+              <option value={0} disabled>
+                {loadingProjects ? "Cargando proyectos…" : "Selecciona un proyecto"}
               </option>
-            ))}
-          </select>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          )}
+
           {triedSubmit && projectInvalid && (
             <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
               {validators.projectId(model.projectId)}
@@ -324,7 +426,9 @@ export default function PaymentForm(props: Props) {
             />
             <div className="mt-1 flex items-center justify-between text-xs">
               <span className={triedSubmit && amountInvalid ? "text-red-600" : "text-slate-500"}>
-                Máximo 2 decimales.
+                {solicitud?.monto
+                  ? "Prellenado desde la solicitud — puedes ajustar si es necesario."
+                  : "Máximo 2 decimales."}
               </span>
               <span className="text-slate-500">
                 {model.amount.length}/{AMOUNT_MAX_CHARS}

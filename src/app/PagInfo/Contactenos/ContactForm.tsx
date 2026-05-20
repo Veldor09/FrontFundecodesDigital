@@ -7,6 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, CheckCircle2, XCircle } from "lucide-react";
+import {
+  sanitizeName,
+  sanitizePhone,
+  validateName,
+  validateEmail,
+  validatePhone,
+} from "@/lib/form-validation";
+
+type FieldErrors = {
+  nombre?: string | null;
+  correo?: string | null;
+  telefono?: string | null;
+  mensaje?: string | null;
+};
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -16,6 +30,7 @@ export default function ContactForm() {
     mensaje: "",
   });
 
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -25,28 +40,61 @@ export default function ContactForm() {
   ) {
     const { name, value } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    // Sanitiza en vivo para impedir caracteres prohibidos
+    let next = value;
+    if (name === "nombre") next = sanitizeName(value);
+    else if (name === "telefono") next = sanitizePhone(value);
+
+    setFormData((prev) => ({ ...prev, [name]: next }));
+    setErrors((prev) => ({ ...prev, [name]: null }));
 
     if (successMessage) setSuccessMessage("");
     if (errorMessage) setErrorMessage("");
   }
 
+  function handleBlur(
+    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    const { name, value } = e.target;
+    let err: string | null = null;
+    if (name === "nombre") err = validateName(value);
+    else if (name === "correo") err = validateEmail(value);
+    else if (name === "telefono") err = validatePhone(value);
+    setErrors((prev) => ({ ...prev, [name]: err }));
+  }
+
+  function validateAll(): boolean {
+    const next: FieldErrors = {
+      nombre: validateName(formData.nombre),
+      correo: validateEmail(formData.correo),
+      telefono: validatePhone(formData.telefono),
+      mensaje: formData.mensaje.trim().length < 5
+        ? "El mensaje debe tener al menos 5 caracteres."
+        : null,
+    };
+    setErrors(next);
+    return !next.nombre && !next.correo && !next.telefono && !next.mensaje;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setSuccessMessage("");
     setErrorMessage("");
 
+    if (!validateAll()) {
+      setErrorMessage("Corrige los errores resaltados antes de enviar.");
+      return;
+    }
+
+    setLoading(true);
+
     const payloadBackend = {
       tipoFormulario: "CONTACTO",
-      nombre: formData.nombre,
-      correo: formData.correo,
-      telefono: formData.telefono,
+      nombre: formData.nombre.trim(),
+      correo: formData.correo.trim().toLowerCase(),
+      telefono: formData.telefono.trim(),
       payload: {
-        mensaje: formData.mensaje,
+        mensaje: formData.mensaje.trim(),
       },
     };
 
@@ -63,6 +111,7 @@ export default function ContactForm() {
         telefono: "",
         mensaje: "",
       });
+      setErrors({});
     } catch (error: any) {
       console.log("ERROR BACKEND:", error?.response?.data);
 
@@ -106,9 +155,20 @@ export default function ContactForm() {
               placeholder="Ej: Juan Pérez"
               value={formData.nombre}
               onChange={handleChange}
+              onBlur={handleBlur}
+              autoComplete="name"
+              maxLength={120}
+              aria-invalid={!!errors.nombre}
               required
-              className="h-12 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-green-500 focus:ring-green-500/20 rounded-xl transition-all duration-200"
+              className={`h-12 bg-slate-50/50 focus:bg-white focus:ring-green-500/20 rounded-xl transition-all duration-200 ${
+                errors.nombre
+                  ? "border-red-300 focus:border-red-400"
+                  : "border-slate-200 focus:border-green-500"
+              }`}
             />
+            {errors.nombre && (
+              <p className="text-xs text-red-600">{errors.nombre}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -125,9 +185,20 @@ export default function ContactForm() {
               placeholder="tu@email.com"
               value={formData.correo}
               onChange={handleChange}
+              onBlur={handleBlur}
+              autoComplete="email"
+              maxLength={254}
+              aria-invalid={!!errors.correo}
               required
-              className="h-12 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-green-500 focus:ring-green-500/20 rounded-xl transition-all duration-200"
+              className={`h-12 bg-slate-50/50 focus:bg-white focus:ring-green-500/20 rounded-xl transition-all duration-200 ${
+                errors.correo
+                  ? "border-red-300 focus:border-red-400"
+                  : "border-slate-200 focus:border-green-500"
+              }`}
             />
+            {errors.correo && (
+              <p className="text-xs text-red-600">{errors.correo}</p>
+            )}
           </div>
         </div>
 
@@ -142,12 +213,24 @@ export default function ContactForm() {
             id="telefono"
             name="telefono"
             type="tel"
-            placeholder="8888-8888"
+            placeholder="Ej. 88888888 o +50688888888"
             value={formData.telefono}
             onChange={handleChange}
+            onBlur={handleBlur}
+            autoComplete="tel"
+            inputMode="tel"
+            maxLength={16}
+            aria-invalid={!!errors.telefono}
             required
-            className="h-12 border-slate-200 bg-slate-50/50 focus:bg-white focus:border-green-500 focus:ring-green-500/20 rounded-xl transition-all duration-200"
+            className={`h-12 bg-slate-50/50 focus:bg-white focus:ring-green-500/20 rounded-xl transition-all duration-200 ${
+              errors.telefono
+                ? "border-red-300 focus:border-red-400"
+                : "border-slate-200 focus:border-green-500"
+            }`}
           />
+          {errors.telefono && (
+            <p className="text-xs text-red-600">{errors.telefono}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -164,9 +247,18 @@ export default function ContactForm() {
             rows={6}
             value={formData.mensaje}
             onChange={handleChange}
+            maxLength={2000}
+            aria-invalid={!!errors.mensaje}
             required
-            className="resize-none border-slate-200 bg-slate-50/50 focus:bg-white focus:border-green-500 focus:ring-green-500/20 rounded-xl transition-all duration-200"
+            className={`resize-none bg-slate-50/50 focus:bg-white focus:ring-green-500/20 rounded-xl transition-all duration-200 ${
+              errors.mensaje
+                ? "border-red-300 focus:border-red-400"
+                : "border-slate-200 focus:border-green-500"
+            }`}
           />
+          {errors.mensaje && (
+            <p className="text-xs text-red-600">{errors.mensaje}</p>
+          )}
         </div>
       </div>
 

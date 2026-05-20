@@ -58,7 +58,7 @@ const AREAS = [
 
 /* ===== Límites realistas ===== */
 const LIMITS = {
-  title:   { min: 3,  max: 50 },
+  title:   { min: 3,  max: 100 },
   select:  { min: 3,  max: 40 },
   summary: { min: 10, max: 80 },
   content: {        max: 1000 },
