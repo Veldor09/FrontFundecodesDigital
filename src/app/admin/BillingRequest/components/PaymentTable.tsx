@@ -175,7 +175,7 @@ export default function PaymentTable() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        className="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-xs font-semibold"
+                        className="inline-flex items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-xs font-semibold"
                         onClick={() => {
                           setCtxId(r.id);
                           setOpen(true);

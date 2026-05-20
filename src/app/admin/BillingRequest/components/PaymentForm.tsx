@@ -172,11 +172,18 @@ export default function PaymentForm(props: Props) {
   const createPayment = useCreatePayment();
 
   /* ===== Validaciones ===== */
+  // Si la solicitud era para un programa, el back deriva el projectId del
+  // BillingRequest, así que el front no necesita uno propio.
+  const skipProjectValidation =
+    !!solicitud && solicitud.tipoOrigen === "PROGRAMA";
+
   const validators = useMemo(
     () => ({
       requestId: (v: number) => (v > 0 ? "" : "Solicitud inválida"),
-      projectId: (v?: number) =>
-        typeof v === "number" && v > 0 ? "" : "Selecciona un proyecto",
+      projectId: (v?: number) => {
+        if (skipProjectValidation) return "";
+        return typeof v === "number" && v > 0 ? "" : "Selecciona un proyecto";
+      },
       amount: (v: string) => {
         if (!v) return "Ingresa el monto";
         const trimmed = v.replace(",", ".");
@@ -206,7 +213,7 @@ export default function PaymentForm(props: Props) {
         return "";
       },
     }),
-    [today]
+    [today, skipProjectValidation]
   );
 
   const projectInvalid = !!validators.projectId(model.projectId);
@@ -235,13 +242,14 @@ export default function PaymentForm(props: Props) {
     try {
       await ensureBillingRequestFromSolicitud({
         solicitudId: model.requestId,
-        projectId: Number(model.projectId),
+        // Si es PROGRAMA, el back deriva el projectId del BillingRequest.
+        projectId: skipProjectValidation ? undefined : Number(model.projectId),
         fallbackAmount: toNumberSafe(model.amount),
       });
 
       const payment = await createPayment.mutateAsync({
         requestId: model.requestId,
-        projectId: Number(model.projectId),
+        projectId: skipProjectValidation ? undefined : Number(model.projectId),
         amount: toNumberSafe(model.amount),
         currency: model.currency,
         date: model.date,
@@ -328,37 +336,14 @@ export default function PaymentForm(props: Props) {
           </label>
 
           {programaName ? (
-            // La solicitud era de un PROGRAMA: mostramos el nombre como info
-            // y debajo pedimos al contador a qué Proyecto se imputa el pago
-            // (la tabla Payment requiere projectId).
-            <>
-              <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                Solicitud para programa: <span className="font-semibold">{programaName}</span>
-              </div>
-              <label className="mt-3 block text-xs font-medium text-slate-600">
-                Imputar pago al proyecto
-              </label>
-              <select
-                value={model.projectId ?? 0}
-                onChange={(e) =>
-                  setField("projectId", Number(e.target.value) || undefined)
-                }
-                className={`mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 ${
-                  triedSubmit && projectInvalid ? "ring-red-500" : "ring-blue-500"
-                }`}
-                disabled={busy}
-                required
-              >
-                <option value={0} disabled>
-                  {loadingProjects ? "Cargando proyectos…" : "Selecciona un proyecto"}
-                </option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
-            </>
+            // La solicitud era de un PROGRAMA: solo mostramos el programa.
+            // El back deriva el projectId del BillingRequest automáticamente.
+            <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              Solicitud para programa: <span className="font-semibold">{programaName}</span>
+              <span className="ml-2 text-xs text-emerald-700/70">
+                (autocompletado desde la solicitud)
+              </span>
+            </div>
           ) : lockProjectFromSolicitud ? (
             // La solicitud era para un PROYECTO concreto: mostramos solo lectura.
             <div className="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
@@ -389,7 +374,9 @@ export default function PaymentForm(props: Props) {
             </select>
           )}
 
-          {triedSubmit && projectInvalid && (
+          {/* Solo mostramos el error de proyecto si NO es una solicitud
+              de programa (en ese caso el front no envía projectId). */}
+          {triedSubmit && projectInvalid && !programaName && (
             <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
               {validators.projectId(model.projectId)}
             </div>
@@ -563,7 +550,7 @@ export default function PaymentForm(props: Props) {
           <button
             type="submit"
             disabled={disableSubmit}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50"
+            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50"
           >
             {busy ? "Registrando…" : "Registrar pago"}
           </button>
