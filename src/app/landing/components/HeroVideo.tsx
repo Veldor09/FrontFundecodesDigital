@@ -27,22 +27,22 @@ export default function HeroVideo({
       <div className="absolute inset-0 bg-black/50" />
 
       {/* Texto principal */}
-      <div className="relative z-10 text-white text-center px-4">
+      <div className="relative z-10 text-white text-center px-4 w-full max-w-full overflow-hidden">
         <h1
-          className="leading-none font-light text-[clamp(3rem,12vw,8rem)] drop-shadow-2xl"
-          style={{ fontFamily: "'Raleway', sans-serif", letterSpacing: "0.08em" }}
+          className="leading-none font-light drop-shadow-2xl text-[clamp(2rem,9vw,8rem)] sm:text-[clamp(3rem,11vw,8rem)] tracking-[0.02em] sm:tracking-[0.08em]"
+          style={{ fontFamily: "'Raleway', sans-serif" }}
         >
           FUNDECODES
         </h1>
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <div className="h-px w-12 sm:w-16 bg-gradient-to-r from-transparent to-green-400" />
+        <div className="mt-6 flex items-center justify-center gap-2 sm:gap-3 px-2">
+          <div className="h-px flex-1 max-w-[3rem] sm:max-w-[4rem] bg-gradient-to-r from-transparent to-green-400" />
           <p
-            className="text-lg sm:text-xl md:text-2xl font-extralight tracking-[0.25em] drop-shadow-lg uppercase"
+            className="text-sm sm:text-xl md:text-2xl font-extralight tracking-[0.15em] sm:tracking-[0.25em] drop-shadow-lg uppercase"
             style={{ fontFamily: "'Raleway', sans-serif" }}
           >
             Equilibrio entre conservación y desarrollo
           </p>
-          <div className="h-px w-12 sm:w-16 bg-gradient-to-l from-transparent to-green-400" />
+          <div className="h-px flex-1 max-w-[3rem] sm:max-w-[4rem] bg-gradient-to-l from-transparent to-green-400" />
         </div>
       </div>
 

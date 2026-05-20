@@ -11,10 +11,13 @@ type Props = {
   onClose: () => void;
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/+$/, "");
+// Mismo criterio que RequestViewModal: el backend sirve /uploads en el origen
+// configurado en NEXT_PUBLIC_API_URL.
 const FILES_BASE = (process.env.NEXT_PUBLIC_FILES_BASE_URL ?? "").replace(/\/+$/, "");
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+const API_BASE_LEGACY = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/+$/, "");
 
-function originFromApiBase(api: string) {
+function originFromUrl(api: string) {
   try {
     if (!api) return "";
     const u = new URL(api);
@@ -34,8 +37,10 @@ function guessDevFilesRoot() {
 }
 const FILES_ROOT =
   FILES_BASE ||
+  originFromUrl(API_URL) ||
+  originFromUrl(API_BASE_LEGACY) ||
   guessDevFilesRoot() ||
-  (API_BASE.match(/\/api\/?$/) ? API_BASE.replace(/\/api\/?$/, "") : originFromApiBase(API_BASE) || API_BASE);
+  "";
 
 function joinUrl(base: string, path: string) {
   if (!base) return path;

@@ -1,11 +1,18 @@
 // src/app/api/download/route.ts
 import { NextRequest } from "next/server";
 
+// Candidatos para el origen del backend, en orden de prioridad.
+// La variable que YA está configurada en Dokploy es NEXT_PUBLIC_API_URL.
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/+$/, "");
 const FILES_BASE = (process.env.NEXT_PUBLIC_FILES_BASE_URL ?? "").replace(/\/+$/, "");
 
 function backendOrigin() {
-  const candidates = [FILES_BASE, API_BASE.replace(/\/api\/?$/, "")];
+  const candidates = [
+    FILES_BASE,
+    API_URL.replace(/\/api\/?$/, ""),
+    API_BASE.replace(/\/api\/?$/, ""),
+  ];
   for (const c of candidates) {
     try {
       if (!c) continue;

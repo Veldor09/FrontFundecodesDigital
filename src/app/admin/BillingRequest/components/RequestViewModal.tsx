@@ -10,10 +10,15 @@ type Props = {
   onClose: () => void;
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/+$/, "");
+// Variables candidatas (en orden de prioridad):
+//   1) NEXT_PUBLIC_FILES_BASE_URL  → si se separa el storage (S3, Drive, etc.)
+//   2) NEXT_PUBLIC_API_URL         → la que YA usa axios; el back sirve /uploads aquí
+//   3) NEXT_PUBLIC_API_BASE        → nombre antiguo, se mantiene por compat
 const FILES_BASE = (process.env.NEXT_PUBLIC_FILES_BASE_URL ?? "").replace(/\/+$/, "");
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+const API_BASE_LEGACY = (process.env.NEXT_PUBLIC_API_BASE ?? "").replace(/\/+$/, "");
 
-function originFromApiBase(api: string) {
+function originFromUrl(api: string) {
   try {
     if (!api) return "";
     const u = new URL(api);
@@ -33,10 +38,14 @@ function guessDevFilesRoot() {
   return "";
 }
 
+// FILES_ROOT = el ORIGEN (https://api.dominio.com) donde el backend sirve /uploads.
+// Por eso quitamos cualquier sufijo /api de la URL configurada.
 const FILES_ROOT =
   FILES_BASE ||
+  originFromUrl(API_URL) ||
+  originFromUrl(API_BASE_LEGACY) ||
   guessDevFilesRoot() ||
-  (API_BASE.match(/\/api\/?$/) ? API_BASE.replace(/\/api\/?$/, "") : originFromApiBase(API_BASE) || API_BASE);
+  "";
 
 function joinUrl(base: string, path: string) {
   if (!base) return path;
