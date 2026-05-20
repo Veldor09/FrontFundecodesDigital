@@ -140,7 +140,12 @@ export async function getRequest(id: number) {
 =========================================================== */
 type EnsureArgs = {
   solicitudId: number;
-  projectId: number;
+  /**
+   * Opcional: solo se envía cuando la solicitud original era de tipo
+   * PROYECTO. Para solicitudes PROGRAMA el back deriva el projectId
+   * automáticamente desde la solicitud (toma el primero como contenedor).
+   */
+  projectId?: number;
   fallbackAmount?: number;
 };
 
