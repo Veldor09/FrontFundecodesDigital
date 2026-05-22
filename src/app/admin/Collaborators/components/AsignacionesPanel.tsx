@@ -10,7 +10,7 @@ import { RefreshCw, Plus, X, FolderKanban, Handshake, ChevronDown, ChevronRight 
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
-function authHeader() {
+function authHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const t = localStorage.getItem("token");
   return t ? { Authorization: `Bearer ${t}` } : {};
