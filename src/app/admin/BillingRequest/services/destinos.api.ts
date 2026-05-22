@@ -61,6 +61,61 @@ export async function fetchProyectosParaSelector(): Promise<ProyectoOpcion[]> {
   }));
 }
 
+export type SaldoDestino = {
+  presupuestoTotal: number;
+  ingresos: number;
+  egresos: number;
+  disponible: number;
+  porcentajeUtilizado: number;
+};
+
+/**
+ * Trae los destinos (proyectos + programas) asignados a un colaboradorfactura.
+ * Úsalo cuando el usuario autenticado tiene el rol colaboradorfactura.
+ */
+export async function fetchDestinosAsignados(collaboratorId: number): Promise<{
+  proyectos: ProyectoOpcion[];
+  programas: ProgramaOpcion[];
+}> {
+  const res = await fetch(
+    `${API_URL}/api/collaborators/${collaboratorId}/destinos`,
+    { headers: authHeader() as Record<string, string> },
+  );
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return {
+    proyectos: (data?.proyectos ?? []).map((p: any) => ({
+      id: p.id,
+      title: p.title ?? p.nombre,
+      area: p.area,
+      category: p.category,
+    })),
+    programas: (data?.programas ?? []).map((p: any) => ({
+      id: p.id,
+      nombre: p.nombre,
+      lugar: p.lugar,
+    })),
+  };
+}
+
+/** Trae el saldo disponible de un proyecto. */
+export async function fetchSaldoProyecto(projectId: number): Promise<SaldoDestino> {
+  const res = await fetch(`${API_URL}/api/projects/${projectId}/saldo`, {
+    headers: authHeader() as Record<string, string>,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/** Trae el saldo disponible de un programa. */
+export async function fetchSaldoPrograma(programaId: number): Promise<SaldoDestino> {
+  const res = await fetch(`${API_URL}/api/programa-voluntariado/${programaId}/saldo`, {
+    headers: authHeader() as Record<string, string>,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 /** Formatea un Decimal/string/number como CRC sin decimales. */
 export function formatCRC(monto: string | number | null | undefined): string {
   if (monto === null || monto === undefined || monto === "") return "—";

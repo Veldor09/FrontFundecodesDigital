@@ -158,7 +158,7 @@ export default function AdminDashboardPage() {
       },
       {
         key: "proy",
-        title: "Proyectos",
+        title: "Proyectos y Programas",
         desc: "Gestión de proyectos activos y finalizados",
         href: "/admin/projects",
         icon: FolderKanban,

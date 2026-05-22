@@ -7,9 +7,14 @@ import type { CreateSolicitudPayload } from '../services/solicitudes.api';
 import {
   fetchProgramasParaSelector,
   fetchProyectosParaSelector,
+  fetchDestinosAsignados,
+  fetchSaldoProyecto,
+  fetchSaldoPrograma,
   type ProgramaOpcion,
   type ProyectoOpcion,
+  type SaldoDestino,
 } from '../services/destinos.api';
+import { getToken, getJwtPayload } from '@/lib/auth';
 
 type Props = { open: boolean; onClose: () => void; onSaved?: () => void };
 
@@ -42,6 +47,16 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
   const [programas, setProgramas] = useState<ProgramaOpcion[]>([]);
   const [proyectos, setProyectos] = useState<ProyectoOpcion[]>([]);
   const [loadingDestinos, setLoadingDestinos] = useState(false);
+  const [saldo, setSaldo] = useState<SaldoDestino | null>(null);
+  const [loadingSaldo, setLoadingSaldo] = useState(false);
+
+  // Detectar si el usuario es colaboradorfactura (destinos filtrados por asignación)
+  const jwtPayload = useMemo(() => {
+    const token = getToken();
+    return getJwtPayload<{ sub?: number; roles?: string[] }>(token);
+  }, []);
+  const esColaboradorFactura = jwtPayload?.roles?.includes('colaboradorfactura') ?? false;
+  const collaboratorId = jwtPayload?.sub ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -57,20 +72,45 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
     if (!open) return;
     let cancelled = false;
     setLoadingDestinos(true);
-    Promise.allSettled([
-      fetchProgramasParaSelector(),
-      fetchProyectosParaSelector(),
-    ])
-      .then(([progRes, proyRes]) => {
-        if (cancelled) return;
-        if (progRes.status === 'fulfilled') setProgramas(progRes.value);
-        if (proyRes.status === 'fulfilled') setProyectos(proyRes.value);
-      })
-      .finally(() => !cancelled && setLoadingDestinos(false));
-    return () => {
-      cancelled = true;
+
+    const loadDestinos = async () => {
+      try {
+        if (esColaboradorFactura && collaboratorId) {
+          const { proyectos: p, programas: pr } = await fetchDestinosAsignados(collaboratorId);
+          if (!cancelled) { setProyectos(p); setProgramas(pr); }
+        } else {
+          const [progRes, proyRes] = await Promise.allSettled([
+            fetchProgramasParaSelector(),
+            fetchProyectosParaSelector(),
+          ]);
+          if (!cancelled) {
+            if (progRes.status === 'fulfilled') setProgramas(progRes.value);
+            if (proyRes.status === 'fulfilled') setProyectos(proyRes.value);
+          }
+        }
+      } finally {
+        if (!cancelled) setLoadingDestinos(false);
+      }
     };
-  }, [open]);
+
+    loadDestinos();
+    return () => { cancelled = true; };
+  }, [open, esColaboradorFactura, collaboratorId]);
+
+  // Cargar saldo cuando se selecciona un destino
+  useEffect(() => {
+    if (!destinoId || !tipoOrigen) { setSaldo(null); return; }
+    let cancelled = false;
+    setLoadingSaldo(true);
+    const saldoFetch = tipoOrigen === 'PROYECTO'
+      ? fetchSaldoProyecto(Number(destinoId))
+      : fetchSaldoPrograma(Number(destinoId));
+    saldoFetch
+      .then((s) => { if (!cancelled) setSaldo(s); })
+      .catch(() => { if (!cancelled) setSaldo(null); })
+      .finally(() => { if (!cancelled) setLoadingSaldo(false); });
+    return () => { cancelled = true; };
+  }, [destinoId, tipoOrigen]);
 
   const resetForm = () => {
     setTitulo('');
@@ -81,6 +121,7 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
     setFiles([]);
     setSubmitError(null);
     setTriedSubmit(false);
+    setSaldo(null);
   };
 
   const { create, loading, error } = useCreateSolicitud({
@@ -94,10 +135,11 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
     },
   });
 
-  // Si cambia el tipo, limpiamos el id seleccionado para evitar inconsistencias.
+  // Si cambia el tipo, limpiamos el id seleccionado y el saldo.
   const handleTipoChange = (value: TipoOrigen) => {
     setTipoOrigen(value);
     setDestinoId('');
+    setSaldo(null);
   };
 
   // Monto numérico parseado
@@ -105,6 +147,8 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
     const n = Number(montoStr.replace(/[^0-9.]/g, ''));
     return Number.isFinite(n) ? n : NaN;
   }, [montoStr]);
+
+  const montoExcedeSaldo = saldo !== null && Number.isFinite(monto) && monto > 0 && monto > saldo.disponible;
 
   const titleLen = titulo.length;
   const descLen = descripcion.length;
@@ -126,10 +170,13 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
       montoInvalid ||
       tipoInvalid ||
       destinoInvalid ||
-      filesInvalid
+      filesInvalid ||
+      montoExcedeSaldo
     ) {
       if (filesInvalid)
         setSubmitError('Debes adjuntar al menos un documento o imagen.');
+      if (montoExcedeSaldo)
+        setSubmitError(`El monto supera el saldo disponible (₡${saldo!.disponible.toLocaleString('es-CR')}).`);
       return;
     }
 
@@ -361,6 +408,25 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
                   </div>
                 )}
               </div>
+
+              {/* Saldo disponible del destino seleccionado */}
+              {destinoId && tipoOrigen && (
+                <div className="mt-3">
+                  {loadingSaldo ? (
+                    <p className="text-xs text-slate-400">Consultando saldo disponible…</p>
+                  ) : saldo ? (
+                    <div className={`rounded-md px-3 py-2 text-xs ${montoExcedeSaldo ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                      <span className="font-medium">Saldo disponible: </span>
+                      ₡{saldo.disponible.toLocaleString('es-CR')}
+                      {' · '}
+                      <span className="text-slate-500">Presupuesto: ₡{saldo.presupuestoTotal.toLocaleString('es-CR')}</span>
+                      {montoExcedeSaldo && (
+                        <span className="ml-2 font-semibold"> — Monto supera el saldo disponible.</span>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </fieldset>
 
             {/* Adjuntos */}
@@ -415,7 +481,8 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
               <button
                 type="submit"
                 className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50"
-                disabled={loading}
+                disabled={loading || montoExcedeSaldo}
+                title={montoExcedeSaldo ? 'El monto supera el saldo disponible' : undefined}
               >
                 {loading ? 'Enviando…' : 'Guardar'}
               </button>

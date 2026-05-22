@@ -74,8 +74,8 @@ const ALL_MODULES: ModuleItem[] = [
   },
   {
     key: "proy",
-    title: "Proyectos",
-    desc: "Proyectos activos y finalizados",
+    title: "Proyectos y Programas",
+    desc: "Proyectos activos, finalizados y programas",
     href: "/admin/projects",
     icon: FolderKanban,
     roles: ["admin", "colaboradorproyecto"],

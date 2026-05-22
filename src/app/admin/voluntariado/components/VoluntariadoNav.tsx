@@ -2,7 +2,8 @@
 
 import { ArrowLeft } from "lucide-react";
 
-const tabs = ["Programas", "Asignación", "Voluntarios", "Sanciones"] as const;
+// La pestaña "Programas" se movió al módulo "Proyectos y Programas".
+const tabs = ["Voluntarios", "Asignación", "Sanciones"] as const;
 type Tab = (typeof tabs)[number];
 
 interface Props {
@@ -17,8 +18,15 @@ export default function VoluntariadoNav({ active, onChange }: Props) {
         {/* Título principal */}
         <div className="text-center py-4 sm:py-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-            Bienvenido al Área de Voluntariado
+            Voluntariado
           </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Registro y gestión de voluntarios, asignaciones y sanciones.
+            La administración de programas se encuentra en{" "}
+            <a href="/admin/projects" className="text-blue-600 hover:underline">
+              Proyectos y Programas
+            </a>.
+          </p>
         </div>
 
         {/* Navegación - Desktop */}
@@ -51,7 +59,6 @@ export default function VoluntariadoNav({ active, onChange }: Props) {
 
         {/* Navegación - Mobile */}
         <div className="md:hidden pb-4">
-          {/* Botón volver */}
           <div className="mb-3">
             <a href="/admin">
               <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
@@ -61,7 +68,6 @@ export default function VoluntariadoNav({ active, onChange }: Props) {
             </a>
           </div>
 
-          {/* Tabs */}
           <nav className="flex flex-col sm:flex-row gap-2">
             {tabs.map((tab) => (
               <button

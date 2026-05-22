@@ -64,7 +64,10 @@ export default function CollaboratorsRow({
         </td>
         <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
           {collaborator.birthdate
-            ? new Date(collaborator.birthdate).toLocaleDateString()
+            ? (() => {
+                const [y, m, d] = collaborator.birthdate.split("T")[0].split("-");
+                return `${d}/${m}/${y}`;
+              })()
             : "—"}
         </td>
         <td className="px-4 py-4 whitespace-nowrap">

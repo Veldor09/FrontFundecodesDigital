@@ -346,9 +346,9 @@ export default function PaymentForm(props: Props) {
             </div>
           ) : lockProjectFromSolicitud ? (
             // La solicitud era para un PROYECTO concreto: mostramos solo lectura.
-            <div className="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+            <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
               {selectedProjectName || "Cargando…"}
-              <span className="ml-2 text-xs text-slate-500">
+              <span className="ml-2 text-xs text-emerald-700/70">
                 (autocompletado desde la solicitud)
               </span>
             </div>

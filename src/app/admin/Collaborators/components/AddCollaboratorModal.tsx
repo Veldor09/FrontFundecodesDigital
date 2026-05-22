@@ -155,7 +155,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
         fullName: initial.fullName ?? "",
         email: initial.email ?? "",
         identification: (initial as any).identification ?? (initial as any).cedula ?? "",
-        birthdate: initial.birthdate ?? "",
+        birthdate: initial.birthdate ? initial.birthdate.split("T")[0] : "",
         phone: initial.phone ?? "+506",
         role: normalizedRole,
       });
