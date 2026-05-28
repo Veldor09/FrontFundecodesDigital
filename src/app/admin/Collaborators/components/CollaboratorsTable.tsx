@@ -10,6 +10,30 @@ import CollaboratorsRow from "./CollaboratorsRow";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import { apiListCollaborators } from "../services/collaborators.api";
+import type { ExportRow } from "@/lib/export";
+
+const COLLAB_EXPORT_COLS = [
+  { key: "fullName",       header: "Nombre",          width: 24 },
+  { key: "email",          header: "Correo",           width: 26 },
+  { key: "role",           header: "Rol",              width: 22 },
+  { key: "status",         header: "Estado",           width: 12 },
+  { key: "identification", header: "Identificación",   width: 16 },
+  { key: "phone",          header: "Teléfono",         width: 16 },
+];
+
+function collabToRow(c: UiCollaborator): ExportRow {
+  const rolesDisplay = c.roles?.length ? c.roles.join(", ") : (c.role ?? "");
+  return {
+    fullName:       c.fullName ?? "",
+    email:          c.email ?? "",
+    role:           rolesDisplay,
+    status:         c.status ?? "",
+    identification: (c as any).identification ?? "",
+    phone:          c.phone ?? "",
+  };
+}
 
 /* Debounce simple */
 function useDebouncedValue<T>(value: T, delay = 400) {
@@ -23,12 +47,15 @@ function useDebouncedValue<T>(value: T, delay = 400) {
 
 /* Adaptador API -> UI (tolera ES/EN) */
 function toUi(x: any): UiCollaborator {
+  const rawRoles: string[] | undefined =
+    Array.isArray(x.roles) && x.roles.length > 0 ? x.roles : undefined;
   return {
     id: x.id,
     fullName: x.fullName ?? x.nombreCompleto ?? x.nombre_completo ?? "",
     email: x.email ?? x.correo ?? "",
     phone: x.phone ?? x.telefono ?? null,
-    role: x.role ?? x.rol,
+    role: x.role ?? x.rol ?? "",
+    roles: rawRoles,
     identification: x.identification ?? x.cedula ?? "",
     birthdate: x.birthdate ?? x.fechaNacimiento ?? x.fecha_nacimiento ?? null,
     status: (x.status ?? x.estado) === "INACTIVO" ? "INACTIVO" : "ACTIVO",
@@ -89,9 +116,23 @@ export default function CollaboratorsTable() {
           <h2 className="text-2xl font-bold text-slate-800">Gestión de Colaboradores</h2>
           <p className="text-sm text-slate-500">Crear, editar y administrar colaboradores registrados</p>
         </div>
-        <Button onClick={abrirModalCrear} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-          <Plus className="h-4 w-4" /> Añadir Colaborador
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            title="Colaboradores"
+            subtitle="Listado de colaboradores de Fundecodes"
+            filename="colaboradores"
+            columns={COLLAB_EXPORT_COLS}
+            currentRows={items.map(collabToRow)}
+            fetchAll={async () => {
+              const res = await apiListCollaborators({ page: 1, pageSize: 9999 });
+              const all: UiCollaborator[] = Array.isArray(res) ? res : (res?.data ?? []);
+              return all.map(toUi).map(collabToRow);
+            }}
+          />
+          <Button onClick={abrirModalCrear} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-4 w-4" /> Añadir Colaborador
+          </Button>
+        </div>
       </div>
 
       {/* Modal crear/editar (key fuerza remount y limpia estados) */}

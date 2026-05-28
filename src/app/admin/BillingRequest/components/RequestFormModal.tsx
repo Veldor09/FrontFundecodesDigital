@@ -5,13 +5,10 @@ import FileUpload from './FileUpload';
 import { useCreateSolicitud } from '../hooks/useCreateSolicitud';
 import type { CreateSolicitudPayload } from '../services/solicitudes.api';
 import {
-  fetchProgramasParaSelector,
-  fetchProyectosParaSelector,
-  fetchDestinosAsignados,
-  fetchSaldoProyecto,
-  fetchSaldoPrograma,
-  type ProgramaOpcion,
-  type ProyectoOpcion,
+  fetchAreasParaSelector,
+  fetchSaldoArea,
+  fetchMiColaborador,
+  type AreaOpcion,
   type SaldoDestino,
 } from '../services/destinos.api';
 import { getToken, getJwtPayload } from '@/lib/auth';
@@ -29,7 +26,8 @@ const FILE_MAX_MB = 25;
 const TOTAL_MAX_MB = 100;
 const MAX_FILES = 10;
 
-type TipoOrigen = 'PROGRAMA' | 'PROYECTO';
+/** Roles considerados "externos" — no pueden ver saldo ni seleccionar área libremente. */
+const EXTERNAL_ROLES = ['colaboradorsolicitante', 'colaboradorvoluntariadoexterno'];
 
 export default function RequestFormModal({ open, onClose, onSaved }: Props) {
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -37,26 +35,28 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [montoStr, setMontoStr] = useState('');
-  const [tipoOrigen, setTipoOrigen] = useState<TipoOrigen | ''>('');
-  const [destinoId, setDestinoId] = useState<number | ''>('');
+  const [areaId, setAreaId] = useState<number | ''>('');
   const [files, setFiles] = useState<File[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
 
   // Catálogos
-  const [programas, setProgramas] = useState<ProgramaOpcion[]>([]);
-  const [proyectos, setProyectos] = useState<ProyectoOpcion[]>([]);
-  const [loadingDestinos, setLoadingDestinos] = useState(false);
+  const [areas, setAreas] = useState<AreaOpcion[]>([]);
+  const [loadingAreas, setLoadingAreas] = useState(false);
   const [saldo, setSaldo] = useState<SaldoDestino | null>(null);
   const [loadingSaldo, setLoadingSaldo] = useState(false);
 
-  // Detectar si el usuario es colaboradorfactura (destinos filtrados por asignación)
+  // Área fija del colaborador externo
+  const [miArea, setMiArea] = useState<{ id: number; nombre: string } | null>(null);
+  const [loadingMiArea, setLoadingMiArea] = useState(false);
+
+  // Detectar rol del usuario
   const jwtPayload = useMemo(() => {
     const token = getToken();
     return getJwtPayload<{ sub?: number; roles?: string[] }>(token);
   }, []);
-  const esColaboradorFactura = jwtPayload?.roles?.includes('colaboradorfactura') ?? false;
-  const collaboratorId = jwtPayload?.sub ?? null;
+  const userRoles: string[] = jwtPayload?.roles ?? [];
+  const esExterno = userRoles.some((r) => EXTERNAL_ROLES.includes(r));
 
   useEffect(() => {
     if (!open) return;
@@ -67,61 +67,60 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
     };
   }, [open]);
 
-  // Carga catálogos al abrir el modal
+  // Carga catálogos al abrir
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setLoadingDestinos(true);
 
-    const loadDestinos = async () => {
-      try {
-        if (esColaboradorFactura && collaboratorId) {
-          const { proyectos: p, programas: pr } = await fetchDestinosAsignados(collaboratorId);
-          if (!cancelled) { setProyectos(p); setProgramas(pr); }
-        } else {
-          const [progRes, proyRes] = await Promise.allSettled([
-            fetchProgramasParaSelector(),
-            fetchProyectosParaSelector(),
-          ]);
-          if (!cancelled) {
-            if (progRes.status === 'fulfilled') setProgramas(progRes.value);
-            if (proyRes.status === 'fulfilled') setProyectos(proyRes.value);
+    if (esExterno) {
+      // Colaborador externo: cargamos SU área automáticamente
+      setLoadingMiArea(true);
+      fetchMiColaborador()
+        .then((col) => {
+          if (cancelled) return;
+          if (col?.areaOrg) {
+            setMiArea(col.areaOrg);
+            setAreaId(col.areaOrg.id);
+          } else {
+            setMiArea(null);
           }
-        }
-      } finally {
-        if (!cancelled) setLoadingDestinos(false);
-      }
-    };
+        })
+        .catch(() => { if (!cancelled) setMiArea(null); })
+        .finally(() => { if (!cancelled) setLoadingMiArea(false); });
+    } else {
+      // Admin/interno: cargamos todas las áreas activas
+      setLoadingAreas(true);
+      fetchAreasParaSelector()
+        .then((list) => { if (!cancelled) setAreas(list); })
+        .catch(() => { if (!cancelled) setAreas([]); })
+        .finally(() => { if (!cancelled) setLoadingAreas(false); });
+    }
 
-    loadDestinos();
     return () => { cancelled = true; };
-  }, [open, esColaboradorFactura, collaboratorId]);
+  }, [open, esExterno]);
 
-  // Cargar saldo cuando se selecciona un destino
+  // Carga el saldo cuando se selecciona un área (solo para no-externos)
   useEffect(() => {
-    if (!destinoId || !tipoOrigen) { setSaldo(null); return; }
+    if (esExterno || !areaId) { setSaldo(null); return; }
     let cancelled = false;
     setLoadingSaldo(true);
-    const saldoFetch = tipoOrigen === 'PROYECTO'
-      ? fetchSaldoProyecto(Number(destinoId))
-      : fetchSaldoPrograma(Number(destinoId));
-    saldoFetch
+    fetchSaldoArea(Number(areaId))
       .then((s) => { if (!cancelled) setSaldo(s); })
       .catch(() => { if (!cancelled) setSaldo(null); })
       .finally(() => { if (!cancelled) setLoadingSaldo(false); });
     return () => { cancelled = true; };
-  }, [destinoId, tipoOrigen]);
+  }, [areaId, esExterno]);
 
   const resetForm = () => {
     setTitulo('');
     setDescripcion('');
     setMontoStr('');
-    setTipoOrigen('');
-    setDestinoId('');
+    setAreaId('');
     setFiles([]);
     setSubmitError(null);
     setTriedSubmit(false);
     setSaldo(null);
+    if (!esExterno) setMiArea(null);
   };
 
   const { create, loading, error } = useCreateSolicitud({
@@ -135,28 +134,18 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
     },
   });
 
-  // Si cambia el tipo, limpiamos el id seleccionado y el saldo.
-  const handleTipoChange = (value: TipoOrigen) => {
-    setTipoOrigen(value);
-    setDestinoId('');
-    setSaldo(null);
-  };
-
   // Monto numérico parseado
   const monto = useMemo(() => {
     const n = Number(montoStr.replace(/[^0-9.]/g, ''));
     return Number.isFinite(n) ? n : NaN;
   }, [montoStr]);
 
-  const montoExcedeSaldo = saldo !== null && Number.isFinite(monto) && monto > 0 && monto > saldo.disponible;
-
   const titleLen = titulo.length;
   const descLen = descripcion.length;
   const titleInvalid = titleLen < TITLE_MIN || titleLen > TITLE_MAX;
   const descInvalid = descLen < DESC_MIN || descLen > DESC_MAX;
   const montoInvalid = !Number.isFinite(monto) || monto <= 0;
-  const tipoInvalid = !tipoOrigen;
-  const destinoInvalid = !destinoId;
+  const areaInvalid = !areaId;
   const filesInvalid = files.length === 0;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -164,19 +153,8 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
     setTriedSubmit(true);
     setSubmitError(null);
 
-    if (
-      titleInvalid ||
-      descInvalid ||
-      montoInvalid ||
-      tipoInvalid ||
-      destinoInvalid ||
-      filesInvalid ||
-      montoExcedeSaldo
-    ) {
-      if (filesInvalid)
-        setSubmitError('Debes adjuntar al menos un documento o imagen.');
-      if (montoExcedeSaldo)
-        setSubmitError(`El monto supera el saldo disponible (₡${saldo!.disponible.toLocaleString('es-CR')}).`);
+    if (titleInvalid || descInvalid || montoInvalid || areaInvalid || filesInvalid) {
+      if (filesInvalid) setSubmitError('Debes adjuntar al menos un documento o imagen.');
       return;
     }
 
@@ -184,9 +162,7 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
       titulo: titulo.trim(),
       descripcion: descripcion.trim(),
       monto,
-      tipoOrigen: tipoOrigen as TipoOrigen,
-      programaId: tipoOrigen === 'PROGRAMA' ? Number(destinoId) : undefined,
-      projectId: tipoOrigen === 'PROYECTO' ? Number(destinoId) : undefined,
+      areaId: Number(areaId),
       files,
     };
     await create(payload);
@@ -204,17 +180,6 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
       : null;
 
   if (!open) return null;
-
-  // Opciones del segundo selector según el tipo elegido
-  const destinoOptions =
-    tipoOrigen === 'PROGRAMA'
-      ? programas.map((p) => ({
-          id: p.id,
-          label: p.lugar ? `${p.nombre} — ${p.lugar}` : p.nombre,
-        }))
-      : tipoOrigen === 'PROYECTO'
-      ? proyectos.map((p) => ({ id: p.id, label: p.title }))
-      : [];
 
   return (
     <div
@@ -312,122 +277,68 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
               )}
             </div>
 
-            {/* Destino: 1) tipo (Programa/Proyecto) 2) selector dependiente */}
-            <fieldset className="rounded-lg border border-slate-200 p-3">
-              <legend className="px-2 text-sm font-medium">
-                ¿A qué pertenece esta solicitud?{' '}
-                <span className="text-red-600">*</span>
-              </legend>
+            {/* Área */}
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Área <span className="text-red-600">*</span>
+              </label>
 
-              <div className="mt-1 grid grid-cols-2 gap-2">
-                <label
-                  className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${
-                    tipoOrigen === 'PROGRAMA'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="tipoOrigen"
-                    value="PROGRAMA"
-                    checked={tipoOrigen === 'PROGRAMA'}
-                    onChange={() => handleTipoChange('PROGRAMA')}
-                    className="h-4 w-4"
-                    disabled={loading}
-                  />
-                  <div>
-                    <div className="text-sm font-medium">Programa de voluntariado</div>
-                    <div className="text-xs text-slate-500">
-                      Iniciativas con voluntarios asignados (ej. Reforestación).
-                    </div>
-                  </div>
-                </label>
-
-                <label
-                  className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${
-                    tipoOrigen === 'PROYECTO'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="tipoOrigen"
-                    value="PROYECTO"
-                    checked={tipoOrigen === 'PROYECTO'}
-                    onChange={() => handleTipoChange('PROYECTO')}
-                    className="h-4 w-4"
-                    disabled={loading}
-                  />
-                  <div>
-                    <div className="text-sm font-medium">Proyecto</div>
-                    <div className="text-xs text-slate-500">
-                      Proyectos del catálogo institucional (ej. Sede La Cruz).
-                    </div>
-                  </div>
-                </label>
-              </div>
-
-              {/* Selector dependiente */}
-              <div className="mt-3">
-                <label className="mb-1 block text-sm font-medium">
-                  {tipoOrigen === 'PROGRAMA'
-                    ? 'Selecciona el programa'
-                    : tipoOrigen === 'PROYECTO'
-                    ? 'Selecciona el proyecto'
-                    : 'Primero elige programa o proyecto'}
-                </label>
+              {esExterno ? (
+                /* Colaborador externo: área fija, no editable */
+                <div className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {loadingMiArea ? (
+                    <span className="text-slate-400">Cargando tu área…</span>
+                  ) : miArea ? (
+                    <span className="font-medium">{miArea.nombre}</span>
+                  ) : (
+                    <span className="text-red-600">Sin área asignada — contacta al administrador.</span>
+                  )}
+                </div>
+              ) : (
+                /* Admin/interno: selector de área */
                 <select
                   className="w-full rounded-md border p-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-                  value={destinoId}
-                  onChange={(e) =>
-                    setDestinoId(e.target.value ? Number(e.target.value) : '')
-                  }
-                  disabled={!tipoOrigen || loadingDestinos || loading}
+                  value={areaId}
+                  onChange={(e) => setAreaId(e.target.value ? Number(e.target.value) : '')}
+                  disabled={loadingAreas || loading}
                   required
                 >
                   <option value="">
-                    {loadingDestinos
-                      ? 'Cargando…'
-                      : !tipoOrigen
-                      ? '—'
-                      : destinoOptions.length === 0
-                      ? 'Sin opciones disponibles'
-                      : 'Selecciona una opción…'}
+                    {loadingAreas ? 'Cargando áreas…' : areas.length === 0 ? 'Sin áreas disponibles' : 'Selecciona un área…'}
                   </option>
-                  {destinoOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
+                  {areas.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}
                     </option>
                   ))}
                 </select>
-                {triedSubmit && (tipoInvalid || destinoInvalid) && (
-                  <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
-                    Selecciona un programa o un proyecto.
-                  </div>
-                )}
-              </div>
+              )}
 
-              {/* Saldo disponible del destino seleccionado */}
-              {destinoId && tipoOrigen && (
-                <div className="mt-3">
+              {triedSubmit && areaInvalid && (
+                <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+                  Selecciona el área de destino.
+                </div>
+              )}
+
+              {/* Saldo disponible — solo visible para roles internos/admin */}
+              {!esExterno && areaId && (
+                <div className="mt-2">
                   {loadingSaldo ? (
                     <p className="text-xs text-slate-400">Consultando saldo disponible…</p>
                   ) : saldo ? (
-                    <div className={`rounded-md px-3 py-2 text-xs ${montoExcedeSaldo ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                      <span className="font-medium">Saldo disponible: </span>
+                    <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                      <span className="font-medium">Saldo disponible:</span>{' '}
                       ₡{saldo.disponible.toLocaleString('es-CR')}
                       {' · '}
-                      <span className="text-slate-500">Presupuesto: ₡{saldo.presupuestoTotal.toLocaleString('es-CR')}</span>
-                      {montoExcedeSaldo && (
-                        <span className="ml-2 font-semibold"> — Monto supera el saldo disponible.</span>
+                      <span>Presupuesto: ₡{saldo.presupuestoTotal.toLocaleString('es-CR')}</span>
+                      {saldo.disponible < 0 && (
+                        <span className="ml-2 text-amber-600 font-medium">(saldo negativo)</span>
                       )}
                     </div>
                   ) : null}
                 </div>
               )}
-            </fieldset>
+            </div>
 
             {/* Adjuntos */}
             <div>
@@ -445,8 +356,9 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
               />
 
               <p className="mt-1 text-xs text-slate-500">
-                Formatos permitidos: <b>PDF, JPG, JPEG, PNG, WEBP</b>. Máx. <b>{FILE_MAX_MB} MB</b> por
-                archivo, <b> {TOTAL_MAX_MB} MB</b> en total, hasta <b>{MAX_FILES}</b> archivos.
+                Formatos permitidos: <b>PDF, JPG, JPEG, PNG, WEBP</b>. Máx.{' '}
+                <b>{FILE_MAX_MB} MB</b> por archivo, <b>{TOTAL_MAX_MB} MB</b> en total, hasta{' '}
+                <b>{MAX_FILES}</b> archivos.
               </p>
 
               {triedSubmit && filesInvalid && (
@@ -481,8 +393,8 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
               <button
                 type="submit"
                 className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50"
-                disabled={loading || montoExcedeSaldo}
-                title={montoExcedeSaldo ? 'El monto supera el saldo disponible' : undefined}
+                disabled={loading || (esExterno && !miArea)}
+                title={esExterno && !miArea ? 'No tienes área asignada' : undefined}
               >
                 {loading ? 'Enviando…' : 'Guardar'}
               </button>

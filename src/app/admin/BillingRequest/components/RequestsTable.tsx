@@ -29,6 +29,7 @@ export default function RequestsTable() {
   const [statusFilter, setStatusFilter] = useState<
     'ALL' | 'PENDIENTE' | 'VALIDADA' | 'DEVUELTA' | 'APROBADA' | 'RECHAZADA'
   >('ALL');
+  const [areaFilter, setAreaFilter] = useState<string>('');
 
   const load = async () => {
     setLoading(true);
@@ -52,25 +53,39 @@ export default function RequestsTable() {
     load();
   }, []);
 
+  const areaOptions = useMemo(() => {
+    const seen = new Set<string>();
+    items.forEach((it) => {
+      const nombre = (it as any).areaOrg?.nombre;
+      if (nombre) seen.add(nombre);
+    });
+    return Array.from(seen).sort();
+  }, [items]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const base = items.filter((x): x is SolicitudListItem => !!x && typeof (x as any).id !== 'undefined');
 
-    // 1) filtro por estado (si aplica)
+    // 1) filtro por estado
     const byStatus =
       statusFilter === 'ALL'
         ? base
         : base.filter((it) => getEstadoDisplay(it) === statusFilter);
 
-    // 2) filtro por texto (igual que antes)
-    if (!q) return byStatus;
-    return byStatus.filter((it) => {
+    // 2) filtro por área
+    const byArea = areaFilter
+      ? byStatus.filter((it) => ((it as any).areaOrg?.nombre ?? '') === areaFilter)
+      : byStatus;
+
+    // 3) filtro por texto
+    if (!q) return byArea;
+    return byArea.filter((it) => {
       const t = (it as any)?.titulo?.toLowerCase?.() ?? '';
       const d = (it as any)?.descripcion?.toLowerCase?.() ?? '';
       const e = getEstadoDisplay(it).toLowerCase();
       return t.includes(q) || d.includes(q) || e.includes(q);
     });
-  }, [items, search, statusFilter]);
+  }, [items, search, statusFilter, areaFilter]);
 
   const handleView = (id: number) => {
     setSelectedId(id);
@@ -78,9 +93,9 @@ export default function RequestsTable() {
   };
 
   return (
-    <div className="w-full">
-      {/* Barra superior: buscador + filtro + botón nueva solicitud */}
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-4">
+      {/* Barra superior: buscador + filtros + botón nueva solicitud */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full flex-col gap-2 sm:flex-row">
           <input
             className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:max-w-xs"
@@ -91,18 +106,30 @@ export default function RequestsTable() {
 
           {/* Filtro por estado */}
           <select
-            className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-48"
+            className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-44"
             value={statusFilter}
             onChange={(e) =>
               setStatusFilter(e.target.value.toUpperCase() as typeof statusFilter)
             }
           >
-            <option value="ALL">Todos</option>
+            <option value="ALL">Todos los estados</option>
             <option value="PENDIENTE">Pendiente</option>
             <option value="VALIDADA">Validada</option>
             <option value="DEVUELTA">Devuelta</option>
             <option value="APROBADA">Aprobada</option>
             <option value="RECHAZADA">Rechazada</option>
+          </select>
+
+          {/* Filtro por área */}
+          <select
+            className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-44"
+            value={areaFilter}
+            onChange={(e) => setAreaFilter(e.target.value)}
+          >
+            <option value="">Todas las áreas</option>
+            {areaOptions.map((area) => (
+              <option key={area} value={area}>{area}</option>
+            ))}
           </select>
         </div>
 

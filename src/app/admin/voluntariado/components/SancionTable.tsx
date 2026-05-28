@@ -12,6 +12,29 @@ import { useVoluntarios } from "../hooks/useVoluntarios";
 import { Plus, Search, AlertTriangle, Ban } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "./ConfirmDialog";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import { listSanciones } from "../services/sancionService";
+import type { ExportRow } from "@/lib/export";
+
+const SANCION_EXPORT_COLS = [
+  { key: "voluntario",  header: "Voluntario",   width: 24 },
+  { key: "tipo",        header: "Tipo",          width: 16 },
+  { key: "estado",      header: "Estado",        width: 12 },
+  { key: "motivo",      header: "Motivo",        width: 28 },
+  { key: "fechaInicio", header: "Fecha inicio",  width: 14 },
+  { key: "fechaVence",  header: "Vencimiento",   width: 14 },
+];
+
+function sancionToRow(s: Sancion): ExportRow {
+  return {
+    voluntario:  (s as any).voluntario?.nombreCompleto ?? (s as any).voluntario?.nombre ?? String(s.voluntarioId ?? ""),
+    tipo:        s.tipo ?? "",
+    estado:      s.estado ?? "",
+    motivo:      s.motivo ?? "",
+    fechaInicio: s.fechaInicio?.slice(0, 10) ?? "",
+    fechaVence:  s.fechaVencimiento?.slice(0, 10) ?? "",
+  };
+}
 
 // NUEVO: filtro por sanciones
 type FiltroSancion = "TODOS" | "CON" | "SIN";
@@ -84,7 +107,7 @@ export default function SancionTable() {
         return true; // TODOS
       })
       .filter((v) =>
-        [v.nombreCompleto, v.numeroDocumento, v.email]
+        [v.nombre, v.email, v.nacionalidad, v.ong]
           .some((f) => f?.toLowerCase().includes(search.toLowerCase()))
       );
   }, [voluntariosConSanciones, filtroSancion, search]);
@@ -103,6 +126,17 @@ export default function SancionTable() {
             Administrar sanciones disciplinarias por voluntario
           </p>
         </div>
+        <ExportButton
+          title="Sanciones"
+          subtitle="Registro de sanciones disciplinarias"
+          filename="sanciones"
+          columns={SANCION_EXPORT_COLS}
+          currentRows={listaSanciones.map(sancionToRow)}
+          fetchAll={async () => {
+            const res = await listSanciones({ page: 1, limit: 9999 });
+            return (res.data ?? []).map(sancionToRow);
+          }}
+        />
       </div>
 
       {/* Modal */}
@@ -123,7 +157,7 @@ export default function SancionTable() {
         {/* Buscador */}
         <div className="flex-1 max-w-lg">
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Buscar por nombre, cédula o email
+            Buscar por nombre, email, nacionalidad u ONG
           </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -172,10 +206,10 @@ export default function SancionTable() {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Nombre</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Cédula</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Nacionalidad</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Teléfono</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Estado</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">ONG</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Sanciones</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Acciones</th>
               </tr>
             </thead>
@@ -185,61 +219,39 @@ export default function SancionTable() {
                   key={`vol-${voluntario.id}-${i}`}
                   className="hover:bg-slate-50 border-b border-slate-200"
                 >
+                  <td className="px-4 py-3 font-medium text-slate-800">{voluntario.nombre}</td>
+                  <td className="px-4 py-3 text-slate-600">{voluntario.nacionalidad ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">{voluntario.email ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">{voluntario.ong ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium text-slate-800">
-                        {voluntario.nombreCompleto}
-                      </p>
-                      {(voluntario as any).sancionesActivas?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {(voluntario as any).sancionesActivas.map((s: Sancion) => {
-                            const dias = s.fechaVencimiento
-                              ? Math.max(
-                                  0,
-                                  Math.ceil(
-                                    (new Date(s.fechaVencimiento).getTime() -
-                                      new Date().getTime()) /
-                                      (1000 * 60 * 60 * 24)
-                                  )
-                                )
-                              : null;
-                            return (
-                              <Badge
-                                key={s.id}
-                                variant="destructive"
-                                className="bg-red-100 text-red-700 text-xs"
-                                title={
-                                  s.fechaVencimiento
-                                    ? `Vence: ${new Date(
-                                        s.fechaVencimiento
-                                      ).toLocaleDateString("es-CR")}`
-                                    : "Permanente"
-                                }
-                              >
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                {s.tipo}
-                                {dias !== null && dias > 0 && (
-                                  <span className="ml-1">({dias}d)</span>
-                                )}
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{voluntario.numeroDocumento}</td>
-                  <td className="px-4 py-3 text-slate-600">{voluntario.email}</td>
-                  <td className="px-4 py-3 text-slate-600">{voluntario.telefono || "N/A"}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant={(voluntario as any).sancionesActivas?.length > 0 ? "destructive" : "secondary"}
-                      className={(voluntario as any).sancionesActivas?.length > 0
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-100 text-gray-700"}
-                    >
-                      {(voluntario as any).sancionesActivas?.length > 0 ? "Con sanción" : "Sin sanción"}
-                    </Badge>
+                    {(voluntario as any).sancionesActivas?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {(voluntario as any).sancionesActivas.map((s: Sancion) => {
+                          const dias = s.fechaVencimiento
+                            ? Math.max(0, Math.ceil(
+                                (new Date(s.fechaVencimiento).getTime() - new Date().getTime()) /
+                                (1000 * 60 * 60 * 24)
+                              ))
+                            : null;
+                          return (
+                            <Badge
+                              key={s.id}
+                              variant="destructive"
+                              className="bg-red-100 text-red-700 text-xs"
+                              title={s.fechaVencimiento
+                                ? `Vence: ${new Date(s.fechaVencimiento).toLocaleDateString("es-CR")}`
+                                : "Permanente"}
+                            >
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              {s.tipo}
+                              {dias !== null && dias > 0 && <span className="ml-1">({dias}d)</span>}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-700">Sin sanción</Badge>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">

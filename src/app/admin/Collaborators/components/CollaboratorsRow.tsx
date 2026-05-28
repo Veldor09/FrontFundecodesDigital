@@ -5,6 +5,17 @@ import { Button } from "@/components/ui/button";
 import ConfirmDialog from "./ConfirmDialog";
 import { Collaborator } from "@/app/admin/Collaborators/types/collaborators.types";
 
+const ROLE_LABEL: Record<string, string> = {
+  admin:                      "Admin",
+  colaboradorfactura:         "Factura",
+  colaboradorvoluntariado:    "Voluntariado",
+  colaboradorproyecto:        "Proyecto",
+  colaboradorcontabilidad:    "Contabilidad",
+  colaboradorvisitacion:      "Visitación",
+  colaboradorsolicitante:     "Solicitante",
+  colaboradorvoluntariadoexterno: "Vol. Externo",
+};
+
 interface Props {
   collaborator: Collaborator;
   onEdit: () => void;
@@ -56,8 +67,17 @@ export default function CollaboratorsRow({
         <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
           {collaborator.phone ?? "—"}
         </td>
-        <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
-          {collaborator.role}
+        <td className="px-4 py-4">
+          <div className="flex flex-wrap gap-1">
+            {(collaborator.roles?.length ? collaborator.roles : [collaborator.role]).map((r) => (
+              <span
+                key={r}
+                className="inline-block px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-medium whitespace-nowrap"
+              >
+                {ROLE_LABEL[r] ?? r}
+              </span>
+            ))}
+          </div>
         </td>
         <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
           {collaborator.identification}

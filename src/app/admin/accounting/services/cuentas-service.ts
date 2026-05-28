@@ -21,6 +21,8 @@ export interface Cuenta {
   activa: boolean;
   createdAt: string;
   updatedAt: string;
+  areaId?: number | null;
+  area?: { id: number; nombre: string } | null;
   _count?: { proyectos: number; programas: number };
 }
 
@@ -113,14 +115,14 @@ export const CuentasService = {
     return data as CuentaResumen;
   },
 
-  async create(dto: { nombre: string; codigo: string; descripcion?: string; monedaBase?: string }) {
+  async create(dto: { nombre: string; codigo: string; descripcion?: string; monedaBase?: string; areaId?: number | null }) {
     const { data } = await axios.post(`${API_URL}/api/cuentas`, dto, {
       headers: { "Content-Type": "application/json", ...authHeader() },
     });
     return data as Cuenta;
   },
 
-  async update(id: number, dto: Partial<{ nombre: string; codigo: string; descripcion: string; monedaBase: string; activa: boolean }>) {
+  async update(id: number, dto: Partial<{ nombre: string; codigo: string; descripcion: string; monedaBase: string; activa: boolean; areaId: number | null }>) {
     const { data } = await axios.patch(`${API_URL}/api/cuentas/${id}`, dto, {
       headers: { "Content-Type": "application/json", ...authHeader() },
     });

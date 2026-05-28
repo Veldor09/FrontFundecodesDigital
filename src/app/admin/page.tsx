@@ -13,6 +13,7 @@ import {
   MessageSquare,
   FileText,
   ShieldCheck,
+  Eye,
 } from "lucide-react";
 import { DashboardMetrics } from "./components/DashboardMetrics";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,8 @@ type Role =
   | "colaboradorfactura"
   | "colaboradorvoluntariado"
   | "colaboradorproyecto"
-  | "colaboradorcontabilidad";
+  | "colaboradorcontabilidad"
+  | "colaboradorvisitacion";
 
 type ModuleCard = {
   key: string;
@@ -65,12 +67,13 @@ function normalizeRole(v?: string | null): Role | null {
     "colaboradorvoluntariado",
     "colaboradorproyecto",
     "colaboradorcontabilidad",
+    "colaboradorvisitacion",
   ];
   return (allowed as string[]).includes(low) ? (low as Role) : null;
 }
 
 export default function AdminDashboardPage() {
-  const [role, setRole] = useState<Role | null>(null);
+  const [userRoles, setUserRoles] = useState<Role[]>([]);
   const [pendingCommentsCount, setPendingCommentsCount] = useState(0);
   const [pendingRespuestasFormulariosCount, setPendingRespuestasFormulariosCount] =
     useState(0);
@@ -116,8 +119,15 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const t = getToken();
     const p = getJwtPayload<{ role?: string; rol?: string; roles?: string[] }>(t);
-    const fromArray = Array.isArray(p?.roles) ? p.roles[0] : undefined;
-    setRole(normalizeRole(p?.role ?? p?.rol ?? fromArray) ?? null);
+    const raw: string[] = [
+      ...(Array.isArray(p?.roles) ? p.roles : []),
+      ...(p?.role ? [p.role] : []),
+      ...(p?.rol ? [p.rol] : []),
+    ];
+    const normalized = raw
+      .map((r) => normalizeRole(r))
+      .filter((r): r is Role => r !== null);
+    setUserRoles([...new Set(normalized)]);
 
     loadPendingCommentsCount();
     loadPendingRespuestasFormulariosCount();
@@ -158,8 +168,8 @@ export default function AdminDashboardPage() {
       },
       {
         key: "proy",
-        title: "Proyectos y Programas",
-        desc: "Gestión de proyectos activos y finalizados",
+        title: "Áreas,Proyectos y Programas",
+        desc: "Gestión de Áreas, Proyectos y Programas activos y finalizados",
         href: "/admin/projects",
         icon: FolderKanban,
         cardClasses:
@@ -257,6 +267,20 @@ export default function AdminDashboardPage() {
         badgeCount: pendingRespuestasFormulariosCount,
       },
       {
+        key: "visitacion",
+        title: "Visitación",
+        desc: "Registro de visitas: nacionales, extranjeros y totales",
+        href: "/admin/visitacion",
+        icon: Eye,
+        cardClasses:
+          "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-sky-300",
+        badgeClasses:
+          "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-sky-50 group-hover:border-sky-200",
+        linkClasses:
+          "mt-4 text-sm font-medium text-sky-700 opacity-0 group-hover:opacity-100 transition-opacity",
+        roles: ["admin", "colaboradorvisitacion"],
+      },
+      {
         key: "auditoria",
         title: "Auditoría",
         desc: "Quién hizo qué: registro de acciones de todos los usuarios del sistema",
@@ -276,9 +300,10 @@ export default function AdminDashboardPage() {
   
 
   const visibleModules = useMemo(() => {
-    if (!role || role === "admin") return MODULES;
-    return MODULES.filter((m) => m.roles.includes(role));
-  }, [MODULES, role]);
+    if (!userRoles.length) return MODULES; // aún cargando
+    if (userRoles.includes("admin")) return MODULES;
+    return MODULES.filter((m) => m.roles.some((r) => userRoles.includes(r)));
+  }, [MODULES, userRoles]);
 
   // Le notificamos al AdminSidebar (renderizado por el layout) cuántos
   // comentarios están pendientes para que muestre el badge.

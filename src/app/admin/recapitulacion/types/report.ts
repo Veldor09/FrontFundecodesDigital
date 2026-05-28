@@ -53,6 +53,18 @@ export interface ReportData {
       balance: number
       reportesGenerados: number
     }
+    sanciones?: {
+      totalSanciones: number
+      leves: number
+      graves: number
+      severas: number
+    }
+    programas?: {
+      totalProgramas: number
+      totalParticipantes: number
+      cuposDisponibles: number
+      programasActivos: number
+    }
   }
 }
 

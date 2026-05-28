@@ -37,7 +37,7 @@ function handleAxiosError(err: any): never {
  * ========================= */
 export type EstadoContadora = "VALIDADA" | "PENDIENTE" | "DEVUELTA";
 export type EstadoDirector = "APROBADA" | "RECHAZADA" | "PENDIENTE";
-export type TipoOrigenSolicitud = "PROGRAMA" | "PROYECTO";
+export type TipoOrigenSolicitud = "PROGRAMA" | "PROYECTO" | "AREA";
 
 export interface UsuarioSolicitante {
   id: number;
@@ -56,6 +56,11 @@ export interface ProyectoRef {
   slug?: string;
 }
 
+export interface AreaRef {
+  id: number;
+  nombre: string;
+}
+
 export interface Solicitud {
   id: number;
   titulo: string;
@@ -69,6 +74,11 @@ export interface Solicitud {
   /** Monto solicitado (Decimal serializado como string desde Prisma). */
   monto: string | number | null;
 
+  /** Nuevo flujo: área a la que pertenece la solicitud. */
+  areaId?: number | null;
+  areaOrg?: AreaRef | null;
+
+  /** Flujo legacy */
   tipoOrigen: TipoOrigenSolicitud | null;
   programaId: number | null;
   programa?: ProgramaRef | null;
@@ -98,6 +108,7 @@ export type SolicitudListItem = Pick<
   | "tipoOrigen"
   | "programa"
   | "project"
+  | "areaOrg"
   | "usuario"
   | "createdAt"
 >;
@@ -105,10 +116,12 @@ export type SolicitudListItem = Pick<
 export type CreateSolicitudPayload = {
   titulo: string;
   descripcion: string;
-  /** Monto requerido en centavos del CRC (>0). */
+  /** Monto requerido en CRC (>0). */
   monto: number;
-  /** Tipo de destino — y exactamente uno de programaId/projectId. */
-  tipoOrigen: TipoOrigenSolicitud;
+  /** Nuevo flujo: ID del área. Excluye tipoOrigen/programaId/projectId. */
+  areaId?: number;
+  /** Flujo legacy */
+  tipoOrigen?: TipoOrigenSolicitud;
   programaId?: number;
   projectId?: number;
   usuarioId?: number;
@@ -131,20 +144,17 @@ export async function createSolicitud(
     if (!payload.descripcion?.trim()) throw new Error("La descripción es obligatoria.");
     if (!Number.isFinite(payload.monto) || payload.monto <= 0)
       throw new Error("El monto debe ser un número mayor a 0.");
-    if (payload.tipoOrigen === "PROGRAMA" && !payload.programaId)
-      throw new Error("Selecciona un programa.");
-    if (payload.tipoOrigen === "PROYECTO" && !payload.projectId)
-      throw new Error("Selecciona un proyecto.");
-    if (payload.tipoOrigen === "PROGRAMA" && payload.projectId)
-      throw new Error("No se puede enviar projectId con tipoOrigen=PROGRAMA.");
-    if (payload.tipoOrigen === "PROYECTO" && payload.programaId)
-      throw new Error("No se puede enviar programaId con tipoOrigen=PROYECTO.");
+    if (!payload.areaId && !payload.tipoOrigen)
+      throw new Error("Selecciona un área de destino.");
 
     const fd = new FormData();
     fd.set("titulo", payload.titulo);
     fd.set("descripcion", payload.descripcion);
     fd.set("monto", String(payload.monto));
-    fd.set("tipoOrigen", payload.tipoOrigen);
+    if (payload.areaId !== undefined)
+      fd.set("areaId", String(payload.areaId));
+    if (payload.tipoOrigen !== undefined && payload.tipoOrigen !== "AREA")
+      fd.set("tipoOrigen", payload.tipoOrigen);
     if (payload.programaId !== undefined)
       fd.set("programaId", String(payload.programaId));
     if (payload.projectId !== undefined)

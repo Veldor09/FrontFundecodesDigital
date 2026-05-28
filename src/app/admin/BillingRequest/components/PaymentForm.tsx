@@ -10,12 +10,10 @@ import {
 } from "../types/billing.types";
 import { useCreatePayment, formatApiError } from "../hooks/useBilling";
 import { ensureBillingRequestFromSolicitud } from "../services/billing.api";
-import { listProjects } from "@/services/projects.service";
 import { getSolicitud, type Solicitud } from "../services/solicitudes.api";
-import type { Project } from "@/lib/projects.types";
 
 /* ===== Límites UI ===== */
-const AMOUNT_MAX_CHARS = 14; // "9999999999.99" ~ 13-14
+const AMOUNT_MAX_CHARS = 14;
 const REF_MIN = 3;
 const REF_MAX = 40;
 const METHOD_MAX = 30;
@@ -23,25 +21,15 @@ const METHOD_MAX = 30;
 /* ===== Opciones de método ===== */
 const METHOD_OPTIONS = ["Transferencia", "SINPE", "Tarjeta", "Efectivo", "Otro"] as const;
 
-type Props =
-  | {
-      className?: string;
-      requestId: number;
-      projectId?: never;
-      defaultCurrency?: Currency;
-      onPaid?: (paymentId: string) => void;
-    }
-  | {
-      className?: string;
-      requestId: number;
-      projectId: number;
-      defaultCurrency?: Currency;
-      onPaid?: (paymentId: string) => void;
-    };
+type Props = {
+  className?: string;
+  requestId: number;
+  defaultCurrency?: Currency;
+  onPaid?: (paymentId: string) => void;
+};
 
 const initial: PaymentFormModel = {
   requestId: 0,
-  projectId: undefined,
   amount: "",
   currency: "CRC",
   date: "",
@@ -51,11 +39,10 @@ const initial: PaymentFormModel = {
 
 /** Limpia el input de monto: solo dígitos, 1 separador y máx 2 decimales */
 function sanitizeMoneyInput(raw: string): string {
-  let s = raw.replace(/[^\d.,]/g, ""); // solo dígitos/coma/punto
-  s = s.replace(/,/g, "."); // normaliza coma a punto
+  let s = raw.replace(/[^\d.,]/g, "");
+  s = s.replace(/,/g, ".");
   const firstDot = s.indexOf(".");
   if (firstDot !== -1) {
-    // quita puntos extra y no numéricos después del primero
     s =
       s.slice(0, firstDot + 1) +
       s
@@ -63,7 +50,6 @@ function sanitizeMoneyInput(raw: string): string {
         .replace(/\./g, "")
         .replace(/[^0-9]/g, "");
   }
-  // límite 2 decimales
   if (s.includes(".")) {
     const [int, dec] = s.split(".");
     return `${int}${dec !== undefined ? "." + dec.slice(0, 2) : ""}`;
@@ -71,50 +57,36 @@ function sanitizeMoneyInput(raw: string): string {
   return s;
 }
 
+/** Devuelve el nombre del destino de la solicitud (área, programa o proyecto). */
+function resolveDestinoLabel(sol: Solicitud | null): string | null {
+  if (!sol) return null;
+  if ((sol as any).areaOrg?.nombre) return (sol as any).areaOrg.nombre;
+  if (sol.tipoOrigen === "PROGRAMA") return sol.programa?.nombre ?? null;
+  if (sol.tipoOrigen === "PROYECTO") return sol.project?.title ?? null;
+  return null;
+}
+
+/** Devuelve la etiqueta del tipo de destino. */
+function resolveDestinoTipo(sol: Solicitud | null): string {
+  if (!sol) return "Área";
+  if ((sol as any).areaOrg) return "Área";
+  if (sol.tipoOrigen === "PROGRAMA") return "Programa";
+  if (sol.tipoOrigen === "PROYECTO") return "Proyecto";
+  return "Área";
+}
+
 export default function PaymentForm(props: Props) {
   const [model, setModel] = useState<PaymentFormModel>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [triedSubmit, setTriedSubmit] = useState(false);
 
-  const [projects, setProjects] = useState<Array<Pick<Project, "id" | "title">>>([]);
-  const [loadingProjects, setLoadingProjects] = useState<boolean>(true);
-
-  // Datos de la solicitud original, usados para prefill (proyecto/programa/monto).
+  // Datos de la solicitud (para prefill y mostrar destino)
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loadingSolicitud, setLoadingSolicitud] = useState<boolean>(true);
 
-  // hoy en formato YYYY-MM-DD para usar en el input date y validaciones
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  /* ===== Cargar proyectos (select) ===== */
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setLoadingProjects(true);
-        const { data } = await listProjects({ page: 1, pageSize: 1000 });
-        if (!mounted) return;
-        const rows = Array.isArray(data) ? data : [];
-        setProjects(
-          rows.map((p: any) => ({
-            id: Number(p.id),
-            title: String(p.title ?? `Proyecto #${p.id}`),
-          }))
-        );
-      } catch {
-        if (mounted) setProjects([]);
-      } finally {
-        if (mounted) setLoadingProjects(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  /* ===== Cargar datos de la solicitud para prefill =====
-     Trae proyecto/programa y monto que el usuario ya ingresó al crear la
-     solicitud. Eso evita pedirle dos veces los mismos datos. */
+  /* ===== Cargar solicitud para prefill ===== */
   useEffect(() => {
     let mounted = true;
     if (!props.requestId) return;
@@ -130,15 +102,11 @@ export default function PaymentForm(props: Props) {
         if (mounted) setLoadingSolicitud(false);
       }
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [props.requestId]);
 
-  /* ===== Inicialización + prefill desde la solicitud ===== */
+  /* ===== Prefill desde la solicitud ===== */
   useEffect(() => {
-    // Convertimos el monto de la solicitud (puede venir como string Decimal
-    // de Prisma o como number) a un string con 2 decimales para el input.
     const formattedAmount = (() => {
       const raw = solicitud?.monto;
       if (raw === null || raw === undefined || raw === "") return "";
@@ -149,20 +117,12 @@ export default function PaymentForm(props: Props) {
     setModel((m) => ({
       ...m,
       requestId: props.requestId,
-      // Si la solicitud era de un PROYECTO, lo usamos; sino respetamos lo
-      // que vino por props (legacy) o lo que ya tenía el modelo.
-      projectId:
-        (props as any).projectId ??
-        solicitud?.projectId ??
-        m.projectId,
-      // Prefill del monto solo si el campo está vacío (el contador puede
-      // sobrescribir si paga parcial o el monto cambió).
       amount: m.amount || formattedAmount,
       currency: props.defaultCurrency ?? "CRC",
       date: m.date || today,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.requestId, (props as any).projectId, props.defaultCurrency, today, solicitud]);
+  }, [props.requestId, props.defaultCurrency, today, solicitud]);
 
   function setField<K extends keyof PaymentFormModel>(key: K, value: PaymentFormModel[K]) {
     setModel((m) => ({ ...m, [key]: value }));
@@ -172,18 +132,9 @@ export default function PaymentForm(props: Props) {
   const createPayment = useCreatePayment();
 
   /* ===== Validaciones ===== */
-  // Si la solicitud era para un programa, el back deriva el projectId del
-  // BillingRequest, así que el front no necesita uno propio.
-  const skipProjectValidation =
-    !!solicitud && solicitud.tipoOrigen === "PROGRAMA";
-
   const validators = useMemo(
     () => ({
       requestId: (v: number) => (v > 0 ? "" : "Solicitud inválida"),
-      projectId: (v?: number) => {
-        if (skipProjectValidation) return "";
-        return typeof v === "number" && v > 0 ? "" : "Selecciona un proyecto";
-      },
       amount: (v: string) => {
         if (!v) return "Ingresa el monto";
         const trimmed = v.replace(",", ".");
@@ -204,19 +155,17 @@ export default function PaymentForm(props: Props) {
         if (t.length > REF_MAX) return `Máximo ${REF_MAX} caracteres`;
         return "";
       },
-      // método opcional; si lo llenan, validar largo
       method: (v: string) => {
         const t = (v ?? "").trim();
-        if (!t) return ""; // opcional
+        if (!t) return "";
         if (t.length > METHOD_MAX) return `Máximo ${METHOD_MAX} caracteres`;
         if (t.length < 2) return "Método inválido";
         return "";
       },
     }),
-    [today, skipProjectValidation]
+    [today]
   );
 
-  const projectInvalid = !!validators.projectId(model.projectId);
   const amountInvalid = !!validators.amount(model.amount);
   const dateInvalid = !!validators.date(model.date);
   const refInvalid = !!validators.reference(model.reference);
@@ -228,7 +177,6 @@ export default function PaymentForm(props: Props) {
 
     const next: Record<string, string> = {};
     next.requestId = validators.requestId(model.requestId);
-    next.projectId = validators.projectId(model.projectId);
     next.amount = validators.amount(model.amount);
     next.currency = validators.currency(model.currency);
     next.date = validators.date(model.date);
@@ -240,16 +188,10 @@ export default function PaymentForm(props: Props) {
     if (Object.keys(next).length > 0) return;
 
     try {
-      await ensureBillingRequestFromSolicitud({
-        solicitudId: model.requestId,
-        // Si es PROGRAMA, el back deriva el projectId del BillingRequest.
-        projectId: skipProjectValidation ? undefined : Number(model.projectId),
-        fallbackAmount: toNumberSafe(model.amount),
-      });
+      await ensureBillingRequestFromSolicitud({ solicitudId: model.requestId });
 
       const payment = await createPayment.mutateAsync({
         requestId: model.requestId,
-        projectId: skipProjectValidation ? undefined : Number(model.projectId),
         amount: toNumberSafe(model.amount),
         currency: model.currency,
         date: model.date,
@@ -260,11 +202,9 @@ export default function PaymentForm(props: Props) {
 
       toast.success("Pago registrado");
 
-      // Reset
       setModel({
         ...initial,
         requestId: props.requestId,
-        projectId: (props as any).projectId ?? undefined,
         currency: props.defaultCurrency ?? "CRC",
         date: today,
       });
@@ -277,29 +217,14 @@ export default function PaymentForm(props: Props) {
     }
   }
 
-  const busy = createPayment.isPending || loadingProjects || loadingSolicitud;
+  const busy = createPayment.isPending || loadingSolicitud;
 
-  const selectedProjectName = useMemo(() => {
-    // Prioridad 1: si la solicitud trae el proyecto embebido (back lo incluye)
-    if (solicitud?.project?.title) return solicitud.project.title;
-    // Prioridad 2: si conocemos el id, lo buscamos en la lista
-    const pid = Number(model.projectId ?? 0);
-    const p = projects.find((x) => x.id === pid);
-    return p?.title ?? (pid ? `Proyecto #${pid}` : "");
-  }, [projects, model.projectId, solicitud]);
-
-  // Cuando la solicitud vino con un destino claro, el contador no debería
-  // re-elegirlo: lo bloqueamos para evitar redundancias e inconsistencias.
-  const lockProjectFromSolicitud =
-    !!solicitud && solicitud.tipoOrigen === "PROYECTO" && !!solicitud.projectId;
-
-  const programaName =
-    solicitud?.tipoOrigen === "PROGRAMA" ? solicitud.programa?.nombre ?? null : null;
+  const destinoLabel = resolveDestinoLabel(solicitud);
+  const destinoTipo = resolveDestinoTipo(solicitud);
 
   const disableSubmit =
     busy ||
     !!validators.requestId(model.requestId) ||
-    !!validators.projectId(model.projectId) ||
     !!validators.amount(model.amount) ||
     !!validators.currency(model.currency) ||
     !!validators.date(model.date) ||
@@ -313,74 +238,39 @@ export default function PaymentForm(props: Props) {
         (props as any).className ?? ""
       }`}
     >
-      {/* Header compacto (no título duplicado) */}
+      {/* Header compacto */}
       <div className="px-5 py-3 border-b bg-white sticky top-0 z-10">
         <p className="text-xs text-slate-500">
           Solicitud <span className="font-semibold">#{props.requestId}</span>
-          {selectedProjectName ? (
+          {destinoLabel && (
             <>
-              {" "}
-              • Proyecto: <span className="font-medium">{selectedProjectName}</span>
+              {" "}• {destinoTipo}:{" "}
+              <span className="font-medium">{destinoLabel}</span>
             </>
-          ) : null}
+          )}
         </p>
       </div>
 
       {/* Contenido scrollable */}
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 pt-4 space-y-4">
-        {/* Destino (Proyecto/Programa) — prellenado desde la solicitud */}
+
+        {/* Área / Destino — siempre autocompletado desde la solicitud */}
         <div>
-          <label className="text-sm font-medium">
-            {programaName ? "Programa" : "Proyecto"}{" "}
-            <span className="text-red-600">*</span>
-          </label>
-
-          {programaName ? (
-            // La solicitud era de un PROGRAMA: solo mostramos el programa.
-            // El back deriva el projectId del BillingRequest automáticamente.
-            <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              Solicitud para programa: <span className="font-semibold">{programaName}</span>
-              <span className="ml-2 text-xs text-emerald-700/70">
-                (autocompletado desde la solicitud)
-              </span>
-            </div>
-          ) : lockProjectFromSolicitud ? (
-            // La solicitud era para un PROYECTO concreto: mostramos solo lectura.
-            <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              {selectedProjectName || "Cargando…"}
-              <span className="ml-2 text-xs text-emerald-700/70">
-                (autocompletado desde la solicitud)
-              </span>
-            </div>
-          ) : (
-            // Fallback: la solicitud no tiene destino aún → select editable.
-            <select
-              value={model.projectId ?? 0}
-              onChange={(e) => setField("projectId", Number(e.target.value) || undefined)}
-              className={`mt-1 w-full border rounded-md px-3 py-2 outline-none focus:ring-2 ${
-                triedSubmit && projectInvalid ? "ring-red-500" : "ring-blue-500"
-              }`}
-              disabled={busy || typeof (props as any).projectId === "number"}
-              required
-            >
-              <option value={0} disabled>
-                {loadingProjects ? "Cargando proyectos…" : "Selecciona un proyecto"}
-              </option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Solo mostramos el error de proyecto si NO es una solicitud
-              de programa (en ese caso el front no envía projectId). */}
-          {triedSubmit && projectInvalid && !programaName && (
-            <div className="mt-1 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
-              {validators.projectId(model.projectId)}
-            </div>
-          )}
+          <label className="text-sm font-medium">{destinoTipo}</label>
+          <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            {loadingSolicitud ? (
+              <span className="text-slate-400">Cargando…</span>
+            ) : destinoLabel ? (
+              <>
+                <span className="font-semibold">{destinoLabel}</span>
+                <span className="ml-2 text-xs text-emerald-700/70">
+                  (autocompletado desde la solicitud)
+                </span>
+              </>
+            ) : (
+              <span className="text-slate-500 text-xs">Sin destino registrado</span>
+            )}
+          </div>
         </div>
 
         {/* Monto y Moneda */}
@@ -443,7 +333,7 @@ export default function PaymentForm(props: Props) {
           </div>
         </div>
 
-        {/* Fecha (no futura) */}
+        {/* Fecha */}
         <div>
           <label className="text-sm font-medium">
             Fecha <span className="text-red-600">*</span>
@@ -535,7 +425,6 @@ export default function PaymentForm(props: Props) {
               setModel({
                 ...initial,
                 requestId: props.requestId,
-                projectId: (props as any).projectId ?? undefined,
                 currency: props.defaultCurrency ?? "CRC",
                 date: today,
               });

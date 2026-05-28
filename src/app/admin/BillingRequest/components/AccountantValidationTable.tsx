@@ -52,6 +52,7 @@ export default function AccountantValidationTable() {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [search, setSearch] = useState("");
+  const [areaFilter, setAreaFilter] = useState<string>("");
 
   // modal devolución
   const [showReturn, setShowReturn] = useState(false);
@@ -84,15 +85,24 @@ export default function AccountantValidationTable() {
     load();
   }, [load]);
 
+  const areaOptions = useMemo(() => {
+    const seen = new Set<string>();
+    items.forEach((it) => {
+      const nombre = (it as any).areaOrg?.nombre;
+      if (nombre) seen.add(nombre);
+    });
+    return Array.from(seen).sort();
+  }, [items]);
+
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items
-      // ✅ Filtramos por el estado de CONTADORA (no por r.estado)
       .filter((r) => ACCOUNTANT_STATES.has(normalize((r as any).estadoContadora)))
+      .filter((r) => areaFilter ? ((r as any).areaOrg?.nombre ?? "") === areaFilter : true)
       .filter((r) =>
         q ? [r.titulo, r.descripcion].some((t) => (t ?? "").toLowerCase().includes(q)) : true
       );
-  }, [items, search]);
+  }, [items, search, areaFilter]);
 
   const handleValidate = async (id: number) => {
     try {
@@ -126,14 +136,26 @@ export default function AccountantValidationTable() {
             Bandeja de contabilidad — solo solicitudes <span className="font-semibold">PENDIENTE</span>.
           </p>
         </div>
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            className="pl-10"
-            placeholder="Buscar por título o descripción"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              className="pl-10 w-full sm:w-64"
+              placeholder="Buscar por título o descripción"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <select
+            className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-44"
+            value={areaFilter}
+            onChange={(e) => setAreaFilter(e.target.value)}
+          >
+            <option value="">Todas las áreas</option>
+            {areaOptions.map((area) => (
+              <option key={area} value={area}>{area}</option>
+            ))}
+          </select>
         </div>
       </div>
 

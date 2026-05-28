@@ -110,7 +110,7 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
     <Modal open={open} onClose={onClose} title="Asignar Voluntario a Programa">
       <div className="max-w-2xl w-full space-y-6">
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <h3 className="font-semibold text-blue-900">{voluntario.nombreCompleto}</h3>
+          <h3 className="font-semibold text-blue-900">{voluntario.nombre}</h3>
           <p className="text-sm text-blue-700">{voluntario.email}</p>
         </div>
 

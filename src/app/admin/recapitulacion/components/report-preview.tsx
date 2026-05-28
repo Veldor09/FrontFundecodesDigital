@@ -12,6 +12,8 @@ import {
   FileText,
   ClipboardList,
   DollarSign,
+  AlertTriangle,
+  BookOpen,
 } from "lucide-react"
 import type { SavedReport } from "../types/report"
 
@@ -89,6 +91,14 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
 
   const isMultiModule = data.department === "todos" || (data.department && data.department.includes(","))
 
+  // Módulos financieros: sólo para éstos tiene sentido mostrar montos
+  const FINANCIAL_MODULES = ["facturacion", "solicitudes", "contabilidad"]
+  const selectedModules: string[] =
+    data.department === "todos"
+      ? ["voluntariado", "programas", "sanciones", "proyectos", "facturacion", "solicitudes", "colaboradores", "contabilidad"]
+      : (data.department || "").split(",").map((m) => m.trim())
+  const hasFinancialModule = selectedModules.some((m) => FINANCIAL_MODULES.includes(m))
+
   // Grid reutilizable para las cards de módulos: 2 cols en móvil, 4 en lg
   const moduleGridClass = "grid gap-3 grid-cols-2 lg:grid-cols-4"
 
@@ -144,8 +154,7 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
       {/* Resumen ejecutivo */}
       <div className="mb-8">
         <h2 className="mb-4 text-lg sm:text-xl font-semibold text-foreground">Resumen Ejecutivo</h2>
-        {/* FIX: 2 cols en móvil, 4 en lg */}
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className={`grid gap-3 grid-cols-2 ${hasFinancialModule ? "lg:grid-cols-4" : "lg:grid-cols-2"}`}>
           <Card className="border-border bg-card p-3 sm:p-4">
             <div className="text-xs sm:text-sm text-muted-foreground">Total de Registros</div>
             <div className="mt-2 text-xl sm:text-2xl font-bold text-card-foreground">
@@ -153,22 +162,26 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
             </div>
           </Card>
 
-          <Card className="border-border bg-card p-3 sm:p-4">
-            <div className="text-xs sm:text-sm text-muted-foreground">Monto Total</div>
-            <div className="mt-2 text-lg sm:text-2xl font-bold text-card-foreground break-words">
-              {formatCurrency(data.data.summary.totalAmount)}
-            </div>
-          </Card>
+          {hasFinancialModule && (
+            <Card className="border-border bg-card p-3 sm:p-4">
+              <div className="text-xs sm:text-sm text-muted-foreground">Monto Total</div>
+              <div className="mt-2 text-lg sm:text-2xl font-bold text-card-foreground break-words">
+                {formatCurrency(data.data.summary.totalAmount)}
+              </div>
+            </Card>
+          )}
+
+          {hasFinancialModule && (
+            <Card className="border-border bg-card p-3 sm:p-4">
+              <div className="text-xs sm:text-sm text-muted-foreground">Valor Promedio</div>
+              <div className="mt-2 text-lg sm:text-2xl font-bold text-card-foreground break-words">
+                {formatCurrency(data.data.summary.averageValue)}
+              </div>
+            </Card>
+          )}
 
           <Card className="border-border bg-card p-3 sm:p-4">
-            <div className="text-xs sm:text-sm text-muted-foreground">Valor Promedio</div>
-            <div className="mt-2 text-lg sm:text-2xl font-bold text-card-foreground break-words">
-              {formatCurrency(data.data.summary.averageValue)}
-            </div>
-          </Card>
-
-          <Card className="border-border bg-card p-3 sm:p-4">
-            <div className="text-xs sm:text-sm text-muted-foreground">Crecimiento</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Variación respecto al período anterior</div>
             <div className="mt-2 flex items-center gap-2">
               <span className="text-xl sm:text-2xl font-bold text-card-foreground">{growthValue.toFixed(1)}%</span>
               {growthValue > 0 ? (
@@ -185,14 +198,15 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
       {data.data.monthlyData && data.data.monthlyData.length > 0 && (
         <div className="mb-8">
           <h2 className="mb-4 text-lg sm:text-xl font-semibold text-foreground">Desglose por Período</h2>
-          {/* FIX: overflow-x-auto para que la tabla no rompa el layout */}
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[300px]">
               <thead className="bg-muted">
                 <tr>
                   <th className="px-3 sm:px-4 py-3 text-left text-sm font-medium text-muted-foreground">Período</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-sm font-medium text-muted-foreground">Registros</th>
-                  <th className="px-3 sm:px-4 py-3 text-right text-sm font-medium text-muted-foreground">Valor</th>
+                  {hasFinancialModule && (
+                    <th className="px-3 sm:px-4 py-3 text-right text-sm font-medium text-muted-foreground">Monto</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card">
@@ -200,9 +214,11 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
                   <tr key={index} className="hover:bg-muted/50">
                     <td className="px-3 sm:px-4 py-3 text-sm font-medium text-card-foreground">{month.month}</td>
                     <td className="px-3 sm:px-4 py-3 text-right text-sm text-card-foreground">{month.records}</td>
-                    <td className="px-3 sm:px-4 py-3 text-right text-sm font-medium text-card-foreground">
-                      {formatCurrency(month.value)}
-                    </td>
+                    {hasFinancialModule && (
+                      <td className="px-3 sm:px-4 py-3 text-right text-sm font-medium text-card-foreground">
+                        {formatCurrency(month.value)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -423,9 +439,81 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
                   </div>
                 </Card>
                 <Card className="border-border bg-card p-3">
-                  <div className="text-xs text-muted-foreground">Reportes</div>
+                  <div className="text-xs text-muted-foreground">Reportes generados</div>
                   <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
                     {data.data.moduleData.contabilidad.reportesGenerados}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Sanciones */}
+          {data.data.moduleData.sanciones && (
+            <div className="mb-6">
+              <h3 className="mb-3 flex items-center gap-2 text-base sm:text-lg font-medium text-foreground">
+                <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                Sanciones
+              </h3>
+              <div className={moduleGridClass}>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Total</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.sanciones.totalSanciones}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Leves</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.sanciones.leves}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Graves</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.sanciones.graves}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Severas</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.sanciones.severas}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Programas de Voluntariado */}
+          {data.data.moduleData.programas && (
+            <div className="mb-6">
+              <h3 className="mb-3 flex items-center gap-2 text-base sm:text-lg font-medium text-foreground">
+                <BookOpen className="h-5 w-5 text-primary flex-shrink-0" />
+                Programas de Voluntariado
+              </h3>
+              <div className={moduleGridClass}>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Total programas</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.programas.totalProgramas}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Participantes</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.programas.totalParticipantes}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Cupos disponibles</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.programas.cuposDisponibles}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Programas activos</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.programas.programasActivos}
                   </div>
                 </Card>
               </div>

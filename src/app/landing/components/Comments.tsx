@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, User, Send } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MessageSquare, User, Send, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ type Comment = {
   author: string;
   text: string;
   visible?: boolean;
+  attachmentUrl?: string | null;
 };
 
 const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/comments`;
@@ -23,13 +24,37 @@ async function apiGetComments(): Promise<Comment[]> {
   return Array.isArray(data) ? data : [];
 }
 
-async function apiCreateComment(payload: { author: string; text: string }): Promise<void> {
+async function apiUploadAttachment(file: File): Promise<{ url: string; key: string }> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_BASE}/upload-attachment`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message ?? "Error al subir adjunto");
+  }
+  return res.json();
+}
+
+async function apiCreateComment(payload: {
+  author: string;
+  text: string;
+  attachmentUrl?: string;
+  attachmentKey?: string;
+}): Promise<void> {
   const res = await fetch(`${API_BASE}/public`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error("POST /api/comments/public failed");
+}
+
+/** Devuelve true si la URL parece ser un video */
+function isVideo(url: string) {
+  return /\.(mp4|webm|ogg)(\?|$)/i.test(url);
 }
 
 export default function Comments({ comments }: { comments?: Comment[] }) {
@@ -41,6 +66,12 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+
+  // Adjunto opcional
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [uploadingAttach, setUploadingAttach] = useState(false);
+  const attachInputRef = useRef<HTMLInputElement>(null);
 
   const fallback: Comment[] = useMemo(
     () =>
@@ -71,16 +102,62 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
     return () => { alive = false; };
   }, [fallback]);
 
+  function handleAttachChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setSubmitError("El adjunto no puede superar 10 MB.");
+      return;
+    }
+    setAttachment(file);
+    setAttachmentPreview(URL.createObjectURL(file));
+    setSubmitError(null);
+  }
+
+  function removeAttachment() {
+    setAttachment(null);
+    if (attachmentPreview) URL.revokeObjectURL(attachmentPreview);
+    setAttachmentPreview(null);
+    if (attachInputRef.current) attachInputRef.current.value = "";
+  }
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !text.trim()) return;
     setSubmitError(null);
     setSubmitSuccess(null);
     setSubmitting(true);
+
+    let attachmentUrl: string | undefined;
+    let attachmentKey: string | undefined;
+
+    // 1) Subir adjunto si existe
+    if (attachment) {
+      setUploadingAttach(true);
+      try {
+        const res = await apiUploadAttachment(attachment);
+        attachmentUrl = res.url;
+        attachmentKey = res.key;
+      } catch (err: any) {
+        setSubmitError(err?.message ?? "No se pudo subir el adjunto.");
+        setSubmitting(false);
+        setUploadingAttach(false);
+        return;
+      } finally {
+        setUploadingAttach(false);
+      }
+    }
+
+    // 2) Enviar comentario
     try {
-      await apiCreateComment({ author: name.trim(), text: text.trim() });
+      await apiCreateComment({
+        author: name.trim(),
+        text: text.trim(),
+        ...(attachmentUrl ? { attachmentUrl, attachmentKey } : {}),
+      });
       setName("");
       setText("");
+      removeAttachment();
       setSubmitSuccess("Tu comentario fue enviado correctamente y está pendiente de validación.");
     } catch {
       setSubmitError("No se pudo enviar el comentario. Intenta de nuevo.");
@@ -134,6 +211,26 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 text-sm mb-1">{c.author}</p>
                     <p className="text-gray-600 text-sm leading-relaxed">{c.text}</p>
+                    {/* Adjunto aprobado */}
+                    {c.attachmentUrl && (
+                      <div className="mt-3">
+                        {isVideo(c.attachmentUrl) ? (
+                          <video
+                            src={c.attachmentUrl}
+                            controls
+                            className="max-w-xs max-h-48 rounded-xl border border-slate-200"
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={c.attachmentUrl}
+                            alt="Adjunto"
+                            className="max-w-xs max-h-48 rounded-xl border border-slate-200 object-cover cursor-pointer"
+                            onClick={() => window.open(c.attachmentUrl!, "_blank")}
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -199,13 +296,58 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                   <p className="mt-1.5 text-xs text-gray-400 text-right">{text.length}/500</p>
                 </div>
 
+                {/* Adjunto opcional */}
+                <div>
+                  <Label className="text-gray-700 font-medium text-sm mb-1.5 block">
+                    Adjunto (imagen o video, opcional)
+                  </Label>
+
+                  {attachmentPreview ? (
+                    <div className="relative inline-block">
+                      {attachment?.type.startsWith("video/") ? (
+                        <video src={attachmentPreview} className="max-h-32 rounded-xl border border-slate-200" controls />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={attachmentPreview} alt="Vista previa" className="max-h-32 rounded-xl border border-slate-200 object-cover" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={removeAttachment}
+                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 shadow"
+                        title="Quitar adjunto"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        ref={attachInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
+                        className="hidden"
+                        onChange={handleAttachChange}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => attachInputRef.current?.click()}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-slate-500 hover:text-blue-600 text-sm transition-colors"
+                      >
+                        <Paperclip className="w-4 h-4" />
+                        Adjuntar imagen o video
+                      </button>
+                      <p className="text-xs text-slate-400 mt-1">Formatos: jpg, png, webp, gif, mp4, webm · Máx. 10 MB</p>
+                    </>
+                  )}
+                </div>
+
                 <Button
                   type="submit"
-                  disabled={submitting || !name.trim() || !text.trim()}
+                  disabled={submitting || uploadingAttach || !name.trim() || !text.trim()}
                   className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-green-600 text-white h-11 px-7 rounded-xl font-semibold text-sm shadow-md shadow-blue-500/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4" />
-                  {submitting ? "Enviando..." : "Enviar comentario"}
+                  {submitting || uploadingAttach ? "Enviando…" : "Enviar comentario"}
                 </Button>
               </form>
             </div>

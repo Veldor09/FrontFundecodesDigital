@@ -9,16 +9,14 @@ export type EstadoFilter = "ALL" | Estado;
 
 export type Voluntario = {
   id: number | string;
-  tipoDocumento: string;
-  numeroDocumento: string;
-  nombreCompleto: string;
-  email: string;
-  telefono?: string | null;
-  fechaNacimiento?: string | null;
-  fechaIngreso: string;
-  estado: Estado;
-  createdAt: string;
-  updatedAt: string;
+  nombre: string;
+  nacionalidad?: string | null;
+  fechaEntrada: string;
+  fechaSalida?: string | null;
+  ong?: string | null;
+  email?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type ListResponse = {
@@ -120,12 +118,11 @@ export function useVoluntarios() {
   );
 
   const toggle = useCallback(
-    async (id: number | string, nextStatus: Estado) => {
-      // ✅ usa el endpoint real: /:id/toggle
+    async (id: number | string) => {
       const r = await fetch(`${API_URL}/api/voluntarios/${id}/toggle`, {
         method: "PATCH",
         headers: authJsonHeaders(),
-        body: JSON.stringify({ estado: nextStatus }),
+        body: JSON.stringify({}),
         credentials: "include",
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);

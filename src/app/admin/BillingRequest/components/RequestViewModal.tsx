@@ -226,14 +226,24 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
       <div className="w-full max-w-5xl rounded-2xl bg-white shadow-lg max-h-[92vh] flex flex-col overflow-hidden">
         <div className="mb-1 flex items-start justify-between px-5 pt-4">
           <h2 className="text-lg font-semibold">Detalle de solicitud</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 flex items-center gap-1"
+              title="Imprimir solicitud (Ctrl+P)"
+            >
+              🖨️ Imprimir
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-5">
@@ -273,7 +283,7 @@ export default function RequestViewModal({ open, solicitudId, onClose }: Props) 
                   <div className="min-w-0 col-span-2 md:col-span-1">
                     <div className="text-xs uppercase text-slate-500">Solicitante</div>
                     <div className="text-slate-800 break-words break-all">
-                      {(data as any)?.usuario?.nombre ?? "—"}
+                      {(data as any)?.usuario?.name?.trim() || (data as any)?.usuario?.email || "—"}
                     </div>
                   </div>
                 </div>

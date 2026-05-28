@@ -6,9 +6,28 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
 import { ProjectFilesManager } from "./ProjectFilesManager";
-import { Upload, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle2, Info, ImageIcon } from "lucide-react";
 import { getProjectFiles } from "@/services/projects.service";
 import { normalizeImageUrl } from "@/lib/image-url";
+import { toast } from "sonner";
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+
+async function uploadCoverToR2(file: File): Promise<{ url: string; key: string }> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/api/files/upload?folder=projects`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message ?? "Error al subir imagen");
+  }
+  return res.json();
+}
 
 /* Opciones predefinidas */
 const CATEGORIES = [
@@ -273,6 +292,8 @@ export default function ProjectForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [projectFiles, setProjectFiles] = useState<any[]>([]);
   const [projectId, setProjectId] = useState<number>(initial?.id || 0);
   const [openDropdown, setOpenDropdown] = useState<"category" | "place" | "area" | null>(null);
@@ -502,7 +523,7 @@ export default function ProjectForm({
 
           <div>
             <PresetSelectInput
-              label="Área"
+              label="Área de enfoque"
               value={form.area}
               onChange={(v) => set("area", v)}
               onBlur={() => validateField("area")}
@@ -557,22 +578,84 @@ export default function ProjectForm({
           </div>
         </div>
 
-        {/* URL de portada */}
+        {/* Imagen de portada */}
         <div>
-          <label className="text-sm font-medium text-gray-700">URL de portada</label>
-          <div className="relative">
-            <Input
-              className={getInputClassName("coverUrl", (form.coverUrl ?? "").length > 0)}
-              value={form.coverUrl ?? ""}
-              onChange={(e) => set("coverUrl", e.target.value)}
-              onBlur={() => validateField("coverUrl")}
-              placeholder="https://ejemplo.com/imagen.jpg"
-              type="url"
-              pattern="https://.*"
-              title="Debe iniciar con https://"
-              maxLength={LIMITS.url.max}
-              aria-invalid={!!errors.coverUrl}
+          <label className="text-sm font-medium text-gray-700">Imagen de portada</label>
+
+          {/* Previsualización */}
+          {form.coverUrl && (
+            <div className="mt-1 mb-2 relative w-full h-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={form.coverUrl}
+                alt="Portada"
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <button
+                type="button"
+                onClick={() => set("coverUrl", "")}
+                className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1 shadow text-slate-600 hover:text-red-600"
+                title="Quitar imagen"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Subir archivo */}
+          <div className="flex gap-2 items-center mt-1">
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) {
+                  toast.error("La imagen no puede superar 5 MB");
+                  return;
+                }
+                setUploadingCover(true);
+                try {
+                  const { url } = await uploadCoverToR2(file);
+                  set("coverUrl", url);
+                  toast.success("Imagen subida correctamente");
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Error al subir la imagen");
+                } finally {
+                  setUploadingCover(false);
+                  if (coverInputRef.current) coverInputRef.current.value = "";
+                }
+              }}
             />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploadingCover}
+              onClick={() => coverInputRef.current?.click()}
+              className="gap-2 flex-shrink-0"
+            >
+              <ImageIcon className="w-4 h-4" />
+              {uploadingCover ? "Subiendo…" : "Subir imagen"}
+            </Button>
+            <span className="text-xs text-slate-400">o pega una URL:</span>
+            <div className="flex-1 relative">
+              <Input
+                className={getInputClassName("coverUrl", (form.coverUrl ?? "").length > 0)}
+                value={form.coverUrl ?? ""}
+                onChange={(e) => set("coverUrl", e.target.value)}
+                onBlur={() => validateField("coverUrl")}
+                placeholder="https://ejemplo.com/imagen.jpg"
+                type="url"
+                pattern="https://.*"
+                title="Debe iniciar con https://"
+                maxLength={LIMITS.url.max}
+                aria-invalid={!!errors.coverUrl}
+              />
+            </div>
           </div>
           {errors.coverUrl && (
             <div className="flex items-start gap-1 mt-1">

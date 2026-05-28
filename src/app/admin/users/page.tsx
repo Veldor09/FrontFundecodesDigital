@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -176,9 +178,45 @@ export default function UsersPage() {
 
   return (
     <RequirePermission require={['users.manage']}>
-      <div className="p-6">
+      <div className="p-0">
+        {/* ── Nav bar VoluntariadoNav-style ── */}
+        <div className="w-full bg-white border-b border-slate-200">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            {/* Título centrado */}
+            <div className="text-center py-4 sm:py-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+                Gestión de Usuarios
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                Administra cuentas, roles y permisos de los usuarios del sistema.
+              </p>
+            </div>
+            {/* Desktop */}
+            <div className="hidden md:block">
+              <div className="relative flex items-center justify-center h-14 pb-3">
+                <Link href="/admin" className="absolute left-0">
+                  <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                    <ArrowLeft className="w-4 h-4" />
+                    Volver al Dashboard
+                  </button>
+                </Link>
+              </div>
+            </div>
+            {/* Mobile */}
+            <div className="md:hidden pb-4">
+              <Link href="/admin">
+                <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
+          <div />
 
           {/* FILTROS */}
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
@@ -422,6 +460,7 @@ export default function UsersPage() {
             </div>
           </div>
         )}
+        </div>{/* end p-6 */}
       </div>
     </RequirePermission>
   );

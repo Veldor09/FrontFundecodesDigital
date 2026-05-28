@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import ReportGenerator from "./components/report-generator"
 import ReportHistory from "./components/report-history"
 import { useReportGenerator } from "./hooks/use-report-generator"
@@ -16,37 +15,44 @@ export default function RecapitulacionPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="mb-6 border-b border-slate-200 pb-6">
-          <h1 className="text-center text-3xl font-bold text-slate-900">
-            Bienvenido al área de Recapitulación Anual
-          </h1>
-
-          <div className="mt-6">
-            <Link href="/admin">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 bg-transparent"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Volver al Dashboard
-              </Button>
-            </Link>
-          </div>
-        </section>
-
-        <section className="mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">
+      {/* ── Nav bar VoluntariadoNav-style ── */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Título centrado */}
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
               Recapitulación Anual
-            </h2>
-            <p className="mt-1 text-slate-600">
-              Genera informes consolidados de todos los módulos del sistema
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Genera informes consolidados de todos los módulos del sistema.
             </p>
           </div>
-        </section>
 
+          {/* Desktop — back izq */}
+          <div className="hidden md:block">
+            <div className="relative flex items-center justify-center h-14 pb-3">
+              <Link href="/admin" className="absolute left-0">
+                <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden pb-4">
+            <Link href="/admin">
+              <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Dashboard
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <ReportGenerator />
 
         {savedReports.length > 0 && (

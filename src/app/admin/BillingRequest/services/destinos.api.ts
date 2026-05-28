@@ -10,6 +10,56 @@ function authHeader() {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
+// ─── Áreas ───────────────────────────────────────────────────────────────────
+
+export type AreaOpcion = {
+  id: number;
+  nombre: string;
+  descripcion?: string | null;
+};
+
+export type MiColaborador = {
+  id: number;
+  nombreCompleto: string;
+  correo: string;
+  rol: string;
+  roles?: string[];
+  areaId: number | null;
+  areaOrg: { id: number; nombre: string } | null;
+};
+
+/** Lista compacta de áreas activas para el selector del formulario de solicitudes. */
+export async function fetchAreasParaSelector(): Promise<AreaOpcion[]> {
+  const res = await fetch(`${API_URL}/api/areas/selector`, {
+    headers: authHeader() as Record<string, string>,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/** Saldo disponible de un área (vía su cuenta contable). */
+export async function fetchSaldoArea(areaId: number): Promise<SaldoDestino> {
+  const res = await fetch(`${API_URL}/api/areas/${areaId}/saldo`, {
+    headers: authHeader() as Record<string, string>,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/** Obtiene el perfil del colaborador autenticado (incluye su área). */
+export async function fetchMiColaborador(): Promise<MiColaborador | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/collaborators/me`, {
+      headers: authHeader() as Record<string, string>,
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export type ProgramaOpcion = {
   id: number;
   nombre: string;
@@ -128,12 +178,14 @@ export function formatCRC(monto: string | number | null | undefined): string {
   }).format(n);
 }
 
-/** Devuelve un string corto con el destino de la solicitud (programa o proyecto). */
+/** Devuelve un string corto con el destino de la solicitud (área, programa o proyecto). */
 export function describeDestino(s: {
   tipoOrigen?: string | null;
   programa?: { nombre: string } | null;
   project?: { title: string } | null;
+  areaOrg?: { nombre: string } | null;
 }): string {
+  if ((s as any).areaOrg?.nombre) return (s as any).areaOrg.nombre;
   if (s.tipoOrigen === "PROGRAMA") return s.programa?.nombre ?? "Programa —";
   if (s.tipoOrigen === "PROYECTO") return s.project?.title ?? "Proyecto —";
   return "—";

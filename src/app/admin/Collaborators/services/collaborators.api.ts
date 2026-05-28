@@ -83,6 +83,69 @@ export async function apiDeleteCollaborator(id: number | string) {
   return data;
 }
 
+/** ---------- Colaboradores Externos de Área ---------- **/
+
+export async function apiListExternalCollaborators(params: {
+  q?: string;
+  areaId?: number;
+  rol?: string;
+  estado?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const { data } = await axios.get(`${API_URL}/api/collaborators/external`, {
+    params: {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+      q: params.q,
+      areaId: params.areaId,
+      rol: params.rol,
+      estado: params.estado,
+    },
+    headers: { ...authHeader() },
+  });
+  return data;
+}
+
+export async function apiCreateExternalCollaborator(payload: {
+  nombreCompleto: string;
+  correo: string;
+  telefono?: string | null;
+  rol: "colaboradorsolicitante" | "colaboradorvoluntariadoexterno";
+  areaId: number;
+}) {
+  const { data } = await axios.post(
+    `${API_URL}/api/collaborators/external`,
+    payload,
+    { headers: { "Content-Type": "application/json", ...authHeader() } }
+  );
+  return data;
+}
+
+export async function apiUpdateExternalCollaborator(id: number | string, patch: {
+  nombreCompleto?: string;
+  correo?: string;
+  telefono?: string | null;
+  rol?: string;
+  areaId?: number | null;
+  estado?: string;
+}) {
+  const { data } = await axios.patch(
+    `${API_URL}/api/collaborators/external/${id}`,
+    patch,
+    { headers: { "Content-Type": "application/json", ...authHeader() } }
+  );
+  return data;
+}
+
+export async function apiDeleteExternalCollaborator(id: number | string) {
+  const { data } = await axios.delete(
+    `${API_URL}/api/collaborators/external/${id}`,
+    { headers: { ...authHeader() } }
+  );
+  return data;
+}
+
 /** ---------- (Legacy admin/* si aún los usas en alguna vista) ---------- **/
 export async function toggleEstado(id: number, estado: "ACTIVO" | "INACTIVO") {
   const { data } = await axios.patch(

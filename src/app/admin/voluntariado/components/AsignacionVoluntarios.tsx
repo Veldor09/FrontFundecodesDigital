@@ -50,11 +50,10 @@ export default function AsignacionVoluntarios({
         : voluntarios
             .filter(
               (v: Voluntario) =>
-                v.estado === "ACTIVO" &&
                 !(programa.voluntariosAsignados ?? []).map(String).includes(String(v.id))
             )
             .filter((v: Voluntario) =>
-              [v.nombreCompleto, v.email].some((f) =>
+              [v.nombre, v.email].some((f) =>
                 f?.toLowerCase().includes(search.toLowerCase())
               )
             ),
@@ -154,7 +153,7 @@ export default function AsignacionVoluntarios({
                   className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg"
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-green-900">{vol.nombreCompleto}</div>
+                    <div className="font-medium text-green-900">{vol.nombre}</div>
                     <div className="text-sm text-green-700">{vol.email}</div>
                   </div>
                   <Button
@@ -214,7 +213,7 @@ export default function AsignacionVoluntarios({
                   className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-slate-900">{vol.nombreCompleto}</div>
+                    <div className="font-medium text-slate-900">{vol.nombre}</div>
                     <div className="text-sm text-slate-600">{vol.email}</div>
                   </div>
                   <Button

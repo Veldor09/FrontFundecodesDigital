@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, X, Users } from "lucide-react";
 
-type EstadoFiltro = "todos" | "activo" | "inactivo";
 type FiltroAsignacion = "todos" | "asignados" | "sin-asignar";
 type FiltroLugar = "todos" | string;
 
@@ -31,7 +30,6 @@ export default function Page() {
   }, [voluntariosRaw]);
 
   const [search, setSearch] = useState("");
-  const [fEstado, setFEstado] = useState<EstadoFiltro>("todos");
   const [fLugar, setFLugar] = useState<FiltroLugar>("todos");
   const [fAsignacion, setFAsignacion] = useState<FiltroAsignacion>("todos");
 
@@ -74,9 +72,6 @@ export default function Page() {
 
   const filteredVols = useMemo(() => {
     return voluntarios
-      .filter((v) =>
-        fEstado === "todos" ? true : v.estado.toLowerCase() === fEstado
-      )
       .filter((v) => {
         if (fAsignacion === "todos") return true;
         const count = (asignacionesPorVoluntario[getVolId(v)] || []).length;
@@ -89,13 +84,12 @@ export default function Page() {
         );
       })
       .filter((v) =>
-        [v.nombreCompleto, v.numeroDocumento, v.email].some((f) =>
+        [v.nombre, v.email, v.nacionalidad].some((f) =>
           f?.toLowerCase().includes(search.toLowerCase())
         )
       );
   }, [
     voluntarios,
-    fEstado,
     fAsignacion,
     fLugar,
     search,
@@ -123,16 +117,15 @@ export default function Page() {
 
   const clearSelection = () => setSelected({});
 
-  const allFilteredActive = filteredVols.filter((v) => v.estado === "ACTIVO");
   const allChecked =
-    allFilteredActive.length > 0 &&
-    allFilteredActive.every((v) => selected[getVolId(v)]);
-  const someChecked = allFilteredActive.some((v) => selected[getVolId(v)]);
+    filteredVols.length > 0 &&
+    filteredVols.every((v) => selected[getVolId(v)]);
+  const someChecked = filteredVols.some((v) => selected[getVolId(v)]);
 
   const toggleAll = (checked: boolean) => {
     const next = { ...selected };
 
-    allFilteredActive.forEach((v) => {
+    filteredVols.forEach((v) => {
       if (checked) next[getVolId(v)] = true;
       else delete next[getVolId(v)];
     });
@@ -360,7 +353,7 @@ export default function Page() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Buscar voluntarios
@@ -369,26 +362,11 @@ export default function Page() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 className="pl-10"
-                placeholder="Nombre, cédula, email"
+                placeholder="Nombre, email, nacionalidad"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Estado
-            </label>
-            <select
-              value={fEstado}
-              onChange={(e) => setFEstado(e.target.value as EstadoFiltro)}
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="todos">todos</option>
-              <option value="activo">activo</option>
-              <option value="inactivo">inactivo</option>
-            </select>
           </div>
 
           <div>
@@ -481,7 +459,7 @@ export default function Page() {
                     Nombre
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                    Cédula
+                    Nacionalidad
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">
                     Programas
@@ -513,18 +491,17 @@ export default function Page() {
                           className={`rounded transition-opacity ${
                             isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                           }`}
-                          disabled={v.estado !== "ACTIVO"}
                           checked={isSelected}
                           onChange={(e) => toggleSelect(vid, e.target.checked)}
                         />
                       </td>
 
                       <td className="px-4 py-3 font-medium text-slate-800">
-                        {v.nombreCompleto}
+                        {v.nombre}
                       </td>
 
                       <td className="px-4 py-3 text-slate-500">
-                        {v.numeroDocumento}
+                        {v.nacionalidad ?? "—"}
                       </td>
 
                       <td className="px-4 py-3">
@@ -612,9 +589,6 @@ export default function Page() {
                       </td>
 
                       <td className="px-4 py-3 text-center w-16">
-                        {v.estado !== "ACTIVO" ? (
-                          <span className="text-slate-300 text-xs">—</span>
-                        ) : (
                           <div className="relative inline-block">
                             <button
                               onClick={() => setOpenMenuVol(menuAbierto ? null : vid)}
@@ -647,7 +621,7 @@ export default function Page() {
                                     <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                                       <div className="min-w-0">
                                         <p className="text-slate-800 font-semibold text-sm truncate">
-                                          {v.nombreCompleto}
+                                          {v.nombre}
                                         </p>
                                         <p className="text-slate-400 text-xs">
                                           Asignar a programa
@@ -878,7 +852,6 @@ export default function Page() {
                               </>
                             )}
                           </div>
-                        )}
                       </td>
                     </tr>
                   );

@@ -28,6 +28,8 @@ export function useProgramaVoluntariadoCrud() {
     lugar: string;
     descripcion?: string;
     limiteParticipantes?: number;
+    imagenUrl?: string;
+    imagenKey?: string;
   }) {
     await createProgramaVoluntariado(payload);
     await mutate(undefined, { revalidate: true });
@@ -40,6 +42,8 @@ export function useProgramaVoluntariadoCrud() {
       lugar?: string;
       descripcion?: string;
       limiteParticipantes?: number;
+      imagenUrl?: string;
+      imagenKey?: string;
     }
   ) {
     await updateProgramaVoluntariado(id, payload);

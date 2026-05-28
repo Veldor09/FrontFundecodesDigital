@@ -9,6 +9,16 @@ import {
   updateProject,
   removeProject,
 } from "@/services/projects.service";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import type { ExportRow } from "@/lib/export";
+
+const PROJ_EXPORT_COLS = [
+  { key: "title",    header: "Título",          width: 28 },
+  { key: "status",   header: "Estado",          width: 14 },
+  { key: "area",     header: "Área de enfoque", width: 18 },
+  { key: "category", header: "Categoría",       width: 18 },
+  { key: "place",    header: "Lugar",           width: 16 },
+];
 import type { Project, ProjectStatus } from "@/lib/projects.types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,8 +28,9 @@ import ProjectForm from "@/app/admin/projects/ProjectForm";
 import Modal from "@/components/ui/Modal";
 import ProjectFilesModal from "./ProjectFilesModal";
 import ProgramasPanel from "./ProgramasPanel";
+import AreasPanel from "./AreasPanel";
 
-type ActiveTab = "proyectos" | "programas";
+type ActiveTab = "areas" | "proyectos" | "programas";
 
 export type ProjectCreateInput = {
   title: string;
@@ -41,7 +52,7 @@ type Mode =
   | { kind: "edit"; item: Project };
 
 export default function AdminProjectsPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("proyectos");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("areas");
 
   // Filtros
   const [q, setQ] = useState<string>("");
@@ -143,72 +154,147 @@ export default function AdminProjectsPage() {
     await load(page);
   }
 
+  const PROJECT_TABS = [
+    { key: "areas" as ActiveTab,     label: "Áreas" },
+    { key: "proyectos" as ActiveTab, label: "Proyectos" },
+    { key: "programas" as ActiveTab, label: "Programas" },
+  ];
+
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0">
-            <Link href="/admin" className="self-start">
-              {/* 🎨 Navegación secundaria: outline neutral */}
-              <Button variant="outline" size="sm" className="border-gray-300 hover:bg-gray-100">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver al dashboard
-              </Button>
-            </Link>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold">Proyectos y Programas</h1>
-              <p className="text-sm text-slate-600">
-                Administra proyectos, programas y sus recursos.
-              </p>
+      {/* ── Nav bar VoluntariadoNav-style ── */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Título centrado */}
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              Áreas, Proyectos y Programas
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Administra áreas, proyectos, programas y sus recursos.
+            </p>
+          </div>
+
+          {/* Desktop — back izq · tabs center · acciones der */}
+          <div className="hidden md:block">
+            <div className="relative flex items-center justify-center h-16">
+              <Link href="/admin" className="absolute left-0">
+                <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+
+              <nav className="flex gap-2">
+                {PROJECT_TABS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm ${
+                      activeTab === key
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+
+              {activeTab === "proyectos" && (
+                <div className="absolute right-0 flex gap-2 items-center">
+                  <ExportButton
+                    title="Proyectos"
+                    subtitle="Listado de proyectos de Fundecodes"
+                    filename="proyectos"
+                    columns={PROJ_EXPORT_COLS}
+                    currentRows={items.map((p) => ({
+                      title:    p.title    ?? "",
+                      status:   p.status   ?? "",
+                      area:     p.area     ?? "",
+                      category: p.category ?? "",
+                      place:    p.place    ?? "",
+                    } as ExportRow))}
+                    fetchAll={async () => {
+                      const res = await listProjects({ page: 1, pageSize: 9999 });
+                      const all: Project[] = Array.isArray(res) ? res : (res?.data ?? []);
+                      return all.map((p) => ({
+                        title:    p.title    ?? "",
+                        status:   p.status   ?? "",
+                        area:     p.area     ?? "",
+                        category: p.category ?? "",
+                        place:    p.place    ?? "",
+                      } as ExportRow));
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setPage(1); load(1); }}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Recargar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setMode({ kind: "create" })}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Añadir proyecto
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {/* 🎨 Acción secundaria: gris neutro */}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setPage(1);
-                load(1);
-              }}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 flex-1 sm:flex-none"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Recargar
-            </Button>
-            {/* 🎨 Acción primaria: azul (igual que Aplicar) */}
-            <Button
-              size="sm"
-              onClick={() => {
-                setMode({ kind: "create" });
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Añadir proyecto
-            </Button>
+          {/* Mobile */}
+          <div className="md:hidden pb-4">
+            <div className="mb-3">
+              <Link href="/admin">
+                <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+            </div>
+            <nav className="flex flex-col sm:flex-row gap-2 mb-2">
+              {PROJECT_TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm flex-1 ${
+                    activeTab === key
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+            {activeTab === "proyectos" && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setPage(1); load(1); }}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Recargar
+                </Button>
+                <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setMode({ kind: "create" })}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Añadir proyecto
+                </Button>
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Pestañas */}
-        <div className="flex gap-2 border-b border-slate-200 pb-px">
-          {(["proyectos", "programas"] as ActiveTab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg capitalize transition-colors ${
-                activeTab === t ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
 
         {activeTab === "programas" ? (
           <ProgramasPanel />
+        ) : activeTab === "areas" ? (
+          <AreasPanel />
         ) : (
           <>
 
@@ -252,7 +338,7 @@ export default function AdminProjectsPage() {
             value={area}
             onChange={(e) => setArea(e.target.value)}
           >
-            <option value="">Área (todas)</option>
+            <option value="">Área de enfoque (todas)</option>
             {areas.map((a) => (
               <option key={a} value={a}>
                 {a}

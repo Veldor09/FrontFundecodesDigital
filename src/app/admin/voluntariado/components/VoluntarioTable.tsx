@@ -3,18 +3,39 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { Voluntario, Estado } from "../types/voluntario";
+import type { Voluntario } from "../types/voluntario";
 import VoluntarioRow from "./VoluntarioRow";
 import VoluntarioForm from "./VoluntarioForm";
 import { useVoluntarios } from "../hooks/useVoluntarios";
 import { Plus, Search } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import AsignacionModal from "./AsignacionModal";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import { apiListVoluntarios } from "../services/voluntarioService";
+import type { ExportRow } from "@/lib/export";
 
-type EstadoFiltro = "TODOS" | "ACTIVO" | "INACTIVO";
+const VOL_EXPORT_COLS = [
+  { key: "nombre",       header: "Nombre",       width: 24 },
+  { key: "nacionalidad", header: "Nacionalidad",  width: 18 },
+  { key: "email",        header: "Email",         width: 26 },
+  { key: "fechaEntrada", header: "Entrada",       width: 14 },
+  { key: "fechaSalida",  header: "Salida",        width: 14 },
+  { key: "ong",          header: "ONG",           width: 20 },
+];
+
+function volToRow(v: Voluntario): ExportRow {
+  return {
+    nombre:       v.nombre ?? "",
+    nacionalidad: v.nacionalidad ?? "",
+    email:        (v as any).email ?? "",
+    fechaEntrada: v.fechaEntrada?.slice(0, 10) ?? "",
+    fechaSalida:  v.fechaSalida?.slice(0, 10) ?? "",
+    ong:          v.ong ?? "",
+  };
+}
 
 export default function VoluntarioTable() {
-  const { data: rawData, total: rawTotal, loading, save, toggle, remove } = useVoluntarios();
+  const { data: rawData, total: rawTotal, loading, save, remove } = useVoluntarios();
 
   // Normalización segura del array
   const lista: Voluntario[] = useMemo(() => {
@@ -30,7 +51,6 @@ export default function VoluntarioTable() {
 
   const [modo, setModo] = useState<"crear" | "editar" | null>(null);
   const [voluntarioEditar, setVoluntarioEditar] = useState<Voluntario | null>(null);
-  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>("TODOS");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
@@ -54,20 +74,16 @@ export default function VoluntarioTable() {
 
   const handleGuardar = async (v: Omit<Voluntario, "id"> & { id?: number }) => {
     await save(v as any);
-    cerrarModal();
+    // Modal is closed by the form itself via onCancel() after saving
   };
 
   const filtered: Voluntario[] = useMemo(() => {
-    return lista
-      .filter((v: Voluntario) =>
-        estadoFiltro === "TODOS" ? true : (v.estado?.toUpperCase() as Estado) === estadoFiltro
+    return lista.filter((v: Voluntario) =>
+      [v.nombre, v.email, v.nacionalidad, v.ong].some((f) =>
+        f?.toLowerCase().includes(search.toLowerCase())
       )
-      .filter((v: Voluntario) =>
-        [v.nombreCompleto, v.numeroDocumento, v.email].some((f) =>
-          f?.toLowerCase().includes(search.toLowerCase())
-        )
-      );
-  }, [lista, estadoFiltro, search]);
+    );
+  }, [lista, search]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-6">
@@ -77,16 +93,30 @@ export default function VoluntarioTable() {
           <h2 className="text-2xl font-bold text-slate-800">Gestión de Voluntarios</h2>
           <p className="text-sm text-slate-500">Crear, editar y administrar voluntarios registrados</p>
         </div>
-        <Button onClick={abrirModalCrear} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-          <Plus className="h-4 w-4" /> Nuevo Voluntario
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            title="Voluntarios"
+            subtitle="Registro de voluntarios de Fundecodes"
+            filename="voluntarios"
+            columns={VOL_EXPORT_COLS}
+            currentRows={filtered.map(volToRow)}
+            fetchAll={async () => {
+              const res = await apiListVoluntarios({ page: 1, pageSize: 9999 });
+              const all: Voluntario[] = Array.isArray(res) ? res : (res?.data ?? []);
+              return all.map(volToRow);
+            }}
+          />
+          <Button onClick={abrirModalCrear} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-4 w-4" /> Nuevo Voluntario
+          </Button>
+        </div>
       </div>
 
       {/* Modal de crear/editar */}
       <Modal
         open={modo !== null}
         onClose={cerrarModal}
-        title={modo === "crear" ? "Agregar voluntario" : "Editar voluntario"}
+        title={modo === "crear" ? "Agregar voluntario(s)" : "Editar voluntario"}
       >
         <VoluntarioForm
           initial={voluntarioEditar ?? undefined}
@@ -95,38 +125,19 @@ export default function VoluntarioTable() {
         />
       </Modal>
 
-      {/* Buscador y Filtro */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-        {/* Buscador */}
-        <div className="flex-1 max-w-lg">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Buscar por nombre, cédula o email
-          </label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Ej. María Gómez"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {/* Filtro por estado — usando <select> nativo */}
-        <div className="w-full sm:w-48">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Filtrar por estado
-          </label>
-          <select
-            value={estadoFiltro}
-            onChange={(e) => setEstadoFiltro(e.target.value as EstadoFiltro)}
-            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="TODOS">Todos</option>
-            <option value="ACTIVO">Activo</option>
-            <option value="INACTIVO">Inactivo</option>
-          </select>
+      {/* Buscador */}
+      <div className="flex-1 max-w-lg">
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Buscar por nombre, email, nacionalidad u ONG
+        </label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Ej. María Gómez"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
         </div>
       </div>
 
@@ -141,10 +152,11 @@ export default function VoluntarioTable() {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Nombre</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Cédula</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Nacionalidad</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Teléfono</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Estado</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Entrada</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">Salida</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700">ONG</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700">Acciones</th>
               </tr>
             </thead>
@@ -154,9 +166,6 @@ export default function VoluntarioTable() {
                   key={`vol-${v.id ?? "noid"}-${i}`}
                   voluntario={v}
                   onEdit={() => abrirModalEditar(v)}
-                  onToggle={() =>
-                    toggle(v.id, v.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO")
-                  }
                   onDelete={() => remove(v.id)}
                 />
               ))}

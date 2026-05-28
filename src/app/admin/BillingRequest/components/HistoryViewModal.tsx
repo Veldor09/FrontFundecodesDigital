@@ -127,6 +127,8 @@ export default function HistoryViewModal({ open, solicitudId, onClose }: Props) 
   const [payErr, setPayErr] = useState<string | null>(null);
 
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  // Comprobante de pago en vista previa
+  const [payPreview, setPayPreview] = useState<{ url: string; name: string; isImage: boolean; isPdf: boolean } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -282,7 +284,7 @@ export default function HistoryViewModal({ open, solicitudId, onClose }: Props) 
                   <div className="min-w-0 col-span-2 md:col-span-1">
                     <div className="text-xs uppercase text-slate-500">Solicitante</div>
                     <div className="text-slate-800 break-words break-all">
-                      {(data as any)?.usuario?.nombre ?? "—"}
+                      {(data as any)?.usuario?.name?.trim() || (data as any)?.usuario?.email || "—"}
                     </div>
                   </div>
                 </div>
@@ -464,6 +466,7 @@ export default function HistoryViewModal({ open, solicitudId, onClose }: Props) 
                           <th className="px-3 py-2 text-left font-semibold text-slate-700 w-28">Monto</th>
                           <th className="px-3 py-2 text-left font-semibold text-slate-700 w-16">Mon.</th>
                           <th className="px-3 py-2 text-left font-semibold text-slate-700">Referencia</th>
+                          <th className="px-3 py-2 text-left font-semibold text-slate-700 w-36">Comprobante</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -472,11 +475,117 @@ export default function HistoryViewModal({ open, solicitudId, onClose }: Props) 
                             <td className="px-3 py-2">{formatDate(p.date)}</td>
                             <td className="px-3 py-2">{Number(p.amount).toLocaleString()}</td>
                             <td className="px-3 py-2">{p.currency}</td>
-                            <td className="px-3 py-2">{p.reference}</td>
+                            <td className="px-3 py-2 break-words">{p.reference}</td>
+                            <td className="px-3 py-2">
+                              {p.comprobanteUrl ? (() => {
+                                const compUrl = getPublicUrl(p.comprobanteUrl) ?? p.comprobanteUrl;
+                                const compName = getNiceFileName(p.comprobanteKey ?? p.comprobanteUrl, 0);
+                                return (
+                                  <div className="flex flex-wrap items-center gap-1">
+                                    {(isImageUrl(p.comprobanteUrl) || isPdfUrl(p.comprobanteUrl)) && (
+                                      <button
+                                        type="button"
+                                        className="rounded-md border border-sky-700 bg-sky-600 px-2 py-1 text-xs font-medium text-white shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+                                        onClick={() => {
+                                          setPayPreview({
+                                            url: compUrl,
+                                            name: compName,
+                                            isImage: isImageUrl(compUrl),
+                                            isPdf: isPdfUrl(compUrl),
+                                          });
+                                        }}
+                                      >
+                                        Ver
+                                      </button>
+                                    )}
+                                    <a
+                                      href={compUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-md border border-indigo-700 bg-indigo-600 px-2 py-1 text-xs font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
+                                    >
+                                      Abrir ↗
+                                    </a>
+                                    <a
+                                      href={makeDownloadUrl(compUrl, compName)}
+                                      className="rounded-md border border-emerald-700 bg-emerald-600 px-2 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+                                    >
+                                      Descargar
+                                    </a>
+                                  </div>
+                                );
+                              })() : (
+                                <span className="text-xs text-slate-400">—</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+
+                {/* Vista previa del comprobante de pago */}
+                {payPreview && (
+                  <div className="mt-3 rounded-lg border bg-slate-50 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="min-w-0 text-sm font-medium text-slate-700">
+                        Comprobante:{" "}
+                        <span className="font-normal break-words break-all">{payPreview.name}</span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <a
+                          href={payPreview.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-md border border-indigo-700 bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
+                        >
+                          Abrir ↗
+                        </a>
+                        <a
+                          href={makeDownloadUrl(payPreview.url, payPreview.name)}
+                          className="rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+                        >
+                          Descargar
+                        </a>
+                        <button
+                          type="button"
+                          className="rounded-md border border-rose-700 bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1"
+                          onClick={() => setPayPreview(null)}
+                        >
+                          Cerrar visor
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex h-[60vh] w-full items-center justify-center overflow-hidden rounded-md bg-white">
+                      {payPreview.isImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={payPreview.url}
+                          alt={payPreview.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : payPreview.isPdf ? (
+                        <iframe
+                          src={payPreview.url}
+                          className="h-full w-full"
+                          title={payPreview.name}
+                        />
+                      ) : (
+                        <div className="text-sm text-slate-600">
+                          No hay vista previa disponible.{" "}
+                          <a
+                            className="text-blue-600 underline"
+                            href={payPreview.url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Abrir original
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

@@ -1,12 +1,22 @@
 export type CollaboratorEstado = "ACTIVO" | "INACTIVO";
-export type CollaboratorRol = "ADMIN" | "COLABORADOR";
+/** Valores reales devueltos por la API */
+export type CollaboratorRol =
+  | "admin"
+  | "colaboradorfactura"
+  | "colaboradorvoluntariado"
+  | "colaboradorproyecto"
+  | "colaboradorcontabilidad"
+  | "colaboradorvisitacion"
+  | string; // fallback para roles futuros
 
 export type Collaborator = {
   id: number | string;
   fullName: string;
   email: string;
   phone: string;
-  role: CollaboratorRol;
+  role: string;
+  /** Todos los roles asignados al colaborador (multi-rol) */
+  roles?: string[];
   status?: CollaboratorEstado;
   identification: string;
   birthdate?: string;
@@ -17,7 +27,7 @@ export type ListCollaboratorsParams = {
   page?: number;
   pageSize?: number;
   q?: string;
-  rol?: CollaboratorRol;
+  rol?: string;
   estado?: CollaboratorEstado;
 };
 
@@ -31,9 +41,10 @@ export type Paginated<T> = {
 export interface CreateCollaboratorDto {
   fullName: string;
   email: string;
-  identification: string;  // cédula (puedes capturar 9 dígitos)
+  identification: string;
   birthdate: string;       // YYYY-MM-DD
-  phone: string;           // dígitos o E.164 según back
-  role: CollaboratorRol;   // "ADMIN" | "COLABORADOR"
-  password?: string;       // ⬅️ opcional en el front; el service la genera si falta
+  phone: string;           // E.164
+  role: string;
+  roles?: string[];
+  password?: string;
 }

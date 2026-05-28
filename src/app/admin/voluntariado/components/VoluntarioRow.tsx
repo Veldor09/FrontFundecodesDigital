@@ -2,7 +2,6 @@
 
 import { Voluntario } from "../types/voluntario";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,46 +17,30 @@ import {
 interface Props {
   voluntario: Voluntario;
   onEdit: () => void;
-  onToggle: () => void; // cambia ACTIVO <-> INACTIVO
   onDelete: () => void;
 }
 
-export default function VoluntarioRow({
-  voluntario,
-  onEdit,
-  onToggle,
-  onDelete,
-}: Props) {
-  const isActivo = voluntario.estado === "ACTIVO";
+function fmtDate(iso?: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("es-CR", {
+      day: "2-digit", month: "short", year: "numeric",
+    });
+  } catch { return "—"; }
+}
 
+export default function VoluntarioRow({ voluntario, onEdit, onDelete }: Props) {
   return (
-    <tr className="border-b border-slate-200">
-      <td className="px-4 py-3">{voluntario.nombreCompleto}</td>
-      <td className="px-4 py-3">{voluntario.numeroDocumento}</td>
-      <td className="px-4 py-3">{voluntario.email}</td>
-      <td className="px-4 py-3">{voluntario.telefono ?? "—"}</td>
+    <tr className="border-b border-slate-200 hover:bg-slate-50">
+      <td className="px-4 py-3 font-medium text-slate-800">{voluntario.nombre}</td>
+      <td className="px-4 py-3 text-slate-600">{voluntario.nacionalidad ?? "—"}</td>
+      <td className="px-4 py-3 text-slate-600">{voluntario.email ?? "—"}</td>
+      <td className="px-4 py-3 text-slate-600">{fmtDate(voluntario.fechaEntrada)}</td>
+      <td className="px-4 py-3 text-slate-600">{fmtDate(voluntario.fechaSalida)}</td>
+      <td className="px-4 py-3 text-slate-600">{voluntario.ong ?? "—"}</td>
 
       <td className="px-4 py-3">
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-            isActivo
-              ? "bg-green-100 text-green-800 border border-green-200"
-              : "bg-slate-100 text-slate-700 border border-slate-200"
-          }`}
-        >
-          {isActivo ? "Activo" : "Inactivo"}
-        </span>
-      </td>
-
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Switch
-            checked={isActivo}
-            onCheckedChange={onToggle}
-            aria-label={isActivo ? "Desactivar voluntario" : "Activar voluntario"}
-            className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-slate-400"
-          />
-
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             type="button"
             size="sm"
@@ -77,17 +60,14 @@ export default function VoluntarioRow({
                 Eliminar
               </Button>
             </AlertDialogTrigger>
-
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Esta acción no se puede deshacer. Se eliminará permanentemente
-                  el registro del voluntario{" "}
-                  <strong>{voluntario.nombreCompleto}</strong>.
+                  el registro de <strong>{voluntario.nombre}</strong>.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction

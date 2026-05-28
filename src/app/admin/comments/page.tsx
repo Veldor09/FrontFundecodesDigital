@@ -15,6 +15,7 @@ type AdminComment = {
   status: CommentStatus;
   visible?: boolean;
   createdAt?: string;
+  attachmentUrl?: string | null;
 };
 
 type CommentsResponse = {
@@ -236,62 +237,84 @@ export default function AdminCommentsPage() {
     }
   }
 
+  const COMMENT_TABS: { key: CommentStatus; label: string }[] = [
+    { key: "PENDIENTE", label: "Pendientes" },
+    { key: "APROBADO",  label: "Aprobados" },
+    { key: "DENEGADO",  label: "Denegados" },
+  ];
+
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mb-6 border-b border-slate-200 pb-6">
-        <h1 className="text-center text-3xl font-bold text-slate-900">
-          Bienvenido al área Gestión de Comentarios
-        </h1>
+    <>
+      {/* ── Nav bar VoluntariadoNav-style ── */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Título centrado */}
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              Gestión de Comentarios
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Modera, aprueba o deniega comentarios de la comunidad antes de su publicación.
+            </p>
+          </div>
 
-        <div className="mt-6">
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-              <ArrowLeft className="h-4 w-4" />
-              Volver al Dashboard
-            </Button>
-          </Link>
+          {/* Desktop */}
+          <div className="hidden md:block">
+            <div className="relative flex items-center justify-center h-16">
+              <Link href="/admin" className="absolute left-0">
+                <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+              <nav className="flex gap-2">
+                {COMMENT_TABS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStatus(key)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm ${
+                      status === key
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden pb-4">
+            <div className="mb-3">
+              <Link href="/admin">
+                <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+            </div>
+            <nav className="flex flex-col sm:flex-row gap-2">
+              {COMMENT_TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setStatus(key)}
+                  className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm flex-1 ${
+                    status === key
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="mb-6">
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button
-            type="button"
-            onClick={() => setStatus("PENDIENTE")}
-            className={
-              status === "PENDIENTE"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
-          >
-            Pendientes
-          </Button>
-
-          <Button
-            type="button"
-            onClick={() => setStatus("APROBADO")}
-            className={
-              status === "APROBADO"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
-          >
-            Aprobados
-          </Button>
-
-          <Button
-            type="button"
-            onClick={() => setStatus("DENEGADO")}
-            className={
-              status === "DENEGADO"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }
-          >
-            Denegados
-          </Button>
-        </div>
-      </section>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
       <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <form onSubmit={handleSearchSubmit} className="grid gap-4 md:grid-cols-4">
@@ -416,6 +439,26 @@ export default function AdminCommentsPage() {
                       </p>
                     </div>
 
+                    {comment.attachmentUrl && (
+                      <div className="mt-3">
+                        {/\.(mp4|webm)(\?|$)/i.test(comment.attachmentUrl) ? (
+                          <video
+                            src={comment.attachmentUrl}
+                            controls
+                            className="max-w-xs max-h-48 rounded-xl border border-slate-200"
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={comment.attachmentUrl}
+                            alt="Adjunto"
+                            className="max-w-xs max-h-48 rounded-xl border border-slate-200 object-cover cursor-pointer"
+                            onClick={() => window.open(comment.attachmentUrl!, "_blank")}
+                          />
+                        )}
+                      </div>
+                    )}
+
                     <p className="mt-4 text-sm text-slate-500">
                       Enviado: {formatDate(comment.createdAt)}
                     </p>
@@ -531,5 +574,6 @@ export default function AdminCommentsPage() {
         </div>
       )}
     </main>
+    </>
   );
 }

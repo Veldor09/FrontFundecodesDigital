@@ -134,32 +134,64 @@ export default function InformationalAdminPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver al dashboard
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">Editor de Página Informativa</h1>
-              <p className="text-slate-600">Gestiona los contenidos de la Landing</p>
+      {/* ── Nav bar VoluntariadoNav-style ── */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Título centrado */}
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              Editor de Página Informativa
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Gestiona los contenidos de la Landing.
+            </p>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden md:block">
+            <div className="relative flex items-center justify-center h-14 pb-3">
+              <Link href="/admin" className="absolute left-0">
+                <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+              <div className="absolute right-0 flex gap-2">
+                <Button variant="secondary" onClick={onReset} size="sm">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Restablecer
+                </Button>
+                <Button onClick={onSave} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar cambios
+                </Button>
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={onReset}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Restablecer
-            </Button>
-            <Button onClick={onSave}>
-              <Save className="h-4 w-4 mr-2" />
-              Guardar cambios
-            </Button>
+
+          {/* Mobile */}
+          <div className="md:hidden pb-4 space-y-2">
+            <Link href="/admin">
+              <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Dashboard
+              </button>
+            </Link>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={onReset} className="flex-1">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Restablecer
+              </Button>
+              <Button onClick={onSave} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+                <Save className="h-4 w-4 mr-2" />
+                Guardar
+              </Button>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-6">
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="space-y-6">
           <TabsList>

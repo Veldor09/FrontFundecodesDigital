@@ -60,9 +60,9 @@ export default function SancionRow({ sancion, onEdit, onDelete, onRevocar }: Pro
       <tr className="hover:bg-slate-50 border-b border-slate-200">
         <td className="px-4 py-3">
           <div>
-            <p className="font-medium text-slate-800">{sancion.voluntario?.nombreCompleto || "N/A"}</p>
+            <p className="font-medium text-slate-800">{sancion.voluntario?.nombre || "N/A"}</p>
             <p className="text-xs text-slate-500">
-              {sancion.voluntario?.numeroDocumento} • {sancion.voluntario?.email}
+              {sancion.voluntario?.email ?? sancion.voluntario?.nacionalidad ?? "—"}
             </p>
           </div>
         </td>
@@ -119,7 +119,7 @@ export default function SancionRow({ sancion, onEdit, onDelete, onRevocar }: Pro
           setShowDeleteConfirm(false);
         }}
         title="Eliminar Sanción"
-        description={`¿Está seguro de que desea eliminar permanentemente esta sanción de ${sancion.voluntario?.nombreCompleto}?`}
+        description={`¿Está seguro de que desea eliminar permanentemente esta sanción de ${sancion.voluntario?.nombre}?`}
       />
 
       <ConfirmDialog
@@ -130,7 +130,7 @@ export default function SancionRow({ sancion, onEdit, onDelete, onRevocar }: Pro
           setShowRevocarConfirm(false);
         }}
         title="Revocar Sanción"
-        description={`¿Está seguro de que desea revocar esta sanción activa de ${sancion.voluntario?.nombreCompleto}?`}
+        description={`¿Está seguro de que desea revocar esta sanción activa de ${sancion.voluntario?.nombre}?`}
       />
     </>
   );

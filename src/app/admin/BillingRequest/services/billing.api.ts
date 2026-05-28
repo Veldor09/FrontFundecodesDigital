@@ -110,6 +110,45 @@ export async function listPaymentsForProject(
 }
 
 /* ===========================================================
+   🧾 COMPROBANTE DE PAGO
+=========================================================== */
+
+/** POST /api/billing/payments/:paymentId/comprobante
+ *  Sube un comprobante de pago (PDF o imagen) a Cloudflare R2.
+ */
+export async function uploadComprobante(
+  paymentId: string,
+  file: File
+): Promise<{ comprobanteUrl: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const { data } = await axiosInstance.post(
+    `${API_URL}/api/billing/payments/${paymentId}/comprobante`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        ...(t ? { Authorization: `Bearer ${t}` } : {}),
+      },
+    }
+  );
+  return data;
+}
+
+/** DELETE /api/billing/payments/:paymentId/comprobante */
+export async function deleteComprobante(paymentId: string): Promise<void> {
+  const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  await axiosInstance.delete(
+    `${API_URL}/api/billing/payments/${paymentId}/comprobante`,
+    {
+      headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+    }
+  );
+}
+
+/* ===========================================================
    📊 LEDGER
 =========================================================== */
 export async function getLedger(projectId: number): Promise<LedgerEvent[]> {
@@ -191,17 +230,15 @@ export async function ensureBillingRequestFromSolicitud(args: EnsureArgs) {
 
 /* ===========================================================
    💬 Estado Billing de una Solicitud
+   Determina si ya tiene pagos registrados → "PAID" | null
 =========================================================== */
 export async function getBillingStatusForSolicitud(
   id: number
 ): Promise<string | null> {
   try {
-    const br: any = await getRequest(Number(id));
-    if (!br) return null;
-    const status = (br?.status ?? br?.estado ?? "").toString().toUpperCase();
-    return status || null;
-  } catch (e: any) {
-    if (e?.status === 404) return null;
+    const payments = await listPaymentsForRequest(id);
+    return Array.isArray(payments) && payments.length > 0 ? "PAID" : null;
+  } catch {
     return null;
   }
 }

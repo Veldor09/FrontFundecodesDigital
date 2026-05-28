@@ -181,10 +181,10 @@ export default function SancionForm({
         {voluntarioPreseleccionado ? (
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="font-medium text-blue-900">
-              {voluntarioPreseleccionado.nombreCompleto}
+              {voluntarioPreseleccionado.nombre}
             </p>
             <p className="text-sm text-blue-700">
-              {voluntarioPreseleccionado.numeroDocumento} • {voluntarioPreseleccionado.email}
+              {voluntarioPreseleccionado.email ?? voluntarioPreseleccionado.nacionalidad ?? "—"}
             </p>
           </div>
         ) : (
@@ -199,7 +199,7 @@ export default function SancionForm({
               <option value={0}>Seleccione un voluntario</option>
               {voluntarios.map((vol) => (
                 <option key={vol.id} value={vol.id}>
-                  {vol.nombreCompleto} - {vol.numeroDocumento}
+                  {vol.nombre}{vol.nacionalidad ? ` (${vol.nacionalidad})` : ""}
                 </option>
               ))}
             </select>
@@ -349,23 +349,16 @@ export default function SancionForm({
           <h4 className="font-medium text-slate-800 mb-2">Información del Voluntario</h4>
           <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
             <div>
-              <strong>Nombre:</strong> {voluntarioSeleccionado.nombreCompleto}
+              <strong>Nombre:</strong> {voluntarioSeleccionado.nombre}
             </div>
             <div>
-              <strong>Documento:</strong> {voluntarioSeleccionado.numeroDocumento}
+              <strong>Nacionalidad:</strong> {voluntarioSeleccionado.nacionalidad ?? "—"}
             </div>
             <div>
-              <strong>Email:</strong> {voluntarioSeleccionado.email}
+              <strong>Email:</strong> {voluntarioSeleccionado.email ?? "—"}
             </div>
             <div>
-              <strong>Estado:</strong>{" "}
-              <span
-                className={
-                  voluntarioSeleccionado.estado === "ACTIVO" ? "text-green-600" : "text-red-600"
-                }
-              >
-                {voluntarioSeleccionado.estado}
-              </span>
+              <strong>ONG:</strong> {voluntarioSeleccionado.ong ?? "—"}
             </div>
           </div>
         </div>

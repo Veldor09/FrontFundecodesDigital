@@ -19,9 +19,9 @@ export interface Sancion {
   updatedAt?: string;
   voluntario?: {
     id: number;
-    nombreCompleto: string;
-    numeroDocumento: string;
-    email: string;
+    nombre: string;
+    email?: string | null;
+    nacionalidad?: string | null;
   };
 }
 

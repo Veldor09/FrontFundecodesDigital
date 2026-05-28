@@ -19,6 +19,28 @@ import {
   type AuditoriaItem,
   type AuditoriaQuery,
 } from "./services/auditoria.api";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import type { ExportRow } from "@/lib/export";
+
+const AUDIT_COLS = [
+  { key: "fecha",    header: "Fecha/Hora",  width: 20 },
+  { key: "usuario",  header: "Usuario",     width: 24 },
+  { key: "accion",   header: "Acción",      width: 24 },
+  { key: "entidad",  header: "Entidad",     width: 16 },
+  { key: "detalle",  header: "Detalle",     width: 40 },
+  { key: "ip",       header: "IP",          width: 14 },
+];
+
+function auditToRow(item: AuditoriaItem): ExportRow {
+  return {
+    fecha:   item.createdAt ? new Date(item.createdAt).toLocaleString("es-CR") : "",
+    usuario: item.user?.name ?? item.userName ?? item.user?.email ?? item.userEmail ?? "",
+    accion:  item.accion ?? "",
+    entidad: item.entidad ?? "",
+    detalle: item.detalle ?? "",
+    ip:      item.ip ?? "",
+  };
+}
 
 /* ========= Helpers de rol (mismo patrón que el resto del admin) ========= */
 function getToken(): string | null {
@@ -200,35 +222,73 @@ export default function AuditoriaPage() {
   }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Encabezado */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al panel
-          </Link>
-          <h1 className="mt-2 flex items-center gap-2 text-2xl font-bold text-slate-900">
-            <ShieldCheck className="h-7 w-7 text-amber-600" />
-            Auditoría del sistema
-          </h1>
-          <p className="text-sm text-slate-500">
-            Quién hizo qué — registro cronológico de las acciones de todos los usuarios.
-          </p>
+    <>
+      {/* ── Nav bar idéntica a VoluntariadoNav ── */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Título centrado */}
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight flex items-center justify-center gap-2">
+              <ShieldCheck className="h-7 w-7 text-amber-600" />
+              Auditoría del sistema
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Quién hizo qué — registro cronológico de las acciones de todos los usuarios.
+            </p>
+          </div>
+
+          {/* Desktop — back button izq · recargar der */}
+          <div className="hidden md:block">
+            <div className="relative flex items-center justify-center h-14 pb-3">
+              <Link href="/admin" className="absolute left-0">
+                <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+              <div className="absolute right-0 flex items-center gap-2">
+                <ExportButton
+                  title="Auditoría del Sistema"
+                  subtitle="Registro cronológico de acciones"
+                  filename="auditoria"
+                  columns={AUDIT_COLS}
+                  currentRows={items.map(auditToRow)}
+                  fetchAll={async () => {
+                    const res = await fetchAuditoria({ ...appliedQuery, page: 1, pageSize: 9999 });
+                    return res.items.map(auditToRow);
+                  }}
+                  pdfOrientation="landscape"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => load()}
+                  disabled={loading}
+                >
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  {loading ? "Recargando…" : "Recargar"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden pb-4 space-y-2">
+            <Link href="/admin">
+              <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Dashboard
+              </button>
+            </Link>
+            <Button variant="outline" size="sm" onClick={() => load()} disabled={loading} className="w-full">
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              {loading ? "Recargando…" : "Recargar"}
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => load()}
-          disabled={loading}
-          className="self-start"
-        >
-          <RefreshCcw className="h-4 w-4 mr-2" />
-          {loading ? "Recargando…" : "Recargar"}
-        </Button>
       </div>
+
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* Filtros */}
       <form
@@ -391,5 +451,6 @@ export default function AuditoriaPage() {
         </div>
       </div>
     </main>
+    </>
   );
 }

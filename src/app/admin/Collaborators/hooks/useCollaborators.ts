@@ -13,13 +13,16 @@ export type ApiRole =
   | 'colaboradorvoluntariado'
   | 'colaboradorproyecto'
   | 'colaboradorcontabilidad'
+  | 'colaboradorvisitacion'
 
 export type Collaborator = {
   id: number | string;
   nombreCompleto: string;
   correo: string;
   telefono?: string | null;
-  rol: ApiRole;            // <- aquí el cambio (antes: "ADMIN" | "COLABORADOR")
+  rol: ApiRole;
+  /** Todos los roles del colaborador (multi-rol) */
+  roles?: ApiRole[];
   cedula: string;
   fechaNacimiento?: string | null;
   estado: Estado;

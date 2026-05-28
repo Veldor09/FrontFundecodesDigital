@@ -1,57 +1,16 @@
-// src/app/admin/voluntariado/components/VoluntarioForm.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { IdCard, User, Mail, Calendar, CheckCircle, Phone } from "lucide-react";
-import PhoneInput from "react-phone-number-input";
-import "react-phone-number-input/style.css";
 import {
-  getCountryCallingCode,
-  getExampleNumber,
-  isSupportedCountry,
-  parsePhoneNumberFromString,
-} from "libphonenumber-js";
-import examples from "libphonenumber-js/examples.mobile.json";
+  User, Mail, Calendar, Globe, Building2,
+  CheckCircle, Plus, Trash2, Users, Info,
+} from "lucide-react";
 import { Voluntario } from "../types/voluntario";
-
-const MAX_NATIONAL_DEFAULT = 15;
-
-function getMaxNationalLength(country?: string): number {
-  if (!country) return MAX_NATIONAL_DEFAULT;
-  try {
-    const ex = getExampleNumber(country as any, examples as any);
-    if (ex?.nationalNumber) return String(ex.nationalNumber).length;
-  } catch {}
-  const map: Record<string, number> = {
-    CR: 8, US: 10, CA: 10, MX: 10, ES: 9, AR: 10, CL: 9, CO: 10, PE: 9, BR: 11,
-    EC: 9, PA: 8, NI: 8, HN: 8, SV: 8, GT: 8, DO: 10, PR: 10,
-  };
-  return map[country] ?? MAX_NATIONAL_DEFAULT;
-}
-
-// ---------- Helpers para número de identificación ----------
-type TipoDoc = "Cédula costarricense" | "Pasaporte" | "DIMEX";
-function getMaxLen(tipo: TipoDoc) {
-  if (tipo === "Cédula costarricense") return 9;
-  if (tipo === "DIMEX") return 12; // DIMEX 9–12; tope superior 12
-  return 20; // Pasaporte: alfanumérico, mínimo 6; tope razonable
-}
-
-function sanitizeNumeroDocumento(v: string, tipo: TipoDoc) {
-  if (tipo === "Cédula costarricense" || tipo === "DIMEX") {
-    return v.replace(/\D/g, ""); // solo dígitos
-  }
-  // Pasaporte: alfanumérico en mayúsculas
-  return v.replace(/[^a-z0-9]/gi, "").toUpperCase();
-}
-// ----------------------------------------------------------
-
-type EstadoBackend = "ACTIVO" | "INACTIVO";
 
 interface Props {
   initial?: Voluntario;
@@ -59,341 +18,422 @@ interface Props {
   onCancel: () => void;
 }
 
-type FormValues = {
-  tipoDoc: TipoDoc;
-  numeroDocumento: string;
-  nombreCompleto: string;
+// ─── Single mode ──────────────────────────────────────────────
+type SingleFormValues = {
+  nombre: string;
   email: string;
-  telefono?: string;
-  fechaNacimiento?: string;
-  fechaIngreso: string;
-  estado: EstadoBackend;
+  nacionalidad: string;
+  fechaEntrada: string;
+  fechaSalida: string;
+  ong: string;
 };
 
+function toDateInput(iso?: string | null): string {
+  if (!iso) return "";
+  try { return new Date(iso).toISOString().slice(0, 10); } catch { return ""; }
+}
+
+// ─── Bulk mode ────────────────────────────────────────────────
+type BulkRow = { id: string; nombre: string; email: string; nacionalidad: string };
+type BulkShared = { fechaEntrada: string; fechaSalida: string; ong: string };
+
 export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
+  const isEdit = Boolean(initial);
+  const [mode, setMode] = useState<"single" | "bulk">("single");
+
+  // ── Single form (react-hook-form) ────────────────────────────
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
-  } = useForm<FormValues>({
-    defaultValues: initial
-      ? {
-          tipoDoc: (initial as any).tipoDocumento ?? "Cédula costarricense",
-          numeroDocumento: (initial as any).numeroDocumento ?? "",
-          nombreCompleto: (initial as any).nombreCompleto ?? "",
-          email: initial.email ?? "",
-          telefono: initial.telefono ?? "",
-          fechaNacimiento: initial.fechaNacimiento
-            ? new Date(initial.fechaNacimiento).toISOString().slice(0, 10)
-            : "",
-          fechaIngreso: initial.fechaIngreso
-            ? new Date(initial.fechaIngreso).toISOString().slice(0, 10)
-            : "",
-          estado: (initial.estado as EstadoBackend) ?? "ACTIVO",
-        }
-      : {
-          tipoDoc: "Cédula costarricense",
-          numeroDocumento: "",
-          nombreCompleto: "",
-          email: "",
-          telefono: "",
-          fechaNacimiento: "",
-          fechaIngreso: "",
-          estado: "ACTIVO",
-        },
+  } = useForm<SingleFormValues>({
+    defaultValues: {
+      nombre: initial?.nombre ?? "",
+      email: initial?.email ?? "",
+      nacionalidad: initial?.nacionalidad ?? "",
+      fechaEntrada: toDateInput(initial?.fechaEntrada),
+      fechaSalida: toDateInput(initial?.fechaSalida),
+      ong: initial?.ong ?? "",
+    },
   });
 
-  const tipoDoc = watch("tipoDoc");
-  const telefono = watch("telefono") ?? "";
-  const [country, setCountry] = useState<string | undefined>("CR");
-
-  const maxNational = useMemo(() => getMaxNationalLength(country), [country]);
-  const safeCountry = isSupportedCountry(country || "") ? (country as any) : "CR";
-
-  // Validación de número telefónico
-  const phoneClean = (telefono || "").replace(/\s+/g, "");
-  const parsed = parsePhoneNumberFromString(phoneClean, safeCountry);
-  const phoneError =
-    telefono && (!parsed || !parsed.isValid())
-      ? `Número inválido para ${safeCountry.toUpperCase()}`
-      : null;
-
-  // Control de escritura / pegado con límite en teléfono
-  function handlePhoneChange(val: string | undefined) {
-    if (!val) {
-      setValue("telefono", "");
-      return;
+  const onSubmitSingle = async (data: SingleFormValues) => {
+    try {
+      const dto = {
+        ...(initial?.id ? { id: initial.id } : {}),
+        nombre: data.nombre.trim(),
+        email: data.email.trim() || null,
+        nacionalidad: data.nacionalidad.trim() || null,
+        fechaEntrada: new Date(data.fechaEntrada).toISOString(),
+        fechaSalida: data.fechaSalida ? new Date(data.fechaSalida).toISOString() : null,
+        ong: data.ong.trim() || null,
+      };
+      await onSave(dto);
+      toast.success(initial ? "Voluntario actualizado" : "Voluntario creado");
+      onCancel();
+    } catch {
+      toast.error("Error al guardar el voluntario");
     }
-    const digits = val.replace(/\D/g, "");
-    const cc = getCountryCallingCode(safeCountry);
-    const national = digits.slice(String(cc).length);
-    if (national.length > maxNational) {
-      setValue("telefono", `+${cc}${national.slice(0, maxNational)}`);
+  };
+
+  // ── Bulk state ───────────────────────────────────────────────
+  const rowCounter = useRef(0);
+  const newId = () => `row-${++rowCounter.current}`;
+
+  const [shared, setShared] = useState<BulkShared>({ fechaEntrada: "", fechaSalida: "", ong: "" });
+  const [rows, setRows] = useState<BulkRow[]>([
+    { id: newId(), nombre: "", email: "", nacionalidad: "" },
+    { id: newId(), nombre: "", email: "", nacionalidad: "" },
+  ]);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [sharedError, setSharedError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const addRow = () =>
+    setRows(prev => [...prev, { id: newId(), nombre: "", email: "", nacionalidad: "" }]);
+
+  const removeRow = (id: string) => {
+    if (rows.length <= 1) return;
+    setRows(prev => prev.filter(r => r.id !== id));
+    setRowErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
+  };
+
+  const updateRow = (id: string, field: keyof Omit<BulkRow, "id">, value: string) => {
+    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    if (field === "nombre") {
+      setRowErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
+    }
+  };
+
+  const filledCount = rows.filter(r => r.nombre.trim()).length;
+
+  const validateBulk = (): boolean => {
+    if (!shared.fechaEntrada) {
+      setSharedError("La fecha de entrada es obligatoria");
+      return false;
+    }
+    setSharedError("");
+
+    const errs: Record<string, string> = {};
+    rows.forEach(r => {
+      if (!r.nombre.trim()) {
+        errs[r.id] = "El nombre es obligatorio";
+      } else if (r.email.trim() && !/\S+@\S+\.\S+/.test(r.email.trim())) {
+        errs[r.id] = "Email inválido";
+      }
+    });
+    setRowErrors(errs);
+
+    if (filledCount === 0) {
+      toast.error("Ingrese al menos un nombre");
+      return false;
+    }
+    return Object.keys(errs).length === 0;
+  };
+
+  const onSubmitBulk = async () => {
+    if (!validateBulk()) return;
+    setSaving(true);
+
+    const validRows = rows.filter(r => r.nombre.trim());
+    let ok = 0, fail = 0;
+
+    for (const row of validRows) {
+      try {
+        await onSave({
+          nombre: row.nombre.trim(),
+          email: row.email.trim() || null,
+          nacionalidad: row.nacionalidad.trim() || null,
+          fechaEntrada: new Date(shared.fechaEntrada).toISOString(),
+          fechaSalida: shared.fechaSalida ? new Date(shared.fechaSalida).toISOString() : null,
+          ong: shared.ong.trim() || null,
+        });
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+
+    setSaving(false);
+
+    if (fail === 0) {
+      toast.success(
+        `${ok} voluntario${ok !== 1 ? "s" : ""} registrado${ok !== 1 ? "s" : ""} exitosamente`
+      );
+      onCancel();
+    } else if (ok === 0) {
+      toast.error("No se pudo registrar ningún voluntario");
     } else {
-      setValue("telefono", val);
+      toast.warning(`${ok} registrado${ok !== 1 ? "s" : ""}, ${fail} fallaron`);
+      onCancel();
     }
-  }
+  };
 
-  function handlePhoneKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    const key = e.key;
-    if (!/^\d$/.test(key)) return; // solo limita cuando escribe dígitos
-    const input = e.currentTarget;
-    const val = input.value ?? "";
-    const ccLen = String(getCountryCallingCode(safeCountry)).length;
-    const digitsAll = val.replace(/\D/g, "");
-    const natLen = Math.max(0, digitsAll.length - ccLen);
-    if (natLen >= maxNational) e.preventDefault();
-  }
-
-  function handlePhonePaste(e: React.ClipboardEvent<HTMLInputElement>) {
-    const paste = e.clipboardData.getData("text")?.replace(/\D/g, "") || "";
-    const cc = getCountryCallingCode(safeCountry);
-    const national = paste.slice(String(cc).length);
-    if (national.length > maxNational) {
-      setValue("telefono", `+${cc}${national.slice(0, maxNational)}`);
-      e.preventDefault();
-    }
-  }
-
-const onSubmit = async (data: FormValues) => {
-  try {
-    const dto = {
-      // 👇 si estás editando, incluye el id
-      ...(initial?.id ? { id: initial.id } : {}),
-      tipoDocumento: data.tipoDoc,
-      numeroDocumento: data.numeroDocumento,
-      nombreCompleto: data.nombreCompleto,
-      email: data.email,
-      telefono: data.telefono || null,
-      fechaNacimiento: data.fechaNacimiento
-        ? new Date(data.fechaNacimiento).toISOString()
-        : null,
-      fechaIngreso: new Date(data.fechaIngreso).toISOString(),
-      estado: data.estado,
-    };
-
-    await onSave(dto);
-    toast.success(initial ? "Voluntario actualizado" : "Voluntario creado");
-  } catch (e) {
-    console.error(e);
-    toast.error("Error al guardar el voluntario");
-  }
-};
-
+  // ── Render ──────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {/* Tipo de documento */}
-      <div>
-        <Label className="text-slate-700 flex items-center gap-2 font-bold pb-1">
-          <IdCard className="h-4 w-4" />
-          Tipo de documento
-        </Label>
-        <select
-          className="w-full border rounded-md h-9 px-2 text-sm"
-          {...register("tipoDoc", { required: true })}
-        >
-          <option value="Cédula costarricense">Cédula costarricense</option>
-          <option value="Pasaporte">Pasaporte</option>
-          <option value="DIMEX">DIMEX</option>
-        </select>
-      </div>
+    <div className="space-y-5">
 
-      {/* Número de Identificación */}
-      <div>
-        <Label className="text-slate-700">Número de Identificación *</Label>
-        <Input
-          placeholder={
-            tipoDoc === "Cédula costarricense"
-              ? "9 dígitos"
-              : tipoDoc === "DIMEX"
-              ? "9–12 dígitos"
-              : "Pasaporte (alfa-numérico)"
-          }
-          maxLength={getMaxLen(tipoDoc)}
-          inputMode={tipoDoc === "Pasaporte" ? "text" : "numeric"}
-          // onPaste va como prop del input (NO dentro de register)
-          onPaste={(e) => {
-            e.preventDefault();
-            const max = getMaxLen(tipoDoc);
-            let v = sanitizeNumeroDocumento(
-              e.clipboardData.getData("text") || "",
-              tipoDoc
-            );
-            if (v.length > max) v = v.slice(0, max);
-            setValue("numeroDocumento", v, {
-              shouldValidate: true,
-              shouldDirty: true,
-            });
-          }}
-          {...register("numeroDocumento", {
-            required: "Requerido",
-            validate: (value) => {
-              if (tipoDoc === "Cédula costarricense") {
-                return /^\d{9}$/.test(value) || "La cédula debe tener 9 dígitos";
-              }
-              if (tipoDoc === "DIMEX") {
-                return (
-                  /^\d{9,12}$/.test(value) ||
-                  "DIMEX debe tener entre 9 y 12 dígitos"
-                );
-              }
-              if (tipoDoc === "Pasaporte") {
-                return (
-                  /^[A-Za-z0-9]{6,}$/.test(value) ||
-                  "Pasaporte inválido (mínimo 6 caracteres)"
-                );
-              }
-              return true;
-            },
-            // onChange SÍ va dentro de register
-            onChange: (e) => {
-              const max = getMaxLen(tipoDoc);
-              let v = sanitizeNumeroDocumento(e.target.value, tipoDoc);
-              if (v.length > max) v = v.slice(0, max);
-              setValue("numeroDocumento", v, {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
-            },
-          })}
-        />
-        {errors.numeroDocumento && (
-          <p className="text-red-500 text-xs mt-1">
-            {String(errors.numeroDocumento.message)}
-          </p>
-        )}
-      </div>
+      {/* Mode toggle — only in create mode */}
+      {!isEdit && (
+        <div className="flex rounded-lg border border-slate-200 p-1 bg-slate-50 w-fit">
+          <button
+            type="button"
+            onClick={() => setMode("single")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              mode === "single"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            <User className="h-3.5 w-3.5" />
+            Individual
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("bulk")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              mode === "bulk"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Masivo
+          </button>
+        </div>
+      )}
 
-      {/* Nombre + Email */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label className="text-slate-700 flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Nombre Completo *
-          </Label>
-          <Input
-            placeholder="Nombre completo"
-            {...register("nombreCompleto", { required: "Requerido" })}
-          />
-          {errors.nombreCompleto && (
-            <p className="text-red-500 text-xs mt-1">
-              {String(errors.nombreCompleto.message)}
+      {/* ══════════════ SINGLE MODE ══════════════ */}
+      {mode === "single" && (
+        <form onSubmit={handleSubmit(onSubmitSingle)} className="space-y-4">
+
+          {/* Nombre */}
+          <div>
+            <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
+              <User className="h-4 w-4" /> Nombre completo *
+            </Label>
+            <Input
+              placeholder="Ej. María García López"
+              {...register("nombre", { required: "El nombre es obligatorio" })}
+            />
+            {errors.nombre && <p className="text-red-500 text-xs mt-1">{errors.nombre.message}</p>}
+          </div>
+
+          {/* Email */}
+          <div>
+            <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
+              <Mail className="h-4 w-4" /> Correo electrónico
+            </Label>
+            <Input
+              type="email"
+              placeholder="voluntario@correo.com"
+              {...register("email", {
+                pattern: { value: /\S+@\S+\.\S+/, message: "Email inválido" },
+              })}
+            />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+          </div>
+
+          {/* Nacionalidad */}
+          <div>
+            <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
+              <Globe className="h-4 w-4" /> Nacionalidad
+            </Label>
+            <Input placeholder="Ej. Costa Rica, España…" {...register("nacionalidad")} />
+          </div>
+
+          {/* Fechas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
+                <Calendar className="h-4 w-4" /> Fecha de entrada *
+              </Label>
+              <Input
+                type="date"
+                {...register("fechaEntrada", { required: "La fecha de entrada es obligatoria" })}
+              />
+              {errors.fechaEntrada && <p className="text-red-500 text-xs mt-1">{errors.fechaEntrada.message}</p>}
+            </div>
+            <div>
+              <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
+                <Calendar className="h-4 w-4" /> Fecha de salida
+              </Label>
+              <Input type="date" {...register("fechaSalida")} />
+              <p className="text-xs text-slate-400 mt-1">El voluntario se elimina automáticamente al día siguiente.</p>
+            </div>
+          </div>
+
+          {/* ONG */}
+          <div>
+            <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
+              <Building2 className="h-4 w-4" /> ONG / Organización de origen
+            </Label>
+            <Input placeholder="Ej. Cruz Roja Internacional (opcional)" {...register("ong")} />
+            <p className="text-xs text-slate-400 mt-1 flex items-start gap-1">
+              <Info className="h-3 w-3 mt-0.5 shrink-0 text-slate-400" />
+              Esta ONG es la misma empresa que aparecerá como intermediaria al asignar a programas.
             </p>
-          )}
+          </div>
+
+          {/* Botones */}
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+              <CheckCircle className="h-4 w-4" />
+              {initial ? "Actualizar" : "Crear"} voluntario
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* ══════════════ BULK MODE ══════════════ */}
+      {mode === "bulk" && (
+        <div className="space-y-5">
+
+          {/* Shared data card */}
+          <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-4 space-y-4">
+            <h3 className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Datos compartidos del grupo
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1 text-sm">
+                  <Calendar className="h-3.5 w-3.5" /> Fecha de entrada *
+                </Label>
+                <Input
+                  type="date"
+                  value={shared.fechaEntrada}
+                  onChange={e => {
+                    setShared(p => ({ ...p, fechaEntrada: e.target.value }));
+                    setSharedError("");
+                  }}
+                  className={sharedError ? "border-red-400" : ""}
+                />
+                {sharedError && <p className="text-red-500 text-xs mt-1">{sharedError}</p>}
+              </div>
+              <div>
+                <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1 text-sm">
+                  <Calendar className="h-3.5 w-3.5" /> Fecha de salida
+                </Label>
+                <Input
+                  type="date"
+                  value={shared.fechaSalida}
+                  min={shared.fechaEntrada || undefined}
+                  onChange={e => setShared(p => ({ ...p, fechaSalida: e.target.value }))}
+                />
+                <p className="text-xs text-slate-400 mt-1">El voluntario se elimina automáticamente al día siguiente.</p>
+              </div>
+            </div>
+
+            <div>
+              <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1 text-sm">
+                <Building2 className="h-3.5 w-3.5" /> ONG / Organización de origen
+              </Label>
+              <Input
+                placeholder="Ej. Cruz Roja Internacional (opcional)"
+                value={shared.ong}
+                onChange={e => setShared(p => ({ ...p, ong: e.target.value }))}
+              />
+              <p className="text-xs text-blue-600 mt-1.5 flex items-start gap-1">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                Esta es la misma empresa que aparecerá como intermediaria al asignar estos voluntarios a programas.
+              </p>
+            </div>
+          </div>
+
+          {/* Volunteer rows */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Voluntarios
+                <span className="text-slate-400 font-normal">
+                  ({filledCount} con nombre ingresado)
+                </span>
+              </h3>
+            </div>
+
+            {/* Column headers */}
+            <div className="grid grid-cols-[1fr_1fr_1fr_2rem] gap-2 px-1 mb-1">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nombre *</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Correo</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nacionalidad</span>
+              <span />
+            </div>
+
+            {/* Rows */}
+            <div className="space-y-2">
+              {rows.map((row, idx) => (
+                <div key={row.id} className="grid grid-cols-[1fr_1fr_1fr_2rem] gap-2 items-start">
+                  <div>
+                    <Input
+                      placeholder={`Voluntario ${idx + 1}`}
+                      value={row.nombre}
+                      onChange={e => updateRow(row.id, "nombre", e.target.value)}
+                      className={rowErrors[row.id] ? "border-red-400 focus-visible:ring-red-400" : ""}
+                    />
+                    {rowErrors[row.id] && (
+                      <p className="text-red-500 text-xs mt-0.5">{rowErrors[row.id]}</p>
+                    )}
+                  </div>
+
+                  <Input
+                    placeholder="correo@ejemplo.com"
+                    value={row.email}
+                    onChange={e => updateRow(row.id, "email", e.target.value)}
+                  />
+
+                  <Input
+                    placeholder="Ej. España"
+                    value={row.nacionalidad}
+                    onChange={e => updateRow(row.id, "nacionalidad", e.target.value)}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => removeRow(row.id)}
+                    disabled={rows.length <= 1}
+                    className="mt-0.5 h-9 w-8 flex items-center justify-center rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Eliminar fila"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add row button */}
+            <button
+              type="button"
+              onClick={addRow}
+              className="mt-3 flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Agregar voluntario
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={onSubmitBulk}
+              disabled={saving || filledCount === 0}
+              className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              {saving
+                ? "Guardando..."
+                : `Registrar ${filledCount} voluntario${filledCount !== 1 ? "s" : ""}`}
+            </Button>
+          </div>
         </div>
-        <div>
-          <Label className="text-slate-700 flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Email *
-          </Label>
-          <Input
-            type="email"
-            placeholder="ejemplo@email.com"
-            {...register("email", {
-              required: "Requerido",
-              pattern: { value: /\S+@\S+\.\S+/, message: "Email inválido" },
-            })}
-          />
-          {errors.email && (
-            <p className="text-red-500 text-xs mt-1">
-              {String(errors.email.message)}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Teléfono */}
-      <div>
-        <Label className="text-slate-700 flex items-center gap-2">
-          <Phone className="h-4 w-4" />
-          Teléfono (opcional)
-        </Label>
-
-        <PhoneInput
-          international
-          withCountryCallingCode
-          countryCallingCodeEditable={false}
-          defaultCountry="CR"
-          value={telefono}
-          onChange={handlePhoneChange}
-          onCountryChange={(c) => setCountry(c || "CR")}
-          className="w-full"
-          numberInputProps={{
-            onKeyDown: handlePhoneKeyDown,
-            onPaste: handlePhonePaste,
-          }}
-        />
-
-        {phoneError && (
-          <p className="text-red-500 text-xs mt-1">{phoneError}</p>
-        )}
-
-        <p className="text-xs text-slate-500 mt-1">
-          {Math.max(
-            0,
-            (telefono || "").replace(/\D/g, "").length -
-              String(getCountryCallingCode(safeCountry)).length
-          )}
-          /{maxNational} dígitos (sin código)
-        </p>
-      </div>
-
-      {/* Fechas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label className="text-slate-700 flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Fecha de Nacimiento
-          </Label>
-          <Input type="date" {...register("fechaNacimiento")} />
-        </div>
-        <div>
-          <Label className="text-slate-700 flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Fecha de Ingreso al Programa *
-          </Label>
-          <Input
-            type="date"
-            {...register("fechaIngreso", { required: "Requerido" })}
-          />
-          {errors.fechaIngreso && (
-            <p className="text-red-500 text-xs mt-1">
-              {String(errors.fechaIngreso.message)}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Estado */}
-      <div>
-        <Label className="text-slate-700 flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" />
-          Estado
-        </Label>
-        <select
-          className="w-full border rounded-md h-9 px-2 text-sm"
-          {...register("estado", { required: true })}
-        >
-          <option value="ACTIVO">ACTIVO</option>
-          <option value="INACTIVO">INACTIVO</option>
-        </select>
-      </div>
-
-      {/* Botones */}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          className="flex items-center gap-2 bg-blue-600 text-white"
-        >
-          <CheckCircle className="h-4 w-4" />
-          {initial ? "Actualizar" : "Crear"} Voluntario
-        </Button>
-      </div>
-    </form>
+      )}
+    </div>
   );
 }

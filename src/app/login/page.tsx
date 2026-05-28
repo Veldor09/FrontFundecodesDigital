@@ -324,7 +324,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={cargando}
-            className="w-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-3.5 rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-xl disabled:scale-100 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-400 text-white font-bold py-3.5 rounded-xl transition-all disabled:cursor-not-allowed"
           >
             {cargando ? (
               <span className="flex items-center justify-center gap-2">

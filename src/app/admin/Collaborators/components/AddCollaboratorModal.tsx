@@ -41,7 +41,8 @@ type UIRole =
   | "colaboradorfactura"
   | "colaboradorvoluntariado"
   | "colaboradorproyecto"
-  | "colaboradorcontabilidad";
+  | "colaboradorcontabilidad"
+  | "colaboradorvisitacion";
 
 const UI_ROLES: UIRole[] = [
   "admin",
@@ -49,6 +50,7 @@ const UI_ROLES: UIRole[] = [
   "colaboradorvoluntariado",
   "colaboradorproyecto",
   "colaboradorcontabilidad",
+  "colaboradorvisitacion",
 ];
 
 /** Mapeo 1:1 al backend */
@@ -58,6 +60,7 @@ const UI_TO_API_ROLE: Record<UIRole, UIRole> = {
   colaboradorvoluntariado: "colaboradorvoluntariado",
   colaboradorproyecto: "colaboradorproyecto",
   colaboradorcontabilidad: "colaboradorcontabilidad",
+  colaboradorvisitacion: "colaboradorvisitacion",
 };
 
 /** Etiquetas más legibles en el selector */
@@ -67,6 +70,7 @@ const ROLE_LABEL: Record<UIRole, string> = {
   colaboradorvoluntariado: "Colaborador – Voluntariado",
   colaboradorproyecto: "Colaborador – Proyecto",
   colaboradorcontabilidad: "Colaborador – Contabilidad",
+  colaboradorvisitacion: "Colaborador – Visitación",
 };
 
 type Props = {
@@ -83,7 +87,8 @@ type FormState = {
   identification: string;
   birthdate: string;
   phone: string;
-  role: UIRole;
+  /** Todos los roles seleccionados (multi-rol). El primero es el rol principal. */
+  roles: UIRole[];
 };
 type Field = keyof FormState;
 
@@ -115,6 +120,7 @@ function normalizeIncomingRole(r?: string | null): UIRole {
 
   if ((UI_ROLES as string[]).includes(low)) return low as UIRole;
   if (low === "admin") return "admin";
+  if (low === "colaboradorvisitacion") return "colaboradorvisitacion";
 
   // Si viene "colaborador" genérico, elige default:
   if (low === "colaborador" || low === "colaboradores") return "colaboradorproyecto";
@@ -131,7 +137,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Record<Field, boolean>>({
-    fullName: false, email: false, identification: false, birthdate: false, phone: false, role: false,
+    fullName: false, email: false, identification: false, birthdate: false, phone: false, roles: false,
   });
 
   const [form, setForm] = useState<FormState>({
@@ -140,7 +146,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
     identification: "",
     birthdate: "",
     phone: "+506",
-    role: "colaboradorproyecto", // ← default actualizado
+    roles: ["colaboradorproyecto"],
   });
 
   const [country, setCountry] = useState<string | undefined>("CR");
@@ -150,14 +156,21 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
 
   useEffect(() => {
     if (open && mode === "editar" && initial) {
-      const normalizedRole = normalizeIncomingRole((initial as any).role ?? (initial as any).rol);
+      // Normaliza el/los roles entrantes
+      const rawRoles: string[] =
+        Array.isArray((initial as any).roles) && (initial as any).roles.length > 0
+          ? (initial as any).roles
+          : [(initial as any).role ?? (initial as any).rol ?? "colaboradorproyecto"];
+      const normalizedRoles: UIRole[] = rawRoles
+        .map((r) => normalizeIncomingRole(r))
+        .filter((r, i, arr) => arr.indexOf(r) === i);
       setForm({
         fullName: initial.fullName ?? "",
         email: initial.email ?? "",
         identification: (initial as any).identification ?? (initial as any).cedula ?? "",
         birthdate: initial.birthdate ? initial.birthdate.split("T")[0] : "",
         phone: initial.phone ?? "+506",
-        role: normalizedRole,
+        roles: normalizedRoles.length > 0 ? normalizedRoles : ["colaboradorproyecto"],
       });
     }
     if (open && mode === "crear") resetForm();
@@ -165,9 +178,9 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
   }, [open, mode, initial?.id]);
 
   const resetForm = () => {
-    setForm({ fullName: "", email: "", identification: "", birthdate: "", phone: "+506", role: "colaboradorproyecto" });
+    setForm({ fullName: "", email: "", identification: "", birthdate: "", phone: "+506", roles: ["colaboradorproyecto"] });
     setCountry("CR"); setIdType("cedula");
-    setTouched({ fullName: false, email: false, identification: false, birthdate: false, phone: false, role: false });
+    setTouched({ fullName: false, email: false, identification: false, birthdate: false, phone: false, roles: false });
   };
 
   /* Validación */
@@ -193,7 +206,7 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
     const parsed = parsePhoneNumberFromString((form.phone || "").replace(/\s+/g, ""), safeCountry);
     if (!parsed || !parsed.isValid()) e.phone = `Teléfono inválido (${safeCountry.toUpperCase()})`;
 
-    if (!form.role) e.role = "Selecciona un rol";
+    if (form.roles.length === 0) e.roles = "Selecciona al menos un rol";
     return e;
   }, [form, country, idType]);
 
@@ -253,7 +266,8 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
         nombreCompleto: form.fullName.trim(),
         correo: form.email.trim(),
         telefono: (form.phone || "").replace(/\s+/g, ""),
-        rol: UI_TO_API_ROLE[form.role], // ← mapeo 1:1 a los roles del backend
+        rol: UI_TO_API_ROLE[form.roles[0]],               // rol primario (backward compat)
+        roles: form.roles.map((r) => UI_TO_API_ROLE[r]),  // todos los roles
         cedula: form.identification.trim(),
         fechaNacimiento: form.birthdate || null,
       };
@@ -298,7 +312,6 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
   if (!open) return null;
   const cfg = ID_CONFIG[idType];
   const title = mode === "editar" ? "Editar colaborador" : "Añadir colaborador";
-  const cta = mode === "editar" ? "Guardar cambios" : "Crear";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
@@ -372,27 +385,63 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
               {showError("phone") && <p id="phone-error" className="text-xs text-red-600 mt-1">{errors.phone}</p>}
             </div>
 
-            {/* Rol */}
-            <div>
-              <Label htmlFor="role">Rol *</Label>
-              <select
-                id="role"
-                className="w-full rounded border px-3 py-2 h-10"
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value as UIRole })}
-                onBlur={() => markTouched("role")}
-                aria-invalid={showError("role")}
-                aria-describedby="role-error"
-                required
-              >
-                {UI_ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABEL[r]}
-                  </option>
-                ))}
-              </select>
-              {showError("role") && <p id="role-error" className="text-xs text-red-600 mt-1">{(errors as any).role}</p>}
+          </div>
+
+          {/* Roles (checkboxes multi-rol) — fuera del grid para span completo */}
+          <div>
+            <Label>
+              Roles *{" "}
+              <span className="font-normal text-xs text-slate-400">(selecciona uno o más)</span>
+            </Label>
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {UI_ROLES.map((r) => {
+                const checked = form.roles.includes(r);
+                // El rol principal es el primero en el orden de UI_ROLES que esté marcado
+                const primaryRole = UI_ROLES.find((role) => form.roles.includes(role));
+                const isPrimary = checked && r === primaryRole && form.roles.length > 1;
+                return (
+                  <label
+                    key={r}
+                    className={`flex items-center gap-2 cursor-pointer select-none rounded-lg border px-3 py-2 transition ${
+                      checked
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        markTouched("roles");
+                        setForm((f) => {
+                          const next = e.target.checked
+                            ? [...f.roles, r]
+                            : f.roles.filter((x) => x !== r);
+                          // Mantener orden de UI_ROLES para que el rol principal sea predecible
+                          return { ...f, roles: UI_ROLES.filter((role) => next.includes(role)) };
+                        });
+                      }}
+                      className="accent-blue-600"
+                    />
+                    <span className="text-sm text-slate-700 flex-1">{ROLE_LABEL[r]}</span>
+                    {isPrimary && (
+                      <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded font-semibold">
+                        Principal
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
             </div>
+            {form.roles.length > 0 && (
+              <p className="text-xs text-slate-500 mt-1">
+                Rol principal:{" "}
+                <strong>{ROLE_LABEL[UI_ROLES.find((r) => form.roles.includes(r))!]}</strong>
+              </p>
+            )}
+            {showError("roles") && (
+              <p className="text-xs text-red-600 mt-1">Selecciona al menos un rol</p>
+            )}
           </div>
 
           {/* Mensajes del servidor */}

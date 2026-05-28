@@ -11,6 +11,30 @@ import {
 } from "../services/solicitudes.api";
 import { getBillingStatusForSolicitud } from "../services/billing.api";
 import HistoryViewModal from "./HistoryViewModal";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import type { ExportRow } from "@/lib/export";
+
+const HIST_COLS = [
+  { key: "titulo",    header: "Título",             width: 28 },
+  { key: "monto",     header: "Monto",              width: 14 },
+  { key: "origen",    header: "Origen",             width: 12 },
+  { key: "programa",  header: "Programa/Proyecto",  width: 22 },
+  { key: "solicitante", header: "Solicitante",      width: 22 },
+  { key: "estado",    header: "Estado",             width: 14 },
+  { key: "fecha",     header: "Fecha",              width: 16 },
+];
+
+function solicitudToRow(it: SolicitudListItem, estado: string): ExportRow {
+  return {
+    titulo:      (it as any).titulo ?? "",
+    monto:       it.monto != null ? String(it.monto) : "",
+    origen:      it.tipoOrigen ?? "",
+    programa:    it.programa?.nombre ?? it.project?.title ?? "",
+    solicitante: it.usuario?.name ?? it.usuario?.email ?? "",
+    estado,
+    fecha:       it.createdAt?.slice(0, 10) ?? "",
+  };
+}
 
 /** Deriva el estado visual mezclando Contadora/Dirección + Billing (PAID). */
 function computeDisplayStatus(
@@ -39,6 +63,7 @@ export default function HistoryTable() {
   const [items, setItems] = useState<SolicitudListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [areaFilter, setAreaFilter] = useState<string>("");
 
   // Mapa de estado Billing (p.ej. PAID) por idSolicitud
   const [bStatusMap, setBStatusMap] = useState<Record<number, string | null>>({});
@@ -61,20 +86,28 @@ export default function HistoryTable() {
     load();
   }, []);
 
-  // Filtro general (título/descripcion)
+  const areaOptions = useMemo(() => {
+    const seen = new Set<string>();
+    items.forEach((it) => {
+      const nombre = (it as any).areaOrg?.nombre;
+      if (nombre) seen.add(nombre);
+    });
+    return Array.from(seen).sort();
+  }, [items]);
+
+  // Filtro general (título/descripción/área)
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = items;
-    if (!q) return base;
-    return base.filter((it) => {
-      const t = (it as any)?.titulo?.toLowerCase?.() ?? "";
-      const d = (it as any)?.descripcion?.toLowerCase?.() ?? "";
-      return t.includes(q) || d.includes(q);
-    });
-  }, [items, search]);
+    return items
+      .filter((it) => areaFilter ? ((it as any).areaOrg?.nombre ?? "") === areaFilter : true)
+      .filter((it) => {
+        if (!q) return true;
+        const t = (it as any)?.titulo?.toLowerCase?.() ?? "";
+        const d = (it as any)?.descripcion?.toLowerCase?.() ?? "";
+        return t.includes(q) || d.includes(q);
+      });
+  }, [items, search, areaFilter]);
 
-  // En historial queremos: APROBADAS / VALIDADAS (pendientes de pago) y PAGADAS
-  // Primero preparamos candidatos (todavía sin filtrar por PAID para evitar glitch).
   const candidates = filtered;
 
   // IDs de candidatos
@@ -105,37 +138,63 @@ export default function HistoryTable() {
 
   const allKnown = candidateIds.every((id) => typeof bStatusMap[id] !== "undefined");
 
-  // Ahora sí, con todos los statuses conocidos, filtramos lo que debe ver Historial:
-  // - PAGADA
-  // - APROBADA
-  // - VALIDADA
+  // Solo las que ya han sido pagadas aparecen en el historial.
   const visible = useMemo(() => {
     if (!allKnown) return [];
     return candidates.filter((r) => {
       const st = computeDisplayStatus(r, bStatusMap[r.id]);
-      return st === "PAGADA" || st === "APROBADA" || st === "VALIDADA";
+      return st === "PAGADA";
     });
   }, [candidates, bStatusMap, allKnown]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-6">
+      {/* Header: título + Export alineados igual que en el resto de módulos */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Historial</h2>
           <p className="text-xs text-slate-500">
-            Solicitudes <span className="font-semibold">PAGADAS</span> y{" "}
-            <span className="font-semibold">APROBADAS/VALIDADAS</span> (pendientes de pago).
+            Solicitudes con pago registrado.
           </p>
         </div>
-        <div className="relative w-full sm:w-80">
+        <ExportButton
+          title="Historial de Solicitudes"
+          subtitle="Solicitudes con pago registrado"
+          filename="historial_solicitudes"
+          columns={HIST_COLS}
+          currentRows={visible.map((it) =>
+            solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id]))
+          )}
+          fetchAll={async () => {
+            const all = await fetchSolicitudes();
+            return all.map((it) =>
+              solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id] ?? null))
+            );
+          }}
+        />
+      </div>
+
+      {/* Barra de búsqueda + filtro por área */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            className="pl-10"
+            className="pl-10 w-full sm:w-64"
             placeholder="Buscar por título o descripción"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <select
+          className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-44"
+          value={areaFilter}
+          onChange={(e) => setAreaFilter(e.target.value)}
+        >
+          <option value="">Todas las áreas</option>
+          {areaOptions.map((area) => (
+            <option key={area} value={area}>{area}</option>
+          ))}
+        </select>
       </div>
 
       {loading || !allKnown ? (

@@ -1,26 +1,86 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-export default function ColaboradoresNav() {
+export type CollabTab = "colaboradores" | "externos";
+
+const TABS: { key: CollabTab; label: string }[] = [
+  { key: "colaboradores", label: "Colaboradores" },
+  { key: "externos",      label: "Colaboradores Externos" },
+];
+
+interface Props {
+  active: CollabTab;
+  onChange: (tab: CollabTab) => void;
+}
+
+export default function ColaboradoresNav({ active, onChange }: Props) {
   return (
-    <div className="w-full border-b border-slate-200 bg-white">
+    <div className="w-full bg-white border-b border-slate-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="py-6 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-800">
-            Bienvenido al área Gestión de Colaboradores
+        {/* Título centrado */}
+        <div className="text-center py-4 sm:py-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+            Colaboradores
           </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Gestiona colaboradores internos y colaboradores externos de área.
+          </p>
         </div>
 
-        <div className="pb-6">
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-              <ArrowLeft className="h-4 w-4" />
-              Volver al Dashboard
-            </Button>
-          </Link>
+        {/* Desktop — back izq · tabs center */}
+        <div className="hidden md:block">
+          <div className="relative flex items-center justify-center h-16">
+            <a href="/admin" className="absolute left-0">
+              <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Dashboard
+              </button>
+            </a>
+
+            <nav className="flex gap-2">
+              {TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => onChange(key)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm ${
+                    active === key
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Mobile */}
+        <div className="md:hidden pb-4">
+          <div className="mb-3">
+            <a href="/admin">
+              <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Dashboard
+              </button>
+            </a>
+          </div>
+          <nav className="flex flex-col sm:flex-row gap-2">
+            {TABS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => onChange(key)}
+                className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm flex-1 ${
+                  active === key
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
     </div>

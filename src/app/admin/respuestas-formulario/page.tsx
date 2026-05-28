@@ -9,6 +9,17 @@ import {
 } from "@/hooks/useRespuestasFormulario";
 import { usePendingRespuestasFormularioCount } from "@/hooks/usePendingRespuestasFormularioCount";
 import { Button } from "@/components/ui/button";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import type { ExportRow } from "@/lib/export";
+
+const RESP_COLS = [
+  { key: "tipo",     header: "Tipo",       width: 14 },
+  { key: "nombre",   header: "Nombre",     width: 22 },
+  { key: "correo",   header: "Correo",     width: 26 },
+  { key: "telefono", header: "Teléfono",   width: 14 },
+  { key: "estado",   header: "Estado",     width: 12 },
+  { key: "fecha",    header: "Fecha",      width: 18 },
+];
 
 function formatDate(date: string) {
   const parsed = new Date(date);
@@ -166,80 +177,118 @@ export default function RespuestasFormularioAdminPage() {
       : "Formularios de Voluntariado Rechazados";
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mb-6 border-b border-slate-200 pb-6">
-        <h1 className="text-center text-3xl font-bold text-slate-900">
-          Bienvenido al área Gestión de Respuestas de Formularios
-        </h1>
+    <>
+      {/* ── Nav bar VoluntariadoNav-style ── */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Título centrado */}
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+              Respuestas de Formularios
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Gestiona los formularios de Contáctenos y Voluntariado enviados por los usuarios.
+            </p>
+          </div>
 
-        <div className="mt-6">
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-              <ArrowLeft className="h-4 w-4" />
-              Volver al Dashboard
-            </Button>
-          </Link>
-        </div>
-      </section>
+          {/* Desktop */}
+          <div className="hidden md:block">
+            <div className="relative flex items-center justify-center h-16">
+              <Link href="/admin" className="absolute left-0">
+                <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+              <nav className="flex gap-2">
+                <button
+                  onClick={() => { setTipoActivo("CONTACTO"); setPage(1); }}
+                  className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm flex items-center gap-1.5 ${
+                    tipoActivo === "CONTACTO"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  Contáctenos
+                  {contactoCount > 0 && (
+                    <span className={`inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${tipoActivo === "CONTACTO" ? "bg-white text-blue-600" : "bg-red-600 text-white"}`}>
+                      {contactoCount > 99 ? "99+" : contactoCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setTipoActivo("VOLUNTARIADO"); setPage(1); }}
+                  className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm flex items-center gap-1.5 ${
+                    tipoActivo === "VOLUNTARIADO"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  Voluntariado
+                  {voluntariadoCount > 0 && (
+                    <span className={`inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${tipoActivo === "VOLUNTARIADO" ? "bg-white text-blue-600" : "bg-red-600 text-white"}`}>
+                      {voluntariadoCount > 99 ? "99+" : voluntariadoCount}
+                    </span>
+                  )}
+                </button>
+              </nav>
+              <div className="absolute right-0">
+                <ExportButton
+                  title={`Formularios ${tipoActivo === "CONTACTO" ? "Contáctenos" : "Voluntariado"}`}
+                  filename={`formularios_${tipoActivo.toLowerCase()}`}
+                  columns={RESP_COLS}
+                  currentRows={items.map((it) => ({
+                    tipo:     prettyTipo(it.tipoFormulario),
+                    nombre:   it.nombre ?? "",
+                    correo:   it.correo ?? "",
+                    telefono: it.telefono ?? "",
+                    estado:   it.estado,
+                    fecha:    it.createdAt?.slice(0, 10) ?? "",
+                  } as ExportRow))}
+                  fetchAll={async () => items.map((it) => ({
+                    tipo:     prettyTipo(it.tipoFormulario),
+                    nombre:   it.nombre ?? "",
+                    correo:   it.correo ?? "",
+                    telefono: it.telefono ?? "",
+                    estado:   it.estado,
+                    fecha:    it.createdAt?.slice(0, 10) ?? "",
+                  } as ExportRow))}
+                />
+              </div>
+            </div>
+          </div>
 
-      {/* TABS TIPO FORMULARIO */}
-      <section className="mb-4">
-        <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            onClick={() => {
-              setTipoActivo("CONTACTO");
-              setPage(1);
-            }}
-            className={`relative gap-2 ${
-              tipoActivo === "CONTACTO"
-                ? "bg-sky-700 text-white hover:bg-sky-800"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            <span>Contáctenos</span>
-
-            {contactoCount > 0 && (
-              <span
-                className={`inline-flex min-w-[24px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                  tipoActivo === "CONTACTO"
-                    ? "bg-white text-sky-700"
-                    : "bg-red-600 text-white"
-                }`}
+          {/* Mobile */}
+          <div className="md:hidden pb-4">
+            <div className="mb-3">
+              <Link href="/admin">
+                <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
+              </Link>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setTipoActivo("CONTACTO"); setPage(1); }}
+                className={`flex-1 relative px-4 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm flex items-center justify-center gap-1.5 ${tipoActivo === "CONTACTO" ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"}`}
               >
-                {contactoCount > 99 ? "99+" : contactoCount}
-              </span>
-            )}
-          </Button>
-
-          <Button
-            type="button"
-            onClick={() => {
-              setTipoActivo("VOLUNTARIADO");
-              setPage(1);
-            }}
-            className={`relative gap-2 ${
-              tipoActivo === "VOLUNTARIADO"
-                ? "bg-emerald-700 text-white hover:bg-emerald-800"
-                : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            <span>Voluntariado</span>
-
-            {voluntariadoCount > 0 && (
-              <span
-                className={`inline-flex min-w-[24px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                  tipoActivo === "VOLUNTARIADO"
-                    ? "bg-white text-emerald-700"
-                    : "bg-red-600 text-white"
-                }`}
+                Contáctenos
+                {contactoCount > 0 && <span className={`inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${tipoActivo === "CONTACTO" ? "bg-white text-blue-600" : "bg-red-600 text-white"}`}>{contactoCount > 99 ? "99+" : contactoCount}</span>}
+              </button>
+              <button
+                onClick={() => { setTipoActivo("VOLUNTARIADO"); setPage(1); }}
+                className={`flex-1 relative px-4 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm flex items-center justify-center gap-1.5 ${tipoActivo === "VOLUNTARIADO" ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"}`}
               >
-                {voluntariadoCount > 99 ? "99+" : voluntariadoCount}
-              </span>
-            )}
-          </Button>
+                Voluntariado
+                {voluntariadoCount > 0 && <span className={`inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${tipoActivo === "VOLUNTARIADO" ? "bg-white text-blue-600" : "bg-red-600 text-white"}`}>{voluntariadoCount > 99 ? "99+" : voluntariadoCount}</span>}
+              </button>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
+
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
       {/* TABS ESTADO */}
       <section className="mb-6">
@@ -562,5 +611,6 @@ export default function RespuestasFormularioAdminPage() {
         </div>
       )}
     </main>
+    </>
   );
 }

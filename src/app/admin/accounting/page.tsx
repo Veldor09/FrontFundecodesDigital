@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import ExportButton from "@/app/admin/_components/ExportButton";
+import { CuentasService as _CuentasServiceForExport } from "./services/cuentas-service";
+import type { ExportRow } from "@/lib/export";
 import {
   ArrowLeft, Plus, RefreshCw, Wallet, TrendingUp, TrendingDown,
   BarChart3, Building2, FolderKanban, Handshake, ChevronRight,
@@ -23,6 +26,7 @@ import {
   type SaldoDestino,
 } from "./services/cuentas-service";
 import { API_URL } from "./services/cuentas-service";
+import { listAreasSelector, type AreaSelector } from "@/services/areas.service";
 
 // ─── helpers de formato ──────────────────────────────────────────────────────
 function fmtCurrency(n: number, moneda = "CRC") {
@@ -110,8 +114,9 @@ function CuentasList({
   const [showInactivas, setShowInactivas] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ nombre: "", codigo: "", descripcion: "", monedaBase: "CRC" });
+  const [form, setForm] = useState({ nombre: "", codigo: "", descripcion: "", monedaBase: "CRC", areaId: "" });
   const [editTarget, setEditTarget] = useState<Cuenta | null>(null);
+  const [areas, setAreas] = useState<AreaSelector[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -127,6 +132,10 @@ function CuentasList({
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    listAreasSelector().then(setAreas).catch(() => {});
+  }, []);
+
   const filtered = items.filter((c) => showInactivas || c.activa);
 
   async function handleCreate() {
@@ -134,10 +143,16 @@ function CuentasList({
     if (!form.codigo.trim()) return toast.error("El código es requerido");
     setSaving(true);
     try {
-      await CuentasService.create(form);
+      await CuentasService.create({
+        nombre: form.nombre,
+        codigo: form.codigo,
+        descripcion: form.descripcion,
+        monedaBase: form.monedaBase,
+        areaId: form.areaId ? Number(form.areaId) : null,
+      });
       toast.success("Cuenta creada");
       setShowCreate(false);
-      setForm({ nombre: "", codigo: "", descripcion: "", monedaBase: "CRC" });
+      setForm({ nombre: "", codigo: "", descripcion: "", monedaBase: "CRC", areaId: "" });
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? "Error al crear la cuenta");
@@ -151,7 +166,13 @@ function CuentasList({
     if (!form.nombre.trim()) return toast.error("El nombre es requerido");
     setSaving(true);
     try {
-      await CuentasService.update(editTarget.id, form);
+      await CuentasService.update(editTarget.id, {
+        nombre: form.nombre,
+        codigo: form.codigo,
+        descripcion: form.descripcion,
+        monedaBase: form.monedaBase,
+        areaId: form.areaId ? Number(form.areaId) : null,
+      });
       toast.success("Cuenta actualizada");
       setEditTarget(null);
       load();
@@ -183,7 +204,13 @@ function CuentasList({
   }
 
   function openEdit(c: Cuenta) {
-    setForm({ nombre: c.nombre, codigo: c.codigo, descripcion: c.descripcion ?? "", monedaBase: c.monedaBase });
+    setForm({
+      nombre: c.nombre,
+      codigo: c.codigo,
+      descripcion: c.descripcion ?? "",
+      monedaBase: c.monedaBase,
+      areaId: c.areaId ? String(c.areaId) : "",
+    });
     setEditTarget(c);
   }
 
@@ -214,6 +241,23 @@ function CuentasList({
           <option value="EUR">€ Euros (EUR)</option>
         </select>
       </div>
+      <div>
+        <Label htmlFor="area">Área organizacional (opcional)</Label>
+        <select
+          id="area"
+          value={form.areaId}
+          onChange={(e) => setForm({ ...form, areaId: e.target.value })}
+          className="w-full h-10 rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">— Sin área —</option>
+          {areas.map((a) => (
+            <option key={a.id} value={a.id}>{a.nombre}</option>
+          ))}
+        </select>
+        {areas.length === 0 && (
+          <p className="text-xs text-slate-400 mt-1">No hay áreas activas.</p>
+        )}
+      </div>
     </div>
   );
 
@@ -221,20 +265,92 @@ function CuentasList({
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Contabilidad</h1>
-              <p className="text-slate-500 mt-1 text-sm">Gestión de cuentas, presupuestos e historial financiero</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/admin">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Volver</span>
-                </Button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Título centrado */}
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">Contabilidad</h1>
+            <p className="text-sm text-slate-500 mt-1">Gestión de cuentas, presupuestos e historial financiero.</p>
+          </div>
+
+          {/* Desktop — back izq · nueva cuenta der */}
+          <div className="hidden md:block">
+            <div className="relative flex items-center justify-center h-14 pb-3">
+              <Link href="/admin" className="absolute left-0">
+                <button className="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Dashboard
+                </button>
               </Link>
-              <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreate(true)}>
+              <div className="absolute right-0 flex items-center gap-2">
+                <ExportButton
+                  title="Cuentas Contables"
+                  subtitle="Listado de cuentas contables de Fundecodes"
+                  filename="cuentas_contables"
+                  columns={[
+                    { key: "nombre",      header: "Nombre",   width: 24 },
+                    { key: "codigo",      header: "Código",   width: 14 },
+                    { key: "monedaBase",  header: "Moneda",   width: 10 },
+                    { key: "activa",      header: "Activa",   width: 10 },
+                    { key: "descripcion", header: "Descripción", width: 30 },
+                  ]}
+                  currentRows={filtered.map((c) => ({
+                    nombre: c.nombre, codigo: c.codigo,
+                    monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
+                    descripcion: c.descripcion ?? "",
+                  } as ExportRow))}
+                  fetchAll={async () => {
+                    const res = await _CuentasServiceForExport.list({ pageSize: 9999 });
+                    return res.items.map((c: any) => ({
+                      nombre: c.nombre, codigo: c.codigo,
+                      monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
+                      descripcion: c.descripcion ?? "",
+                    } as ExportRow));
+                  }}
+                />
+                <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreate(true)}>
+                  <Plus className="h-4 w-4" />
+                  Nueva cuenta
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden pb-4 space-y-2">
+            <Link href="/admin">
+              <button className="w-full bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Dashboard
+              </button>
+            </Link>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <ExportButton
+                  title="Cuentas Contables"
+                  filename="cuentas_contables"
+                  columns={[
+                    { key: "nombre",      header: "Nombre",      width: 24 },
+                    { key: "codigo",      header: "Código",      width: 14 },
+                    { key: "monedaBase",  header: "Moneda",      width: 10 },
+                    { key: "activa",      header: "Activa",      width: 10 },
+                    { key: "descripcion", header: "Descripción", width: 30 },
+                  ]}
+                  currentRows={filtered.map((c) => ({
+                    nombre: c.nombre, codigo: c.codigo,
+                    monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
+                    descripcion: c.descripcion ?? "",
+                  } as ExportRow))}
+                  fetchAll={async () => {
+                    const res = await _CuentasServiceForExport.list({ pageSize: 9999 });
+                    return res.items.map((c: any) => ({
+                      nombre: c.nombre, codigo: c.codigo,
+                      monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
+                      descripcion: c.descripcion ?? "",
+                    } as ExportRow));
+                  }}
+                />
+              </div>
+              <Button size="sm" className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreate(true)}>
                 <Plus className="h-4 w-4" />
                 Nueva cuenta
               </Button>
@@ -351,6 +467,11 @@ function CuentaCard({
         </div>
         {cuenta.descripcion && (
           <p className="text-xs text-slate-500 mt-1 line-clamp-2">{cuenta.descripcion}</p>
+        )}
+        {cuenta.area && (
+          <p className="text-xs text-blue-600 font-medium mt-1">
+            📂 {cuenta.area.nombre}
+          </p>
         )}
       </CardHeader>
 
@@ -502,7 +623,12 @@ function CuentaDetail({
             </Button>
             <div className="min-w-0">
               <h1 className="text-xl font-bold text-slate-900 truncate">{cuenta.nombre}</h1>
-              <p className="text-xs text-slate-400 font-mono">{cuenta.codigo} · {cuenta.monedaBase}</p>
+              <p className="text-xs text-slate-400 font-mono">
+                {cuenta.codigo} · {cuenta.monedaBase}
+                {cuenta.area && (
+                  <span className="ml-2 text-blue-500">📂 {cuenta.area.nombre}</span>
+                )}
+              </p>
             </div>
             {!cuenta.activa && <Badge variant="secondary">Archivada</Badge>}
           </div>

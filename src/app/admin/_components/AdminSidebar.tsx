@@ -16,6 +16,7 @@ import {
   X,
   LayoutGrid,
   ShieldCheck,
+  Eye,
   type LucideProps,
 } from "lucide-react";
 
@@ -25,7 +26,8 @@ type Role =
   | "colaboradorfactura"
   | "colaboradorvoluntariado"
   | "colaboradorproyecto"
-  | "colaboradorcontabilidad";
+  | "colaboradorcontabilidad"
+  | "colaboradorvisitacion";
 
 type ModuleItem = {
   key: string;
@@ -59,6 +61,7 @@ function normalizeRole(v?: string | null): Role | null {
   const allowed: Role[] = [
     "admin", "voluntario", "colaboradorfactura",
     "colaboradorvoluntariado", "colaboradorproyecto", "colaboradorcontabilidad",
+    "colaboradorvisitacion",
   ];
   return (allowed as string[]).includes(low) ? (low as Role) : null;
 }
@@ -129,6 +132,14 @@ const ALL_MODULES: ModuleItem[] = [
     roles: ["admin"],
   },
   {
+    key: "visitacion",
+    title: "Visitación",
+    desc: "Registro de visitas: nacionales, extranjeros y totales",
+    href: "/admin/visitacion",
+    icon: Eye,
+    roles: ["admin", "colaboradorvisitacion"],
+  },
+  {
     key: "auditoria",
     title: "Auditoría",
     desc: "Quién hizo qué en el sistema",
@@ -140,7 +151,8 @@ const ALL_MODULES: ModuleItem[] = [
 
 export function AdminSidebar({ pendingCommentsCount: initialPendingCount = 0 }: { pendingCommentsCount?: number }) {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<Role | null>(null);
+  /** Todos los roles del usuario (multi-rol) */
+  const [userRoles, setUserRoles] = useState<Role[]>([]);
   const [navbarHeight, setNavbarHeight] = useState(72);
   const [pendingCommentsCount, setPendingCommentsCount] = useState(initialPendingCount);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,8 +161,16 @@ export function AdminSidebar({ pendingCommentsCount: initialPendingCount = 0 }: 
   useEffect(() => {
     const t = getToken();
     const p = getJwtPayload<{ role?: string; rol?: string; roles?: string[] }>(t);
-    const fromArray = Array.isArray(p?.roles) ? p.roles[0] : undefined;
-    setRole(normalizeRole(p?.role ?? p?.rol ?? fromArray) ?? null);
+    // Combinar todas las fuentes de roles del JWT
+    const raw: string[] = [
+      ...(Array.isArray(p?.roles) ? p.roles : []),
+      ...(p?.role ? [p.role] : []),
+      ...(p?.rol ? [p.rol] : []),
+    ];
+    const normalized = raw
+      .map((r) => normalizeRole(r))
+      .filter((r): r is Role => r !== null);
+    setUserRoles([...new Set(normalized)]);
   }, []);
 
   useEffect(() => {
@@ -240,7 +260,11 @@ export function AdminSidebar({ pendingCommentsCount: initialPendingCount = 0 }: 
   }, []);
 
   const visibleModules = ALL_MODULES
-    .filter((m) => !role || role === "admin" || m.roles.includes(role))
+    .filter((m) => {
+      if (!userRoles.length) return true; // aún cargando
+      if (userRoles.includes("admin")) return true;
+      return m.roles.some((r) => userRoles.includes(r));
+    })
     .map((m) =>
       m.key === "comments" ? { ...m, badgeCount: pendingCommentsCount } : m
     );

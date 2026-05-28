@@ -299,15 +299,17 @@ export class ReportService {
   ================================================ */
   private static transformBackendData(backendData: any, reportType: string): ReportData {
     const { detalles, totalRegistros, filtros } = backendData;
+    const hasFinancial = Object.keys(detalles).some((k) => this.FINANCIAL_MODULES_BACKEND.includes(k));
     const summary = {
       totalRecords: totalRegistros || 0,
-      totalAmount: this.calculateTotalAmount(detalles),
-      averageValue: this.calculateAverageValue(detalles),
+      totalAmount: hasFinancial ? this.calculateTotalAmount(detalles) : 0,
+      averageValue: hasFinancial ? this.calculateAverageValue(detalles) : 0,
       growth: this.calculateGrowth(detalles),
     };
-    const monthlyData = this.generateMonthlyDataFromBackend(detalles, filtros);
+    const monthlyData = this.generateMonthlyDataFromBackend(detalles, filtros, hasFinancial);
+    // Show module breakdown when multiple modules exist
     let moduleData = undefined;
-    if (reportType === "general" || Object.keys(detalles).length > 1) {
+    if (Object.keys(detalles).length >= 1) {
       moduleData = this.generateModuleDataFromBackend(detalles);
     }
     return { summary, monthlyData, moduleData };
@@ -347,25 +349,37 @@ export class ReportService {
     return (Math.random() * 30 - 10).toFixed(1);
   }
 
-  private static generateMonthlyDataFromBackend(detalles: any, filtros: any): Array<{
+  private static generateMonthlyDataFromBackend(detalles: any, filtros: any, hasFinancial = true): Array<{
     month: string;
     value: number;
     records: number;
   }> {
     const monthlyData: Array<{ month: string; value: number; records: number }> = [];
-    const combinedGroups: Record<string, number> = {};
+    const combinedGroups: Record<string, { records: number; value: number }> = {};
     for (const modulo of Object.values(detalles) as any[]) {
       if (modulo.grupos) {
         for (const [grupo, cantidad] of Object.entries(modulo.grupos)) {
-          combinedGroups[grupo] = (combinedGroups[grupo] || 0) + (cantidad as number);
+          if (!combinedGroups[grupo]) combinedGroups[grupo] = { records: 0, value: 0 };
+          combinedGroups[grupo].records += (cantidad as number);
+        }
+      }
+      // For financial modules, also aggregate amounts per period
+      if (hasFinancial && modulo.items) {
+        for (const item of modulo.items) {
+          const period = item.mes || item.periodo || item.month;
+          if (period) {
+            if (!combinedGroups[period]) combinedGroups[period] = { records: 0, value: 0 };
+            const amount = typeof item.amount === "object" ? item.amount.toNumber() : Number(item.amount || item.monto || 0);
+            combinedGroups[period].value += isNaN(amount) ? 0 : amount;
+          }
         }
       }
     }
-    for (const [grupo, cantidad] of Object.entries(combinedGroups)) {
+    for (const [grupo, data] of Object.entries(combinedGroups)) {
       monthlyData.push({
         month: grupo,
-        value: cantidad * 1500,
-        records: cantidad,
+        value: hasFinancial ? data.value : 0,
+        records: data.records,
       });
     }
     return monthlyData;
@@ -373,30 +387,124 @@ export class ReportService {
 
   private static generateModuleDataFromBackend(detalles: any): any {
     const moduleData: any = {};
+
     if (detalles.volunteers) {
       const d = detalles.volunteers;
       const items = d.items || [];
       moduleData.voluntariado = {
         totalParticipantes: d.total || 0,
         formularios: items.length || 0,
-        estadosActivos: items.filter((v: any) => v.estado === "ACTIVE").length,
+        estadosActivos: items.filter((v: any) => v.estado === "ACTIVE" || v.estado === "ACTIVO").length,
         horasVoluntariado: (d.total || 0) * 40,
       };
     }
+
+    if (detalles.projects) {
+      const d = detalles.projects;
+      const items = d.items || [];
+      moduleData.proyectos = {
+        activos: items.filter((p: any) => p.status === "EN_PROCESO").length,
+        finalizados: items.filter((p: any) => p.status === "FINALIZADO").length,
+        enProceso: items.filter((p: any) => p.status === "EN_PROCESO").length,
+        presupuestoTotal: items.reduce((s: number, p: any) => s + Number(p.funds || 0), 0),
+      };
+    }
+
+    if (detalles.billing) {
+      const d = detalles.billing;
+      const items = d.items || [];
+      moduleData.facturacion = {
+        totalFacturas: d.total || 0,
+        montoTotal: items.reduce((s: number, b: any) => {
+          const a = typeof b.amount === "object" ? b.amount.toNumber() : Number(b.amount || 0);
+          return s + (isNaN(a) ? 0 : a);
+        }, 0),
+        facturasPendientes: items.filter((b: any) => b.status === "PENDIENTE").length,
+        facturasPagadas: items.filter((b: any) => b.status === "PAGADA").length,
+      };
+    }
+
+    if (detalles.solicitudes) {
+      const d = detalles.solicitudes;
+      const items = d.items || [];
+      moduleData.solicitudes = {
+        totalSolicitudes: d.total || 0,
+        aprobadas: items.filter((s: any) => s.estado === "APROBADA").length,
+        pendientes: items.filter((s: any) => s.estado === "PENDIENTE").length,
+        rechazadas: items.filter((s: any) => s.estado === "RECHAZADA").length,
+      };
+    }
+
+    if (detalles.collaborators) {
+      const d = detalles.collaborators;
+      const items = d.items || [];
+      const roles = new Set(items.map((c: any) => c.rol).filter(Boolean));
+      moduleData.colaboradores = {
+        totalColaboradores: d.total || 0,
+        activos: items.filter((c: any) => c.activo !== false).length,
+        roles: roles.size,
+        nuevosIngresos: d.total || 0,
+      };
+    }
+
+    if (detalles.contabilidad) {
+      const d = detalles.contabilidad;
+      const items = d.items || [];
+      const ingresos = items.filter((c: any) => c.tipo === "INGRESO").reduce((s: number, c: any) => s + Number(c.monto || 0), 0);
+      const egresos = items.filter((c: any) => c.tipo === "EGRESO").reduce((s: number, c: any) => s + Number(c.monto || 0), 0);
+      moduleData.contabilidad = {
+        ingresos,
+        egresos,
+        balance: ingresos - egresos,
+        reportesGenerados: d.total || 0,
+      };
+    }
+
+    if (detalles.sanciones) {
+      const d = detalles.sanciones;
+      const items = d.items || [];
+      moduleData.sanciones = {
+        totalSanciones: d.total || 0,
+        leves: items.filter((s: any) => s.tipo === "LEVE" || s.gravedad === "LEVE").length,
+        graves: items.filter((s: any) => s.tipo === "GRAVE" || s.gravedad === "GRAVE").length,
+        severas: items.filter((s: any) => s.tipo === "SEVERA" || s.gravedad === "SEVERA").length,
+      };
+    }
+
+    if (detalles.programas) {
+      const d = detalles.programas;
+      const items = d.items || [];
+      moduleData.programas = {
+        totalProgramas: d.total || 0,
+        totalParticipantes: items.reduce((s: number, p: any) => s + (Array.isArray(p.voluntarios) ? p.voluntarios.length : 0), 0),
+        cuposDisponibles: items.reduce((s: number, p: any) => {
+          const limite = Number(p.limiteParticipantes || 0);
+          const asignados = Array.isArray(p.voluntarios) ? p.voluntarios.length : 0;
+          return s + (limite === 0 ? 0 : Math.max(0, limite - asignados));
+        }, 0),
+        programasActivos: items.length,
+      };
+    }
+
     return moduleData;
   }
+
+  private static readonly FINANCIAL_MODULES_BACKEND = ["billing", "solicitudes", "contabilidad"]
 
   private static generateRealisticMockData(filters: any): ReportData {
     const modules = this.mapDepartmentToModules(filters.department).split(",");
     const isMultiModule = filters.department === "todos" || modules.length > 1;
+    const hasFinancial = modules.some((m) => this.FINANCIAL_MODULES_BACKEND.includes(m))
+
+    const totalRecords = Math.floor(Math.random() * 1500) + 500
     const baseData = {
       summary: {
-        totalRecords: Math.floor(Math.random() * 1500) + 500,
-        totalAmount: Math.random() * 5000000 + 1000000,
-        averageValue: Math.random() * 5000 + 2000,
+        totalRecords,
+        totalAmount: hasFinancial ? Math.random() * 5000000 + 1000000 : 0,
+        averageValue: hasFinancial ? Math.random() * 5000 + 2000 : 0,
         growth: (Math.random() * 40 - 15).toFixed(1),
       },
-      monthlyData: this.generateMonthlyData(filters.reportType),
+      monthlyData: this.generateMonthlyData(filters.reportType, hasFinancial),
     };
     if (isMultiModule) {
       return {
@@ -407,51 +515,42 @@ export class ReportService {
     return baseData;
   }
 
-  private static generateMonthlyData(reportType?: string): Array<{
+  private static generateMonthlyData(reportType?: string, hasFinancial = true): Array<{
     month: string;
     value: number;
     records: number;
   }> {
     const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
     ];
 
-    // Opcional: adaptar según tipo de reporte
+    const val = (v: number) => hasFinancial ? v : 0;
+
     if (reportType === "trimestral") {
       return [
-        { month: "Trimestre 1", value: 580000, records: 312 },
-        { month: "Trimestre 2", value: 638000, records: 338 },
-        { month: "Trimestre 3", value: 655000, records: 335 },
-        { month: "Trimestre 4", value: 676000, records: 359 },
+        { month: "Trimestre 1", value: val(580000), records: 312 },
+        { month: "Trimestre 2", value: val(638000), records: 338 },
+        { month: "Trimestre 3", value: val(655000), records: 335 },
+        { month: "Trimestre 4", value: val(676000), records: 359 },
       ];
     }
 
     if (reportType === "semestral") {
       return [
-        { month: "Semestre 1", value: 1218000, records: 650 },
-        { month: "Semestre 2", value: 1331000, records: 694 },
+        { month: "Semestre 1", value: val(1218000), records: 650 },
+        { month: "Semestre 2", value: val(1331000), records: 694 },
       ];
     }
 
     if (reportType === "anual" || reportType === "general") {
-      return [{ month: "Año completo", value: 2549000, records: 1344 }];
+      return [{ month: "Año completo", value: val(2549000), records: 1344 }];
     }
 
     // Por defecto: mensual
     return months.map((m) => ({
       month: m,
-      value: Math.floor(Math.random() * 100000 + 150000),
+      value: hasFinancial ? Math.floor(Math.random() * 100000 + 150000) : 0,
       records: Math.floor(Math.random() * 50 + 80),
     }));
   }
@@ -460,11 +559,78 @@ export class ReportService {
   private static generateModuleDataBySelection(modules: string[]): any {
     const moduleData: any = {};
     if (modules.includes("volunteers")) {
+      const total = Math.floor(Math.random() * 400) + 250;
       moduleData.voluntariado = {
-        totalParticipantes: Math.floor(Math.random() * 400) + 250,
+        totalParticipantes: total,
         formularios: Math.floor(Math.random() * 80) + 60,
-        estadosActivos: Math.floor(Math.random() * 40) + 30,
+        estadosActivos: Math.floor(total * 0.7),
         horasVoluntariado: Math.floor(Math.random() * 8000) + 3500,
+      };
+    }
+    if (modules.includes("projects")) {
+      const activos = Math.floor(Math.random() * 15) + 5;
+      const finalizados = Math.floor(Math.random() * 20) + 10;
+      moduleData.proyectos = {
+        activos,
+        finalizados,
+        enProceso: activos,
+        presupuestoTotal: Math.floor(Math.random() * 5000000) + 500000,
+      };
+    }
+    if (modules.includes("billing")) {
+      const total = Math.floor(Math.random() * 200) + 80;
+      moduleData.facturacion = {
+        totalFacturas: total,
+        montoTotal: Math.floor(Math.random() * 3000000) + 500000,
+        facturasPendientes: Math.floor(total * 0.2),
+        facturasPagadas: Math.floor(total * 0.8),
+      };
+    }
+    if (modules.includes("solicitudes")) {
+      const total = Math.floor(Math.random() * 150) + 50;
+      moduleData.solicitudes = {
+        totalSolicitudes: total,
+        aprobadas: Math.floor(total * 0.6),
+        pendientes: Math.floor(total * 0.2),
+        rechazadas: Math.floor(total * 0.2),
+      };
+    }
+    if (modules.includes("collaborators")) {
+      moduleData.colaboradores = {
+        totalColaboradores: Math.floor(Math.random() * 50) + 20,
+        activos: Math.floor(Math.random() * 40) + 15,
+        roles: Math.floor(Math.random() * 5) + 3,
+        nuevosIngresos: Math.floor(Math.random() * 10) + 2,
+      };
+    }
+    if (modules.includes("contabilidad")) {
+      const ingresos = Math.floor(Math.random() * 8000000) + 2000000;
+      const egresos = Math.floor(Math.random() * 5000000) + 1000000;
+      moduleData.contabilidad = {
+        ingresos,
+        egresos,
+        balance: ingresos - egresos,
+        reportesGenerados: Math.floor(Math.random() * 20) + 5,
+      };
+    }
+    if (modules.includes("sanciones")) {
+      const total = Math.floor(Math.random() * 50) + 10;
+      moduleData.sanciones = {
+        totalSanciones: total,
+        leves: Math.floor(total * 0.5),
+        graves: Math.floor(total * 0.3),
+        severas: Math.floor(total * 0.2),
+      };
+    }
+    if (modules.includes("programas")) {
+      const totalPrograms = Math.floor(Math.random() * 10) + 3;
+      const totalPart = Math.floor(Math.random() * 300) + 50;
+      const limite = Math.floor(Math.random() * 500) + 100;
+      moduleData.programas = {
+        totalProgramas: totalPrograms,
+        totalParticipantes: totalPart,
+        cuposDisponibles: Math.max(0, limite - totalPart),
+        programasActivos: Math.floor(totalPrograms * 0.8),
       };
     }
     return moduleData;
