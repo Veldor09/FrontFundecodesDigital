@@ -59,7 +59,7 @@ function Modal({ open, onClose, title, children }: {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6">{children}</div>
       </div>
     </div>
   );
@@ -523,16 +523,16 @@ function CuentaCard({
           >
             Ver detalle <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => onEdit(cuenta)} title="Editar">
-            <Pencil className="h-4 w-4" />
+          <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => onEdit(cuenta)}>
+            Editar
           </Button>
           {cuenta.activa ? (
-            <Button variant="outline" size="icon" className="h-9 w-9 text-red-500 hover:text-red-600" onClick={() => onArchive(cuenta)} title="Archivar">
-              <Archive className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="h-9 text-xs text-red-500 hover:text-red-600 border-red-200" onClick={() => onArchive(cuenta)}>
+              Archivar
             </Button>
           ) : (
-            <Button variant="outline" size="icon" className="h-9 w-9 text-emerald-600 hover:text-emerald-700" onClick={() => onRestore(cuenta)} title="Reactivar">
-              <RotateCcw className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="h-9 text-xs text-emerald-600 hover:text-emerald-700 border-emerald-200" onClick={() => onRestore(cuenta)}>
+              Reactivar
             </Button>
           )}
         </div>
@@ -816,8 +816,9 @@ function DestinosTab({
   }
 
   async function handleSavePresupuesto(id: number) {
-    const raw = editPresupuesto[id] ?? "";
-    const presupuesto = Number(raw.replace(/[^0-9.]/g, ""));
+    const raw = (editPresupuesto[id] ?? "").trim();
+    if (!raw || !/^\d+(\.\d{1,2})?$/.test(raw)) return toast.error("Ingresa un monto válido (ej. 150000)");
+    const presupuesto = Number(raw);
     if (!Number.isFinite(presupuesto) || presupuesto < 0) return toast.error("Presupuesto inválido");
     setSavingPresupuesto((p) => ({ ...p, [id]: true }));
     try {
@@ -939,10 +940,10 @@ function DestinosTab({
                               <p className="text-xs text-slate-400">Presupuesto</p>
                               <button
                                 onClick={() => setEditPresupuesto((p) => ({ ...p, [item.id]: String(s.presupuestoTotal) }))}
-                                className="text-slate-300 hover:text-blue-500"
+                                className="text-xs text-blue-500 hover:underline"
                                 title="Editar presupuesto"
                               >
-                                <Pencil className="h-3 w-3" />
+                                Editar
                               </button>
                             </div>
                             <p className="font-semibold">

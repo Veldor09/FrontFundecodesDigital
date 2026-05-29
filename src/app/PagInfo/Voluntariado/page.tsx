@@ -4,6 +4,7 @@ import { Leaf, Microscope, BookOpen, Users, ChevronDown, Heart, MapPin, Sparkles
 import Header from "@/app/landing/components/Header";
 import Footer from "@/app/landing/components/Footer";
 import FormularioVoluntarios from "./VolunteerForm";
+import ProgramasCatalogo from "./ProgramasCatalogo";
 
 const volunteerTypes = [
   {
@@ -224,6 +225,24 @@ export default function VoluntariadoPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Catálogo de programas */}
+        <section id="programas" className="py-16 sm:py-20 lg:py-24 bg-white scroll-mt-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <span className="inline-block px-4 py-1.5 bg-green-100 text-green-700 text-sm font-semibold rounded-full mb-4">
+                Catálogo
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#1e3a8a]">
+                Programas disponibles
+              </h2>
+              <p className="mt-4 text-slate-600 max-w-xl mx-auto">
+                Conoce nuestros programas activos y encuentra el que mejor se adapte a tu perfil.
+              </p>
+            </div>
+            <ProgramasCatalogo />
           </div>
         </section>
 

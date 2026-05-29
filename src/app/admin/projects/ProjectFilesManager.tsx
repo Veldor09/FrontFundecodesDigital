@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { FileUploader } from "@/components/ui/FileUploader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ export function ProjectFilesManager({
       /\.(pdf|jpg|jpeg|png|gif|txt)$/i.test(file.name);
 
     if (!ok) {
-      alert("Tipo de archivo no permitido. Use: PDF, JPG, PNG, GIF, TXT");
+      toast.error("Tipo de archivo no permitido. Use: PDF, JPG, PNG, GIF, TXT");
       return false;
     }
     return true;
@@ -89,7 +90,7 @@ export function ProjectFilesManager({
       await uploadProjectFile(projectId, file);
       await loadProjectFiles();
     } catch (error) {
-      alert(
+      toast.error(
         error instanceof Error
           ? `Error al subir archivo: ${error.message}`
           : "Error desconocido al subir archivo"
@@ -107,7 +108,7 @@ export function ProjectFilesManager({
   const confirmDeleteFile = async () => {
     if (!fileToDelete) return;
     if (fileToDelete.id == null) {
-      alert("No se encontró el ID del archivo a eliminar.");
+      toast.error("No se encontró el ID del archivo a eliminar.");
       return;
     }
     try {
@@ -117,7 +118,7 @@ export function ProjectFilesManager({
       setFileToDelete(null); // cierra solo si todo salió bien
     } catch (error: any) {
       console.error("Error al eliminar archivo:", error);
-      alert(error?.message || "No se pudo eliminar el archivo.");
+      toast.error(error?.message || "No se pudo eliminar el archivo.");
     } finally {
       setDeleting(false);
     }
@@ -149,13 +150,13 @@ export function ProjectFilesManager({
         a.remove();
         URL.revokeObjectURL(url);
       })
-      .catch((err) => alert(err?.message || "No se pudo descargar el archivo"));
+      .catch((err) => toast.error(err?.message || "No se pudo descargar el archivo"));
   };
 
   const handlePreviewFile = (file: ProjectFile) => {
     const filename = file.url.split("/").pop() || "";
     if (!file.mimeType) {
-      alert("Tipo de archivo no reconocido para vista previa");
+      toast.error("Tipo de archivo no reconocido para vista previa");
       return;
     }
     if (file.mimeType.startsWith("image/") || file.mimeType === "application/pdf") {
@@ -177,9 +178,9 @@ export function ProjectFilesManager({
           // liberamos el object URL pasado un tiempo razonable
           setTimeout(() => URL.revokeObjectURL(url), 60_000);
         })
-        .catch((err) => alert(err?.message || "No se pudo previsualizar"));
+        .catch((err) => toast.error(err?.message || "No se pudo previsualizar"));
     } else {
-      alert("Vista previa no disponible para este tipo de archivo");
+      toast.error("Vista previa no disponible para este tipo de archivo");
     }
   };
 
@@ -257,10 +258,9 @@ export function ProjectFilesManager({
                       e.stopPropagation();
                       handleDeleteFile(file);
                     }}
-                    title="Eliminar"
-                    className="text-red-500 hover:text-red-700"
+                    className="text-xs text-red-600 border border-red-200 hover:bg-red-50"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    Eliminar
                   </Button>
                 </div>
               </div>

@@ -93,18 +93,18 @@ export default function SancionRow({ sancion, onEdit, onDelete, onRevocar }: Pro
 
         <td className="px-4 py-3">
           <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 w-8 p-0 hover:bg-blue-100" title="Editar sanción">
-              <Edit className="h-4 w-4 text-blue-600" />
+            <Button size="sm" onClick={onEdit} className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white">
+              Editar
             </Button>
 
             {sancion.estado === "ACTIVA" && (
-              <Button variant="ghost" size="sm" onClick={() => setShowRevocarConfirm(true)} className="h-8 w-8 p-0 hover:bg-orange-100" title="Revocar sanción">
-                <Ban className="h-4 w-4 text-orange-600" />
+              <Button size="sm" onClick={() => setShowRevocarConfirm(true)} className="h-8 text-xs bg-amber-500 hover:bg-amber-600 text-white">
+                Revocar
               </Button>
             )}
 
-            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(true)} className="h-8 w-8 p-0 hover:bg-red-100" title="Eliminar sanción">
-              <Trash2 className="h-4 w-4 text-red-600" />
+            <Button size="sm" onClick={() => setShowDeleteConfirm(true)} className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white">
+              Eliminar
             </Button>
           </div>
         </td>

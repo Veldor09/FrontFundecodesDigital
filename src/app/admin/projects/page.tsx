@@ -454,18 +454,15 @@ export default function AdminProjectsPage() {
                     {/* 🎨 Editar: azul (acción informativa/modificación) */}
                     <Button
                       size="sm"
-                      variant="secondary"
                       onClick={() => setMode({ kind: "edit", item: p })}
-                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200"
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
                     >
                       Editar
                     </Button>
-                    {/* 🎨 Eliminar: rojo (acción destructiva) */}
                     <Button
                       size="sm"
-                      variant="destructive"
                       onClick={() => handleRemove(p.id)}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      className="bg-red-600 hover:bg-red-700 text-white text-xs"
                     >
                       Dar de baja
                     </Button>

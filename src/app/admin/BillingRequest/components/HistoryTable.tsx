@@ -202,52 +202,64 @@ export default function HistoryTable() {
       ) : visible.length === 0 ? (
         <p className="text-sm text-slate-500">No hay solicitudes para mostrar.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-20">ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-32">Estado</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-40">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((r) => {
-                const estado = computeDisplayStatus(r, bStatusMap[r.id]);
-                return (
-                  <tr key={r.id} className="border-t">
-                    <td className="px-4 py-3">{r.id}</td>
-                    <td className="px-4 py-3">
-                      <div className="truncate" title={String((r as any)?.titulo ?? "")}>
-                        {(r as any)?.titulo ?? "-"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClasses(estado)}`}>
-                        {estado}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-xs hover:bg-slate-50"
-                          onClick={() => {
-                            setCtxId(r.id);
-                            setOpen(true);
-                          }}
-                          title="Ver detalle"
-                        >
+        <>
+          {/* MOBILE */}
+          <div className="md:hidden space-y-3">
+            {visible.map((r) => {
+              const estado = computeDisplayStatus(r, bStatusMap[r.id]);
+              return (
+                <div key={r.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="font-semibold text-slate-800 line-clamp-2 flex-1">{(r as any)?.titulo ?? "—"}</p>
+                    <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClasses(estado)}`}>{estado}</span>
+                  </div>
+                  <p className="text-xs text-slate-500">#{r.id}</p>
+                  <button
+                    className="w-full rounded-md border px-3 py-2 text-sm font-medium hover:bg-slate-100 transition-colors"
+                    onClick={() => { setCtxId(r.id); setOpen(true); }}
+                  >
+                    Ver detalle
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* DESKTOP */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 w-20">ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 w-32">Estado</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 w-40">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((r) => {
+                  const estado = computeDisplayStatus(r, bStatusMap[r.id]);
+                  return (
+                    <tr key={r.id} className="border-t">
+                      <td className="px-4 py-3">{r.id}</td>
+                      <td className="px-4 py-3">
+                        <div className="truncate" title={String((r as any)?.titulo ?? "")}>{(r as any)?.titulo ?? "-"}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClasses(estado)}`}>{estado}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button className="rounded-md border px-3 py-1.5 text-xs hover:bg-slate-50" onClick={() => { setCtxId(r.id); setOpen(true); }}>
                           Ver
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Modal de detalle (solicitud + pagos si existen) */}

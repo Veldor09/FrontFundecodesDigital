@@ -223,79 +223,111 @@ export default function ExternalCollaboratorsPanel() {
         />
       </div>
 
-      {/* Tabla */}
-      {loading ? (
-        <p className="text-sm text-slate-400 py-6 text-center">Cargando…</p>
-      ) : items.length === 0 ? (
-        <p className="text-sm text-slate-400 py-6 text-center">
-          No hay colaboradores externos registrados.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium">Nombre</th>
-                <th className="px-4 py-2 text-left font-medium">Correo</th>
-                <th className="px-4 py-2 text-left font-medium">Teléfono</th>
-                <th className="px-4 py-2 text-center font-medium">Rol</th>
-                <th className="px-4 py-2 text-center font-medium">Área</th>
-                <th className="px-4 py-2 text-center font-medium">Estado</th>
-                <th className="px-4 py-2 text-center font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {items.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-2 font-medium text-slate-800">{c.nombreCompleto}</td>
-                  <td className="px-4 py-2 text-slate-600">{c.correo}</td>
-                  <td className="px-4 py-2 text-slate-500">
-                    {c.telefono ?? <span className="italic text-slate-300">—</span>}
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
-                      {ROL_LABELS[c.rol] ?? c.rol}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2 text-center text-xs text-blue-600 font-medium">
-                    {c.areaOrg?.nombre ?? (
-                      <span className="italic text-slate-300">Sin área</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    <Badge
-                      className={
-                        c.estado === "ACTIVO"
-                          ? "bg-green-100 text-green-700 border-green-200"
-                          : "bg-gray-100 text-gray-500 border-gray-200"
-                      }
-                    >
-                      {c.estado}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => openEdit(c)}
-                        title="Editar"
-                        className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(c)}
-                        title="Eliminar"
-                        className="p-1 text-slate-400 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+      {/* Estado de carga / vacío */}
+      {loading && <p className="text-sm text-slate-400 py-6 text-center">Cargando…</p>}
+      {!loading && items.length === 0 && (
+        <p className="text-sm text-slate-400 py-6 text-center">No hay colaboradores externos registrados.</p>
+      )}
+
+      {!loading && items.length > 0 && (
+        <>
+          {/* MOBILE: tarjetas */}
+          <div className="md:hidden space-y-3">
+            {items.map((c) => (
+              <div key={c.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800 truncate">{c.nombreCompleto}</p>
+                    <p className="text-sm text-slate-500 truncate">{c.correo}</p>
+                    {c.telefono && <p className="text-xs text-slate-400 mt-0.5">{c.telefono}</p>}
+                  </div>
+                  <Badge className={c.estado === "ACTIVO"
+                    ? "bg-green-100 text-green-700 border-green-200 shrink-0"
+                    : "bg-gray-100 text-gray-500 border-gray-200 shrink-0"
+                  }>
+                    {c.estado}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                    {ROL_LABELS[c.rol] ?? c.rol}
+                  </Badge>
+                  {c.areaOrg?.nombre && (
+                    <span className="text-blue-600 font-medium">{c.areaOrg.nombre}</span>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-1 border-t border-slate-200">
+                  <button
+                    onClick={() => openEdit(c)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 rounded-md transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(c)}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-2 rounded-md transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP: tabla */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Nombre</th>
+                  <th className="px-4 py-2 text-left font-medium">Correo</th>
+                  <th className="px-4 py-2 text-left font-medium">Teléfono</th>
+                  <th className="px-4 py-2 text-center font-medium">Rol</th>
+                  <th className="px-4 py-2 text-center font-medium">Área</th>
+                  <th className="px-4 py-2 text-center font-medium">Estado</th>
+                  <th className="px-4 py-2 text-center font-medium">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {items.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-2 font-medium text-slate-800">{c.nombreCompleto}</td>
+                    <td className="px-4 py-2 text-slate-600">{c.correo}</td>
+                    <td className="px-4 py-2 text-slate-500">{c.telefono ?? "—"}</td>
+                    <td className="px-4 py-2 text-center">
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
+                        {ROL_LABELS[c.rol] ?? c.rol}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2 text-center text-xs text-blue-600 font-medium">
+                      {c.areaOrg?.nombre ?? <span className="italic text-slate-300">Sin área</span>}
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <Badge className={c.estado === "ACTIVO"
+                        ? "bg-green-100 text-green-700 border-green-200"
+                        : "bg-gray-100 text-gray-500 border-gray-200"
+                      }>
+                        {c.estado}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => openEdit(c)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                          Editar
+                        </button>
+                        <button onClick={() => handleDelete(c)} className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Paginación */}

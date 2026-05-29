@@ -13,7 +13,7 @@ import {
   rejectSolicitud,
   type SolicitudListItem,
 } from "../services/solicitudes.api";
-import { describeDestino, describeSolicitante } from "../services/destinos.api";
+import { describeDestino, describeSolicitante, formatCRC } from "../services/destinos.api";
 
 function LocalAlert({
   kind,
@@ -164,45 +164,68 @@ export default function DirectorApprovalTable() {
       ) : visible.length === 0 ? (
         <p className="text-sm text-slate-500">No hay solicitudes validadas.</p>
       ) : (
-        <div className="overflow-x-auto">
-          {/* ✅ table-fixed para impedir desbordes por textos eternos */}
-          <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-16">ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Solicitante</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Destino</th>
-                <th className="px-4 py-3 text-right font-semibold text-slate-700 w-32">Monto</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 w-56">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((r) => (
-                <DirectorRow
-                  key={r.id}
-                  req={{
-                    id: r.id,
-                    concept: r.titulo,
-                    solicitante: describeSolicitante(r),
-                    solicitanteEmail: r.usuario?.email ?? null,
-                    destino: describeDestino(r),
-                    destinoTipo:
-                      r.tipoOrigen === "PROGRAMA"
-                        ? "Programa"
-                        : r.tipoOrigen === "PROYECTO"
-                        ? "Proyecto"
-                        : "",
-                    amount: r.monto ?? null,
-                  }}
-                  onApprove={() => openApprove(r.id)}
-                  onRejectClick={() => openReject(r.id)}
-                  onViewClick={() => openDetails(r.id)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* MOBILE: tarjetas */}
+          <div className="md:hidden space-y-3">
+            {visible.map((r) => (
+              <div key={r.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800 line-clamp-2">{r.titulo}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">#{r.id}</p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold text-slate-700 tabular-nums">
+                    {formatCRC(r.monto ?? null)}
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500 space-y-0.5">
+                  <p><span className="font-medium">Solicitante:</span> {describeSolicitante(r)}</p>
+                  <p><span className="font-medium">Destino:</span> {describeDestino(r)}</p>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200">
+                  <button onClick={() => openDetails(r.id)} className="flex-1 rounded-md py-2 text-xs font-medium text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors">Ver</button>
+                  <button onClick={() => openApprove(r.id)} className="flex-1 rounded-md py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors">Aprobar</button>
+                  <button onClick={() => openReject(r.id)} className="flex-1 rounded-md py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">Rechazar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP: tabla */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full table-fixed text-sm border border-slate-200 rounded-lg">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 w-16">ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Solicitante</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Destino</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700 w-32">Monto</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 w-56">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((r) => (
+                  <DirectorRow
+                    key={r.id}
+                    req={{
+                      id: r.id,
+                      concept: r.titulo,
+                      solicitante: describeSolicitante(r),
+                      solicitanteEmail: r.usuario?.email ?? null,
+                      destino: describeDestino(r),
+                      destinoTipo: r.tipoOrigen === "PROGRAMA" ? "Programa" : r.tipoOrigen === "PROYECTO" ? "Proyecto" : "",
+                      amount: r.monto ?? null,
+                    }}
+                    onApprove={() => openApprove(r.id)}
+                    onRejectClick={() => openReject(r.id)}
+                    onViewClick={() => openDetails(r.id)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Modal motivo: rechazo */}

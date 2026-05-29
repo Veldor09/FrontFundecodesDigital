@@ -164,18 +164,16 @@ export default function VisitacionTable({
                             <button
                               type="button"
                               onClick={() => onEdit(item)}
-                              className="rounded p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                              title="Editar"
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
                             >
-                              <Pencil className="w-4 h-4" />
+                              Editar
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteClick(item)}
-                              className="rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-                              title="Eliminar"
+                              className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              Eliminar
                             </button>
                           </>
                         )}

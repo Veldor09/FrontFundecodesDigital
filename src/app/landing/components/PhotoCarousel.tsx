@@ -75,7 +75,7 @@ export default function PhotoCarousel({ photos }: { photos?: CarouselPhoto[] }) 
       <div className="relative px-8 md:px-10 pt-10 pb-8">
         <div className="text-center mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
-            Nuestros <span className="text-green-600">Aliados</span>
+            Nuestros <span className="text-blue-600">Aliados</span>
           </h2>
           <p className="text-sm text-gray-400 mt-1.5">
             Organizaciones que confían y trabajan junto a nosotros

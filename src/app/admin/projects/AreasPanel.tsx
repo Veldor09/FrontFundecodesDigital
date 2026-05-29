@@ -247,36 +247,20 @@ export default function AreasPanel() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => openEdit(a)}
-                        title="Editar"
-                        className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
+                      <button onClick={() => openEdit(a)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                        Editar
                       </button>
                       {a.activa ? (
-                        <button
-                          onClick={() => handleArchive(a)}
-                          title="Archivar"
-                          className="p-1 text-slate-400 hover:text-amber-500 transition-colors"
-                        >
-                          <Archive className="h-4 w-4" />
+                        <button onClick={() => handleArchive(a)} className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                          Archivar
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleRestore(a)}
-                          title="Reactivar"
-                          className="p-1 text-slate-400 hover:text-green-600 transition-colors"
-                        >
-                          <ArchiveRestore className="h-4 w-4" />
+                        <button onClick={() => handleRestore(a)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                          Reactivar
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(a)}
-                        title="Eliminar"
-                        className="p-1 text-slate-400 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                      <button onClick={() => handleDelete(a)} className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                        Eliminar
                       </button>
                     </div>
                   </td>

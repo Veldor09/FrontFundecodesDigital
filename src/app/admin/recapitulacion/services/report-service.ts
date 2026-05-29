@@ -271,9 +271,7 @@ export class ReportService {
 
   private static mapDepartmentToModules(department: string): string {
     if (department === "todos") {
-      // Incluye TODOS los módulos del back. Si añades uno nuevo en
-      // reportes.service.ts → obtenerDatosModulo, agrégalo también aquí.
-      return "projects,billing,solicitudes,collaborators,volunteers,programas,sanciones,contabilidad";
+      return "projects,billing,solicitudes,collaborators,volunteers,programas,sanciones,contabilidad,areas";
     }
     const mapping: Record<string, string> = {
       proyectos: "projects",
@@ -284,6 +282,7 @@ export class ReportService {
       contabilidad: "contabilidad",
       programas: "programas",
       sanciones: "sanciones",
+      areas: "areas",
     };
     if (department.includes(",")) {
       return department
@@ -413,25 +412,33 @@ export class ReportService {
     if (detalles.billing) {
       const d = detalles.billing;
       const items = d.items || [];
+      // BillingRequest.status enum: PENDING | VALIDATED | APPROVED | REJECTED | PAID
       moduleData.facturacion = {
         totalFacturas: d.total || 0,
         montoTotal: items.reduce((s: number, b: any) => {
           const a = typeof b.amount === "object" ? b.amount.toNumber() : Number(b.amount || 0);
           return s + (isNaN(a) ? 0 : a);
         }, 0),
-        facturasPendientes: items.filter((b: any) => b.status === "PENDIENTE").length,
-        facturasPagadas: items.filter((b: any) => b.status === "PAGADA").length,
+        facturasPendientes: items.filter((b: any) => ["PENDING", "VALIDATED", "APPROVED"].includes(b.status)).length,
+        facturasPagadas: items.filter((b: any) => b.status === "PAID").length,
       };
     }
 
     if (detalles.solicitudes) {
       const d = detalles.solicitudes;
       const items = d.items || [];
+      // SolicitudCompra tiene estadoContadora y estadoDirector (no un campo "estado")
       moduleData.solicitudes = {
         totalSolicitudes: d.total || 0,
-        aprobadas: items.filter((s: any) => s.estado === "APROBADA").length,
-        pendientes: items.filter((s: any) => s.estado === "PENDIENTE").length,
-        rechazadas: items.filter((s: any) => s.estado === "RECHAZADA").length,
+        aprobadas: items.filter((s: any) =>
+          s.estadoDirector === "APROBADA" || s.estado === "APROBADA"
+        ).length,
+        pendientes: items.filter((s: any) =>
+          s.estadoContadora === "PENDIENTE" || s.estado === "PENDIENTE"
+        ).length,
+        rechazadas: items.filter((s: any) =>
+          s.estadoDirector === "RECHAZADA" || s.estadoContadora === "DEVUELTA" || s.estado === "RECHAZADA"
+        ).length,
       };
     }
 

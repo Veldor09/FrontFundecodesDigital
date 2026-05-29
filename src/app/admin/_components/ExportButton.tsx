@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { Download, FileSpreadsheet, FileText, ChevronDown, Loader2 } from "lucide-react";
 import type { ExportColumn, ExportRow } from "@/lib/export";
 
@@ -80,7 +81,7 @@ export default function ExportButton({
       }
     } catch (err) {
       console.error("Export error:", err);
-      alert("Error al exportar. Revisa la consola para más detalles.");
+      toast.error("Error al exportar. Revisa la consola para más detalles.");
     } finally {
       setLoading(false);
       setLoadingKey(null);

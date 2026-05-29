@@ -1,6 +1,7 @@
 // src/app/admin/Billing/components/FileUpload.tsx
 "use client";
 import React, { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 /* ========= Tipos ========= */
 type BaseProps = {
@@ -68,7 +69,7 @@ export default function FileUpload({
       if (!f) return;
       const err = validateOne(f);
       if (err) {
-        alert(err);
+        toast.error(err);
       } else {
         setFiles([f]);
         (onChange as SingleProps["onChange"])(f);
@@ -83,16 +84,16 @@ export default function FileUpload({
     for (const f of incoming) {
       const err = validateOne(f);
       if (err) {
-        alert(err);
+        toast.error(err);
         continue;
       }
       if (next.length + 1 > maxFiles) {
-        alert(`Máximo ${maxFiles} archivos por solicitud`);
+        toast.error(`Máximo ${maxFiles} archivos por solicitud`);
         break;
       }
       const nextTotal = next.reduce((s, x) => s + x.size, 0) + f.size;
       if (nextTotal > maxTotalMB * 1024 * 1024) {
-        alert(`La suma total supera ${maxTotalMB} MB`);
+        toast.error(`La suma total supera ${maxTotalMB} MB`);
         break;
       }
       const dup = next.some(

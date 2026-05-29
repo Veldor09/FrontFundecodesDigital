@@ -221,17 +221,17 @@ export default function UsersPage() {
           {/* FILTROS */}
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
             {/* Buscar */}
-            <form onSubmit={onSearchSubmit} className="flex gap-2">
+            <form onSubmit={onSearchSubmit} className="flex gap-2 w-full md:w-auto">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por email o nombre…"
-                className="border rounded px-3 py-2 text-sm w-64"
+                className="border rounded px-3 py-2 text-sm flex-1 min-w-0 md:w-64"
               />
               <button
                 type="submit"
-                className="px-3 py-2 text-sm bg-gray-800 text-white rounded"
+                className="px-3 py-2 text-sm bg-gray-800 text-white rounded shrink-0"
                 title="Buscar"
               >
                 Buscar

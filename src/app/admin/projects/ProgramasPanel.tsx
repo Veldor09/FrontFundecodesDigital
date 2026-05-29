@@ -5,9 +5,8 @@ import { listAreasSelector, type AreaSelector } from "@/services/areas.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import Modal from "@/components/ui/Modal";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Users, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useProgramaVoluntariadoCrud } from "@/app/admin/voluntariado/hooks/useProgramaVoluntariadoCrud";
 import ExportButton from "@/app/admin/_components/ExportButton";
@@ -15,12 +14,16 @@ import type { ExportRow } from "@/lib/export";
 import { resolveMediaUrl } from "@/lib/media-url";
 import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 
+/* ── Estilos de botón estándar ────────────────────────────── */
+const BTN_EDIT   = "bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors";
+const BTN_DELETE = "bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors";
+
 const PROG_COLS = [
-  { key: "nombre",      header: "Nombre",         width: 26 },
-  { key: "lugar",       header: "Área/Lugar",      width: 20 },
-  { key: "limite",      header: "Límite",          width: 10 },
-  { key: "participantes", header: "Participantes", width: 14 },
-  { key: "descripcion", header: "Descripción",     width: 36 },
+  { key: "nombre",        header: "Nombre",          width: 26 },
+  { key: "lugar",         header: "Área/Lugar",       width: 20 },
+  { key: "limite",        header: "Límite",           width: 10 },
+  { key: "participantes", header: "Participantes",    width: 14 },
+  { key: "descripcion",   header: "Descripción",      width: 36 },
 ];
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
@@ -61,18 +64,13 @@ export default function ProgramasPanel() {
   const [uploadingImagen, setUploadingImagen] = useState(false);
   const imagenInputRef = useRef<HTMLInputElement>(null);
 
-  // Áreas para el selector de lugar
   const [areas, setAreas] = useState<AreaSelector[]>([]);
   useEffect(() => {
     listAreasSelector().then(setAreas).catch(() => {});
   }, []);
+
   const [form, setForm] = useState<FormState>({
-    nombre: "",
-    lugar: "",
-    descripcion: "",
-    limiteParticipantes: "0",
-    imagenUrl: "",
-    imagenKey: "",
+    nombre: "", lugar: "", descripcion: "", limiteParticipantes: "0", imagenUrl: "", imagenKey: "",
   });
 
   const editing = Boolean(form.id);
@@ -143,10 +141,11 @@ export default function ProgramasPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Programas</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Programas</h2>
           <p className="text-sm text-slate-500">Crea y administra programas para luego asignar voluntarios.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -156,18 +155,18 @@ export default function ProgramasPanel() {
             filename="programas"
             columns={PROG_COLS}
             currentRows={programas.map((p: any) => ({
-              nombre:       p.nombre ?? "",
-              lugar:        p.lugar ?? "",
-              limite:       p.limiteParticipantes ?? 0,
-              participantes: (p._count?.asignaciones ?? p.asignaciones?.length ?? 0),
-              descripcion:  p.descripcion ?? "",
+              nombre:        p.nombre ?? "",
+              lugar:         p.lugar ?? "",
+              limite:        p.limiteParticipantes ?? 0,
+              participantes: p._count?.asignaciones ?? p.asignaciones?.length ?? 0,
+              descripcion:   p.descripcion ?? "",
             } as ExportRow))}
             fetchAll={async () => programas.map((p: any) => ({
-              nombre:       p.nombre ?? "",
-              lugar:        p.lugar ?? "",
-              limite:       p.limiteParticipantes ?? 0,
-              participantes: (p._count?.asignaciones ?? p.asignaciones?.length ?? 0),
-              descripcion:  p.descripcion ?? "",
+              nombre:        p.nombre ?? "",
+              lugar:         p.lugar ?? "",
+              limite:        p.limiteParticipantes ?? 0,
+              participantes: p._count?.asignaciones ?? p.asignaciones?.length ?? 0,
+              descripcion:   p.descripcion ?? "",
             } as ExportRow))}
           />
           <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={openCreate}>
@@ -176,89 +175,105 @@ export default function ProgramasPanel() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700 w-14">Img</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Nombre</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Lugar</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Descripción</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Límite</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Cupos</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700 w-40">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td className="px-4 py-6 text-slate-500" colSpan={7}>Cargando...</td>
-              </tr>
-            ) : programas.length === 0 ? (
-              <tr>
-                <td className="px-4 py-6 text-slate-500" colSpan={6}>No hay programas todavía. Crea el primero.</td>
-              </tr>
-            ) : (
-              programas.map((p: any) => {
-                const asignados = Array.isArray(p?.voluntarios) ? p.voluntarios.length : 0;
-                const limite = Number(p?.limiteParticipantes ?? 0);
-                const sinLimite = limite === 0;
-                const disponibles = sinLimite ? null : Math.max(limite - asignados, 0);
-                const lleno = !sinLimite && asignados >= limite;
+      {/* Cards grid */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+      ) : programas.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 rounded-xl">
+          <Users className="h-12 w-12 text-slate-300 mb-4" />
+          <p className="text-slate-500 font-medium">No hay programas todavía.</p>
+          <p className="text-slate-400 text-sm mt-1">Crea el primero con el botón "Nuevo programa".</p>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {programas.map((p: any) => {
+            const asignados = Array.isArray(p?.voluntarios) ? p.voluntarios.length : (p._count?.asignaciones ?? 0);
+            const limite    = Number(p?.limiteParticipantes ?? 0);
+            const sinLimite = limite === 0;
+            const disponibles = sinLimite ? null : Math.max(limite - asignados, 0);
+            const lleno = !sinLimite && asignados >= limite;
+            const imgUrl = resolveMediaUrl(p.imagenUrl);
 
-                return (
-                  <tr key={p.id} className="border-t hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      {resolveMediaUrl(p.imagenUrl) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={resolveMediaUrl(p.imagenUrl)!}
-                          alt={p.nombre}
-                          className="w-10 h-10 object-cover rounded-md border border-slate-200"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-md bg-slate-100 flex items-center justify-center">
-                          <ImageIcon className="h-4 w-4 text-slate-300" />
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{p.nombre}</td>
-                    <td className="px-4 py-3 text-slate-600">{p.lugar}</td>
-                    <td className="px-4 py-3 text-slate-600">{p.descripcion || "—"}</td>
-                    <td className="px-4 py-3">{sinLimite ? "Sin límite" : limite}</td>
-                    <td className="px-4 py-3">
-                      {sinLimite ? (
-                        <span className="text-slate-500">Ilimitado</span>
-                      ) : (
-                        <span className={lleno ? "text-red-600 font-medium" : "text-slate-700"}>
-                          {asignados}/{limite} · {disponibles} disponibles
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => openEdit(p)}>
-                          Editar
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-500 hover:text-red-600 hover:border-red-300"
-                          onClick={() => handleDelete(p.id)}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+            return (
+              <div
+                key={p.id}
+                className="group flex flex-col bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-blue-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              >
+                {/* Imagen */}
+                <div className="relative h-44 bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
+                  {imgUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imgUrl}
+                      alt={p.nombre}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        img.style.display = "none";
+                        const fallback = img.nextElementSibling as HTMLElement | null;
+                        if (fallback) fallback.style.display = "flex";
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="h-full w-full items-center justify-center"
+                    style={{ display: imgUrl ? "none" : "flex" }}
+                  >
+                    <ImageIcon className="w-10 h-10 text-slate-300" />
+                  </div>
+                  {/* Participantes badge */}
+                  <div className="absolute bottom-3 left-3">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border ${
+                      lleno
+                        ? "bg-red-100/90 text-red-700 border-red-200"
+                        : sinLimite
+                        ? "bg-blue-100/90 text-blue-700 border-blue-200"
+                        : "bg-emerald-100/90 text-emerald-700 border-emerald-200"
+                    }`}>
+                      <Users className="w-3 h-3" />
+                      {sinLimite ? `${asignados} inscritos` : `${asignados}/${limite}`}
+                      {!sinLimite && ` · ${disponibles} disponibles`}
+                    </span>
+                  </div>
+                </div>
 
+                {/* Cuerpo */}
+                <div className="flex flex-col flex-1 p-5">
+                  <h3 className="font-semibold text-slate-800 text-base leading-snug mb-1.5 group-hover:text-blue-700 transition-colors">
+                    {p.nombre}
+                  </h3>
+
+                  {p.lugar && (
+                    <span className="inline-flex items-center gap-1 text-xs text-slate-500 mb-2">
+                      <MapPin className="w-3 h-3" /> {p.lugar}
+                    </span>
+                  )}
+
+                  {p.descripcion && (
+                    <p className="text-sm text-slate-500 line-clamp-2 mb-4 leading-relaxed flex-1">
+                      {p.descripcion}
+                    </p>
+                  )}
+
+                  {/* Acciones */}
+                  <div className="flex gap-2 pt-3 border-t border-slate-100 mt-auto">
+                    <button onClick={() => openEdit(p)} className={`flex-1 ${BTN_EDIT}`}>
+                      Editar
+                    </button>
+                    <button onClick={() => handleDelete(p.id)} className={`flex-1 ${BTN_DELETE}`}>
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal crear/editar */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <h2 className="text-xl font-bold mb-4">{editing ? "Editar programa" : "Nuevo programa"}</h2>
         <div className="space-y-4">
@@ -280,7 +295,7 @@ export default function ProgramasPanel() {
               ))}
             </select>
             {areas.length === 0 && (
-              <p className="text-xs text-slate-400 mt-1">No hay áreas creadas. Ve a la pestaña Áreas para crear una.</p>
+              <p className="text-xs text-slate-400 mt-1">No hay áreas creadas. Ve a la pestaña Áreas primero.</p>
             )}
           </div>
           <div>
@@ -298,18 +313,24 @@ export default function ProgramasPanel() {
             />
           </div>
 
-          {/* Imagen del programa */}
+          {/* Imagen */}
           <div>
             <Label>Imagen del programa (opcional)</Label>
             {form.imagenUrl && (
               <div className="relative mt-1 mb-2 w-full h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={resolveMediaUrl(form.imagenUrl) ?? form.imagenUrl} alt="Imagen" className="w-full h-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                <button type="button"
+                <img
+                  src={resolveMediaUrl(form.imagenUrl) ?? form.imagenUrl}
+                  alt="Imagen"
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                <button
+                  type="button"
                   onClick={() => setForm({ ...form, imagenUrl: "", imagenKey: "" })}
                   className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1 shadow text-slate-600 hover:text-red-600"
-                  title="Quitar imagen">✕</button>
+                  title="Quitar imagen"
+                >✕</button>
               </div>
             )}
             <input
@@ -347,10 +368,11 @@ export default function ProgramasPanel() {
             </Button>
           </div>
         </div>
+
         <div className="flex justify-end gap-2 mt-6">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving || uploadingImagen} className="bg-blue-600 hover:bg-blue-700">
-            {saving ? "Guardando..." : editing ? "Guardar cambios" : "Crear programa"}
+          <Button onClick={handleSave} disabled={saving || uploadingImagen} className="bg-blue-600 hover:bg-blue-700 text-white">
+            {saving ? "Guardando…" : editing ? "Guardar cambios" : "Crear programa"}
           </Button>
         </div>
       </Modal>

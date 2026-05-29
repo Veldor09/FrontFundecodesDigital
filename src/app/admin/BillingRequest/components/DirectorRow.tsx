@@ -58,20 +58,12 @@ export default function DirectorRow({
         )}
       </td>
       <td className="px-4 py-3 text-right tabular-nums">{monto}</td>
-      <td className="px-4 py-3 flex flex-col gap-2 sm:flex-row">
-        <Button size="sm" variant="secondary" onClick={onViewClick}>
-          Ver
-        </Button>
-        <Button
-          size="sm"
-          onClick={onApprove}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-        >
-          Aprobar
-        </Button>
-        <Button size="sm" variant="destructive" onClick={onRejectClick}>
-          Rechazar
-        </Button>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1">
+          <Button size="sm" variant="secondary" onClick={onViewClick}>Ver</Button>
+          <Button size="sm" onClick={onApprove} className="bg-emerald-600 hover:bg-emerald-700 text-white">Aprobar</Button>
+          <Button size="sm" variant="destructive" onClick={onRejectClick}>Rechazar</Button>
+        </div>
       </td>
     </tr>
   );

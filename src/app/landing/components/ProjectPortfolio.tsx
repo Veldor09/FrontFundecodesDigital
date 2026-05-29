@@ -65,7 +65,7 @@ export default function PortafolioProyectos() {
         <div className="text-center mb-10">
          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
   <span className="text-blue-600">Portafolio</span> de{" "}
-  <span className="text-green-600">Proyectos</span>
+  <span className="text-blue-600">Proyectos</span>
 </h2>
         </div>
 

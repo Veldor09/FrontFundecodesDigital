@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import API from "@/services/api"
+import { toast } from "sonner"
 
 /* ===== Límites realistas ===== */
 const LIMITS = {
@@ -102,11 +103,11 @@ export default function ContactForm({ title }: Props) {
 
     try {
       await API.post('/contact', payload);
-      alert('✅ ¡Mensaje enviado con éxito!');
+      toast.success('¡Mensaje enviado con éxito!');
       setFormData({ name: '', email: '', subject: '', message: '' });
       setErrors({});
     } catch {
-      alert('❌ Error al enviar el mensaje');
+      toast.error('Error al enviar el mensaje. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }

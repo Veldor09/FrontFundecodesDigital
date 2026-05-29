@@ -1,19 +1,18 @@
-import Image from "next/image";
-
 import Header from "./components/Header";
 import PortafolioProyectos from "./components/ProjectPortfolio";
+import ProgramasPortfolio from "./components/ProgramasPortfolio";
 import CarruselFotos from "./components/PhotoCarousel";
 import Comentarios from "./components/Comments";
 import Footer from "./components/Footer";
 import VisionMision from "./components/VisionMision";
-import HeroVideo from "./components/HeroVideo"; // 👈 import nuevo
+import HeroVideo from "./components/HeroVideo";
 
 export default function Page() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      {/* INICIO (extraído a componente) */}
+      {/* INICIO */}
       <HeroVideo />
 
       {/* CONTENIDO */}
@@ -24,6 +23,10 @@ export default function Page() {
 
         <div id="proyectos">
           <PortafolioProyectos />
+        </div>
+
+        <div id="programas">
+          <ProgramasPortfolio />
         </div>
 
         <CarruselFotos />

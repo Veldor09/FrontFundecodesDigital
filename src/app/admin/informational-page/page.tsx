@@ -358,8 +358,8 @@ function ProjectEditCard({ project, onChange, onDelete }: any) {
         <SelectField label="Área" options={PROJECT_AREAS} value={project.area} onChange={(v) => onChange({ area: v })} />
         <SelectField label="Estado" options={PROJECT_STATUSES} value={project.status} onChange={(v) => onChange({ status: v })} />
       </div>
-      <Button variant="outline" size="sm" onClick={onDelete} className="self-start">
-        <Trash2 className="w-4 h-4" />
+      <Button variant="outline" size="sm" onClick={onDelete} className="self-start text-red-600 border-red-200 hover:bg-red-50">
+        Eliminar
       </Button>
     </div>
   );
@@ -374,8 +374,8 @@ function CollaboratorEditCard({ collaborator, onChange, onDelete }: any) {
         <Input value={collaborator.role} onChange={(e) => onChange({ role: e.target.value })} placeholder="Rol" />
         <Input value={collaborator.photoUrl} onChange={(e) => onChange({ photoUrl: e.target.value })} placeholder="Foto URL" className="md:col-span-2" />
       </div>
-      <Button variant="outline" size="sm" onClick={onDelete} className="self-start">
-        <Trash2 className="w-4 h-4" />
+      <Button variant="outline" size="sm" onClick={onDelete} className="self-start text-red-600 border-red-200 hover:bg-red-50">
+        Eliminar
       </Button>
     </div>
   );
@@ -386,8 +386,8 @@ function CommentEditRow({ comment, onChange, onToggle, onDelete }: any) {
     <div className="grid gap-3 rounded-xl border p-4 md:grid-cols-[150px_1fr_auto_auto]">
       <Input value={comment.author} onChange={(e) => onChange({ author: e.target.value })} placeholder="Autor" />
       <Textarea value={comment.text} onChange={(e) => onChange({ text: e.target.value })} rows={2} placeholder="Comentario" />
-      <Button variant="outline" size="sm" onClick={onToggle}>
-        {comment.visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      <Button variant="outline" size="sm" onClick={onToggle} className="text-xs">
+        {comment.visible ? "Ocultar" : "Mostrar"}
       </Button>
       <Button variant="outline" size="sm" onClick={onDelete}>
         <Trash2 className="w-4 h-4" />
