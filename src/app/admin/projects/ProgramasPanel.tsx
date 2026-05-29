@@ -13,6 +13,7 @@ import { useProgramaVoluntariadoCrud } from "@/app/admin/voluntariado/hooks/useP
 import ExportButton from "@/app/admin/_components/ExportButton";
 import type { ExportRow } from "@/lib/export";
 import { resolveMediaUrl } from "@/lib/media-url";
+import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 
 const PROG_COLS = [
   { key: "nombre",      header: "Nombre",         width: 26 },
@@ -56,6 +57,7 @@ export default function ProgramasPanel() {
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [uploadingImagen, setUploadingImagen] = useState(false);
   const imagenInputRef = useRef<HTMLInputElement>(null);
 
@@ -123,14 +125,21 @@ export default function ProgramasPanel() {
     }
   }
 
-  async function handleDelete(id: string | number) {
-    if (!confirm("¿Eliminar este programa?")) return;
-    try {
-      await remove(id);
-      toast.success("Programa eliminado");
-    } catch {
-      toast.error("No se pudo eliminar");
-    }
+  function handleDelete(id: string | number) {
+    setConfirmState({
+      title: "Eliminar programa",
+      message: "¿Seguro que deseas eliminar este programa? Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await remove(id);
+          toast.success("Programa eliminado");
+        } catch {
+          toast.error("No se pudo eliminar");
+        }
+      },
+    });
   }
 
   return (
@@ -345,6 +354,8 @@ export default function ProgramasPanel() {
           </Button>
         </div>
       </Modal>
+
+      <ConfirmModal state={confirmState} onClose={() => setConfirmState(null)} />
     </div>
   );
 }

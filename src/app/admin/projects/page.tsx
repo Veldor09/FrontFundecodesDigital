@@ -30,6 +30,7 @@ import ProjectFilesModal from "./ProjectFilesModal";
 import ProgramasPanel from "./ProgramasPanel";
 import AreasPanel from "./AreasPanel";
 import { resolveMediaUrl } from "@/lib/media-url";
+import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 
 type ActiveTab = "areas" | "proyectos" | "programas";
 
@@ -78,6 +79,7 @@ export default function AdminProjectsPage() {
   // Estado para modal de archivos
   const [filesModalOpen, setFilesModalOpen] = useState(false);
   const [newProjectId, setNewProjectId] = useState<number | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
 
   async function load(nextPage: number = page): Promise<void> {
     setLoading(true);
@@ -149,10 +151,17 @@ export default function AdminProjectsPage() {
     await load(page);
   }
 
-  async function handleRemove(id: number): Promise<void> {
-    if (!confirm("¿Dar de baja/eliminar este proyecto?")) return;
-    await removeProject(id);
-    await load(page);
+  function handleRemove(id: number): void {
+    setConfirmState({
+      title: "Dar de baja proyecto",
+      message: "¿Seguro que deseas dar de baja este proyecto? Se desvincularán sus registros contables pero se conservarán para auditoría.",
+      confirmLabel: "Dar de baja",
+      variant: "danger",
+      onConfirm: async () => {
+        await removeProject(id);
+        await load(page);
+      },
+    });
   }
 
   const PROJECT_TABS = [
@@ -541,6 +550,9 @@ export default function AdminProjectsPage() {
           projectId={newProjectId}
         />
       </div>
+
+      {/* Modal de confirmación */}
+      <ConfirmModal state={confirmState} onClose={() => setConfirmState(null)} />
     </main>
   );
 }

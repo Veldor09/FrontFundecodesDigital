@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useProgramaVoluntariadoCrud } from "../hooks/useProgramaVoluntariadoCrud";
 import Modal from "@/components/ui/Modal";
+import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ export default function Page() {
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [form, setForm] = useState<FormState>({
     nombre: "",
     lugar: "",
@@ -89,16 +91,22 @@ export default function Page() {
     }
   }
 
-  async function handleDelete(id: string | number) {
-    if (!confirm("¿Eliminar este programa?")) return;
-
-    try {
-      await remove(id);
-      toast.success("Programa eliminado");
-    } catch (e) {
-      toast.error("No se pudo eliminar");
-      console.error(e);
-    }
+  function handleDelete(id: string | number) {
+    setConfirmState({
+      title: "Eliminar programa",
+      message: "¿Seguro que deseas eliminar este programa? Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await remove(id);
+          toast.success("Programa eliminado");
+        } catch (e) {
+          toast.error("No se pudo eliminar");
+          console.error(e);
+        }
+      },
+    });
   }
 
   return (
@@ -300,6 +308,8 @@ export default function Page() {
           </div>
         </Modal>
       </div>
+
+      <ConfirmModal state={confirmState} onClose={() => setConfirmState(null)} />
     </main>
   );
 }

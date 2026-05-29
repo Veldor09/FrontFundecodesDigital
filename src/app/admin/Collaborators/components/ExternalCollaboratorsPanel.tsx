@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Modal from "@/components/ui/Modal";
+import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 import { toast } from "sonner";
 import {
   apiListExternalCollaborators,
@@ -65,6 +66,7 @@ export default function ExternalCollaboratorsPanel() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [areas, setAreas] = useState<AreaSelector[]>([]);
 
@@ -163,16 +165,23 @@ export default function ExternalCollaboratorsPanel() {
     }
   }
 
-  async function handleDelete(c: ExternalColaborador) {
-    if (!confirm(`¿Eliminar a ${c.nombreCompleto}? Esta acción no se puede deshacer.`)) return;
-    try {
-      await apiDeleteExternalCollaborator(c.id);
-      toast.success("Colaborador eliminado");
-      load(1);
-      setPage(1);
-    } catch {
-      toast.error("No se pudo eliminar");
-    }
+  function handleDelete(c: ExternalColaborador) {
+    setConfirmState({
+      title: "Eliminar colaborador",
+      message: `¿Eliminar a ${c.nombreCompleto}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await apiDeleteExternalCollaborator(c.id);
+          toast.success("Colaborador eliminado");
+          load(1);
+          setPage(1);
+        } catch {
+          toast.error("No se pudo eliminar");
+        }
+      },
+    });
   }
 
   return (
@@ -414,6 +423,8 @@ export default function ExternalCollaboratorsPanel() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal state={confirmState} onClose={() => setConfirmState(null)} />
     </div>
   );
 }

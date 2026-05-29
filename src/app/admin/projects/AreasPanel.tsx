@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Modal from "@/components/ui/Modal";
+import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 import { toast } from "sonner";
 import {
   listAreas,
@@ -37,6 +38,7 @@ export default function AreasPanel() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const editing = Boolean(form.id);
@@ -103,15 +105,22 @@ export default function AreasPanel() {
     }
   }
 
-  async function handleArchive(a: Area) {
-    if (!confirm(`¿Archivar el área "${a.nombre}"? Quedará inactiva pero no se eliminará.`)) return;
-    try {
-      await archiveArea(a.id);
-      toast.success("Área archivada");
-      load(page);
-    } catch {
-      toast.error("No se pudo archivar el área");
-    }
+  function handleArchive(a: Area) {
+    setConfirmState({
+      title: "Archivar área",
+      message: `¿Archivar el área "${a.nombre}"? Quedará inactiva pero no se eliminará.`,
+      confirmLabel: "Archivar",
+      variant: "warning",
+      onConfirm: async () => {
+        try {
+          await archiveArea(a.id);
+          toast.success("Área archivada");
+          load(page);
+        } catch {
+          toast.error("No se pudo archivar el área");
+        }
+      },
+    });
   }
 
   async function handleRestore(a: Area) {
@@ -124,21 +133,23 @@ export default function AreasPanel() {
     }
   }
 
-  async function handleDelete(a: Area) {
-    if (
-      !confirm(
-        `¿Eliminar el área "${a.nombre}"? Se desvincularán todos sus proyectos, programas y colaboradores.`
-      )
-    )
-      return;
-    try {
-      await deleteArea(a.id);
-      toast.success("Área eliminada");
-      load(1);
-      setPage(1);
-    } catch {
-      toast.error("No se pudo eliminar el área");
-    }
+  function handleDelete(a: Area) {
+    setConfirmState({
+      title: "Eliminar área",
+      message: `¿Eliminar el área "${a.nombre}"? Se desvincularán todos sus proyectos, programas y colaboradores.`,
+      confirmLabel: "Eliminar",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await deleteArea(a.id);
+          toast.success("Área eliminada");
+          load(1);
+          setPage(1);
+        } catch {
+          toast.error("No se pudo eliminar el área");
+        }
+      },
+    });
   }
 
   return (
@@ -347,6 +358,8 @@ export default function AreasPanel() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal state={confirmState} onClose={() => setConfirmState(null)} />
     </div>
   );
 }
