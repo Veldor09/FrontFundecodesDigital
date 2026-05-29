@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useProgramaVoluntariadoCrud } from "@/app/admin/voluntariado/hooks/useProgramaVoluntariadoCrud";
 import ExportButton from "@/app/admin/_components/ExportButton";
 import type { ExportRow } from "@/lib/export";
+import { resolveMediaUrl } from "@/lib/media-url";
 
 const PROG_COLS = [
   { key: "nombre",      header: "Nombre",         width: 26 },
@@ -199,10 +200,10 @@ export default function ProgramasPanel() {
                 return (
                   <tr key={p.id} className="border-t hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      {p.imagenUrl ? (
+                      {resolveMediaUrl(p.imagenUrl) ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={p.imagenUrl}
+                          src={resolveMediaUrl(p.imagenUrl)!}
                           alt={p.nombre}
                           className="w-10 h-10 object-cover rounded-md border border-slate-200"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -294,7 +295,7 @@ export default function ProgramasPanel() {
             {form.imagenUrl && (
               <div className="relative mt-1 mb-2 w-full h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.imagenUrl} alt="Imagen" className="w-full h-full object-cover"
+                <img src={resolveMediaUrl(form.imagenUrl) ?? form.imagenUrl} alt="Imagen" className="w-full h-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 <button type="button"
                   onClick={() => setForm({ ...form, imagenUrl: "", imagenKey: "" })}

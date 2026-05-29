@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, MessageSquare, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { resolveMediaUrl } from "@/lib/media-url";
 
 type CommentStatus = "PENDIENTE" | "APROBADO" | "DENEGADO";
 
@@ -439,25 +440,28 @@ export default function AdminCommentsPage() {
                       </p>
                     </div>
 
-                    {comment.attachmentUrl && (
-                      <div className="mt-3">
-                        {/\.(mp4|webm)(\?|$)/i.test(comment.attachmentUrl) ? (
-                          <video
-                            src={comment.attachmentUrl}
-                            controls
-                            className="max-w-xs max-h-48 rounded-xl border border-slate-200"
-                          />
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={comment.attachmentUrl}
-                            alt="Adjunto"
-                            className="max-w-xs max-h-48 rounded-xl border border-slate-200 object-cover cursor-pointer"
-                            onClick={() => window.open(comment.attachmentUrl!, "_blank")}
-                          />
-                        )}
-                      </div>
-                    )}
+                    {comment.attachmentUrl && (() => {
+                      const mediaUrl = resolveMediaUrl(comment.attachmentUrl)!;
+                      return (
+                        <div className="mt-3">
+                          {/\.(mp4|webm)(\?|$)/i.test(mediaUrl) ? (
+                            <video
+                              src={mediaUrl}
+                              controls
+                              className="max-w-xs max-h-48 rounded-xl border border-slate-200"
+                            />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={mediaUrl}
+                              alt="Adjunto"
+                              className="max-w-xs max-h-48 rounded-xl border border-slate-200 object-cover cursor-pointer"
+                              onClick={() => window.open(mediaUrl, "_blank")}
+                            />
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <p className="mt-4 text-sm text-slate-500">
                       Enviado: {formatDate(comment.createdAt)}

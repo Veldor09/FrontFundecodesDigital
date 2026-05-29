@@ -29,6 +29,7 @@ import Modal from "@/components/ui/Modal";
 import ProjectFilesModal from "./ProjectFilesModal";
 import ProgramasPanel from "./ProgramasPanel";
 import AreasPanel from "./AreasPanel";
+import { resolveMediaUrl } from "@/lib/media-url";
 
 type ActiveTab = "areas" | "proyectos" | "programas";
 
@@ -413,7 +414,7 @@ export default function AdminProjectsPage() {
                 {p.coverUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={p.coverUrl}
+                    src={resolveMediaUrl(p.coverUrl) ?? p.coverUrl}
                     alt={p.title}
                     className="w-full h-36 object-cover rounded mb-3 bg-slate-100"
                     referrerPolicy="no-referrer"
