@@ -8,6 +8,7 @@ import type { Project, ProjectStatus } from "@/lib/projects.types";
 import { ProjectFilesManager } from "./ProjectFilesManager";
 import { Upload, AlertCircle, CheckCircle2, Info, ImageIcon } from "lucide-react";
 import { getProjectFiles } from "@/services/projects.service";
+import { listAreasSelector } from "@/services/areas.service";
 import { normalizeImageUrl } from "@/lib/image-url";
 import { toast } from "sonner";
 
@@ -42,24 +43,6 @@ const CATEGORIES = [
   "Alianzas y Cooperación",
 ] as const;
 
-const PLACES = [
-  "Área de Conservación Tempisque (ACT)",
-  "Parque Nacional Barra Honda",
-  "Parque Nacional Marino Las Baulas",
-  "Playa Matapalo",
-  "Playa Ostional",
-  "Playa Camaronal",
-  "Playa San Juanillo",
-  "Golfo de Papagayo",
-  "Sector Cangrejal – Sámara",
-  "Bolsón",
-  "Tamarindo",
-  "Iguanita",
-  "Cipancí",
-  "Cabo Blanco",
-  "Caletas Arío",
-  "Nicoya",
-] as const;
 
 const AREAS = [
   "Vida Silvestre",
@@ -175,7 +158,7 @@ function PresetSelectInput({
   label: string;
   value: string;
   onChange: (val: string) => void;
-  options: readonly string[];
+  options: readonly string[] | string[];
   error?: string;
   placeholder?: string;
   maxLength?: number;
@@ -297,6 +280,7 @@ export default function ProjectForm({
   const [projectFiles, setProjectFiles] = useState<any[]>([]);
   const [projectId, setProjectId] = useState<number>(initial?.id || 0);
   const [openDropdown, setOpenDropdown] = useState<"category" | "place" | "area" | null>(null);
+  const [areasFromApi, setAreasFromApi] = useState<string[]>([]);
 
   // FIX CLICK OUTSIDE: ref que envuelve el grid de los tres selectores
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -314,6 +298,13 @@ export default function ProjectForm({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openDropdown]);
+
+  // Carga áreas del sistema para el campo "Área"
+  useEffect(() => {
+    listAreasSelector()
+      .then((list) => setAreasFromApi(list.map((a) => a.nombre)))
+      .catch(() => setAreasFromApi([]));
+  }, []);
 
   useEffect(() => {
     if (!initial) return;
@@ -505,13 +496,13 @@ export default function ProjectForm({
 
           <div>
             <PresetSelectInput
-              label="Lugar"
+              label="Área"
               value={form.place}
               onChange={(v) => set("place", v)}
               onBlur={() => validateField("place")}
-              options={PLACES}
+              options={areasFromApi}
               error={errors.place}
-              placeholder="Selecciona o escribe"
+              placeholder="Selecciona un área"
               maxLength={LIMITS.select.max}
               minLength={LIMITS.select.min}
               required
@@ -523,7 +514,7 @@ export default function ProjectForm({
 
           <div>
             <PresetSelectInput
-              label="Área de enfoque"
+              label="Enfoque"
               value={form.area}
               onChange={(v) => set("area", v)}
               onBlur={() => validateField("area")}
