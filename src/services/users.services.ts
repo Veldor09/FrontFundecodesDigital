@@ -80,3 +80,9 @@ export async function verifyUser(userId: number, verified: boolean) {
   const res = await API.patch<UserItem>(`/admin/users/${userId}/verify`, { verified });
   return res.data;
 }
+
+/** Eliminar usuario */
+export async function deleteUser(userId: number) {
+  const res = await API.delete(`/admin/users/${userId}`);
+  return res.data;
+}

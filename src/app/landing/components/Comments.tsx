@@ -209,8 +209,8 @@ export default function Comments({ comments }: { comments?: Comment[] }) {
                     <User className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm mb-1">{c.author}</p>
-                    <p className="text-gray-600 text-sm leading-relaxed">{c.text}</p>
+                    <p className="font-semibold text-gray-900 text-sm mb-1 break-words">{c.author}</p>
+                    <p className="text-gray-600 text-sm leading-relaxed break-words">{c.text}</p>
                     {/* Adjunto aprobado */}
                     {c.attachmentUrl && (
                       <div className="mt-3">

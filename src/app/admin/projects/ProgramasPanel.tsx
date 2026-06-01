@@ -279,7 +279,14 @@ export default function ProgramasPanel() {
         <div className="space-y-4">
           <div>
             <Label htmlFor="nombre">Nombre *</Label>
-            <Input id="nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+            <Input
+              id="nombre"
+              value={form.nombre}
+              onChange={(e) => setForm({ ...form, nombre: e.target.value.slice(0, 150) })}
+              maxLength={150}
+              placeholder="Nombre del programa"
+            />
+            <p className="text-xs text-slate-400 mt-1 text-right">{form.nombre.length}/150</p>
           </div>
           <div>
             <Label htmlFor="lugar">Área *</Label>
@@ -300,7 +307,16 @@ export default function ProgramasPanel() {
           </div>
           <div>
             <Label htmlFor="desc">Descripción</Label>
-            <Input id="desc" value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
+            <textarea
+              id="desc"
+              value={form.descripcion}
+              onChange={(e) => setForm({ ...form, descripcion: e.target.value.slice(0, 1000) })}
+              maxLength={1000}
+              rows={4}
+              placeholder="Descripción del programa (opcional)"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y"
+            />
+            <p className="text-xs text-slate-400 mt-1 text-right">{(form.descripcion ?? "").length}/1000</p>
           </div>
           <div>
             <Label htmlFor="limite">Límite de participantes (0 = sin límite)</Label>

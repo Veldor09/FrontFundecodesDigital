@@ -6,17 +6,18 @@ import { fetchSolicitudes, type SolicitudListItem } from '../services/solicitude
 import RequestsRow from './RequestsRow';
 import RequestFormModal from './RequestFormModal';
 import RequestViewModal from './RequestViewModal';
+import { useSolicitanteRole } from '../hooks/useSolicitanteRole';
 
 function getEstadoDisplay(it: Pick<SolicitudListItem, 'estadoContadora' | 'estadoDirector'>) {
   const ed = (it.estadoDirector ?? 'PENDIENTE').toString().toUpperCase();
   const ec = (it.estadoContadora ?? 'PENDIENTE').toString().toUpperCase();
-  // Regla: lo del director manda si no está PENDIENTE
   if (ed === 'APROBADA' || ed === 'RECHAZADA') return ed;
-  // Si director está pendiente, mostramos el de contadora
   return ec || 'PENDIENTE';
 }
 
 export default function RequestsTable() {
+  const { isSolicitante, userEmail, userId } = useSolicitanteRole();
+
   const [items, setItems] = useState<SolicitudListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -36,7 +37,6 @@ export default function RequestsTable() {
     setErrorMsg(null);
     try {
       const data = await fetchSolicitudes();
-      // saneamos por si viniera algo raro del back
       const clean = Array.isArray(data)
         ? data.filter((x): x is SolicitudListItem => !!x && typeof (x as any).id !== 'undefined')
         : [];
@@ -49,9 +49,7 @@ export default function RequestsTable() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const areaOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -64,15 +62,23 @@ export default function RequestsTable() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = items.filter((x): x is SolicitudListItem => !!x && typeof (x as any).id !== 'undefined');
+    let base = items.filter((x): x is SolicitudListItem => !!x && typeof (x as any).id !== 'undefined');
+
+    // ── Si es solicitante, mostrar SOLO sus propias solicitudes ──
+    if (isSolicitante) {
+      base = base.filter((it) => {
+        if (userEmail && it.usuario?.email === userEmail) return true;
+        if (userId != null && (it as any).usuarioId === userId) return true;
+        return false;
+      });
+    }
 
     // 1) filtro por estado
-    const byStatus =
-      statusFilter === 'ALL'
-        ? base
-        : base.filter((it) => getEstadoDisplay(it) === statusFilter);
+    const byStatus = statusFilter === 'ALL'
+      ? base
+      : base.filter((it) => getEstadoDisplay(it) === statusFilter);
 
-    // 2) filtro por área
+    // 2) filtro por área (solo visible para admins, pero no afecta si está activo)
     const byArea = areaFilter
       ? byStatus.filter((it) => ((it as any).areaOrg?.nombre ?? '') === areaFilter)
       : byStatus;
@@ -85,7 +91,7 @@ export default function RequestsTable() {
       const e = getEstadoDisplay(it).toLowerCase();
       return t.includes(q) || d.includes(q) || e.includes(q);
     });
-  }, [items, search, statusFilter, areaFilter]);
+  }, [items, search, statusFilter, areaFilter, isSolicitante, userEmail, userId]);
 
   const handleView = (id: number) => {
     setSelectedId(id);
@@ -94,7 +100,7 @@ export default function RequestsTable() {
 
   return (
     <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-4">
-      {/* Barra superior: buscador + filtros + botón nueva solicitud */}
+      {/* Barra superior */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full flex-col gap-2 sm:flex-row">
           <input
@@ -104,13 +110,11 @@ export default function RequestsTable() {
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          {/* Filtro por estado */}
+          {/* Estado */}
           <select
             className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-44"
             value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value.toUpperCase() as typeof statusFilter)
-            }
+            onChange={(e) => setStatusFilter(e.target.value.toUpperCase() as typeof statusFilter)}
           >
             <option value="ALL">Todos los estados</option>
             <option value="PENDIENTE">Pendiente</option>
@@ -120,35 +124,37 @@ export default function RequestsTable() {
             <option value="RECHAZADA">Rechazada</option>
           </select>
 
-          {/* Filtro por área */}
-          <select
-            className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-44"
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
-          >
-            <option value="">Todas las áreas</option>
-            {areaOptions.map((area) => (
-              <option key={area} value={area}>{area}</option>
-            ))}
-          </select>
+          {/* Área — solo admin */}
+          {!isSolicitante && (
+            <select
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:w-44"
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value)}
+            >
+              <option value="">Todas las áreas</option>
+              {areaOptions.map((area) => (
+                <option key={area} value={area}>{area}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <button
           type="button"
           onClick={() => setOpenCreate(true)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 whitespace-nowrap"
         >
           Nueva solicitud
         </button>
       </div>
 
-      {/* Scroll horizontal por si es necesario, pero con celdas truncadas en cada fila */}
+      {/* Tabla */}
       <div className="overflow-x-auto rounded-2xl border">
         <table className="min-w-full table-fixed border-collapse text-sm">
           <thead className="bg-slate-50 text-left">
             <tr className="text-slate-700">
               <th className="px-4 py-3">Título</th>
-              <th className="px-4 py-3 w-44">Solicitante</th>
+              {!isSolicitante && <th className="px-4 py-3 w-44">Solicitante</th>}
               <th className="px-4 py-3 w-44">Destino</th>
               <th className="px-4 py-3 w-32 text-right">Monto</th>
               <th className="px-4 py-3 w-28">Estado</th>
@@ -159,32 +165,33 @@ export default function RequestsTable() {
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-center" colSpan={7}>
+                <td className="px-4 py-6 text-center" colSpan={isSolicitante ? 6 : 7}>
                   Cargando…
                 </td>
               </tr>
             ) : errorMsg ? (
               <tr>
-                <td className="px-4 py-6 text-center text-red-600" colSpan={7}>
+                <td className="px-4 py-6 text-center text-red-600" colSpan={isSolicitante ? 6 : 7}>
                   {errorMsg}
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={7}>
-                  No hay solicitudes
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={isSolicitante ? 6 : 7}>
+                  {isSolicitante ? 'No tienes solicitudes creadas todavía.' : 'No hay solicitudes'}
                 </td>
               </tr>
             ) : (
               filtered.map((item) => {
                 const estado = getEstadoDisplay(item);
-                const createdAt = (item as any)?.createdAt ?? null; // viene del back; no romper tipado
+                const createdAt = (item as any)?.createdAt ?? null;
                 const extended = { ...item, estado, createdAt };
                 return (
                   <RequestsRow
                     key={(item as any).id}
                     item={extended as any}
                     onView={handleView}
+                    hideSolicitante={isSolicitante}
                   />
                 );
               })

@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Phone, MapPin, Facebook, Instagram, Youtube } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Instagram } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -89,13 +89,16 @@ export default function Footer() {
                 Instagram
               </a>
               <a
-                href="https://www.youtube.com"
+                href="https://www.tiktok.com/@fundecodes?_r=1&_t=ZS-96o0nirqxF3"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-red-600/20 border border-white/10 hover:border-red-500/40 text-sm text-slate-300 hover:text-red-400 transition-all duration-300"
+                className="group inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-sm text-slate-300 hover:text-cyan-400 transition-all duration-300"
               >
-                <Youtube className="w-4 h-4" />
-                YouTube
+                {/* TikTok logo SVG */}
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
+                </svg>
+                TikTok
               </a>
             </div>
           </div>

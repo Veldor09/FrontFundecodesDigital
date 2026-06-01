@@ -239,7 +239,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
             <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
               <Globe className="h-4 w-4" /> Nacionalidad
             </Label>
-            <Input placeholder="Ej. Costa Rica, España…" {...register("nacionalidad")} />
+            <Input placeholder="Ej. Costa Rica" {...register("nacionalidad")} />
           </div>
 
           {/* Fechas */}
@@ -268,7 +268,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
             <Label className="flex items-center gap-2 text-slate-700 font-medium pb-1">
               <Building2 className="h-4 w-4" /> ONG / Organización de origen
             </Label>
-            <Input placeholder="Ej. Cruz Roja Internacional (opcional)" {...register("ong")} />
+            <Input placeholder="(opcional)" {...register("ong")} />
             <p className="text-xs text-slate-400 mt-1 flex items-start gap-1">
               <Info className="h-3 w-3 mt-0.5 shrink-0 text-slate-400" />
               Esta ONG es la misma empresa que aparecerá como intermediaria al asignar a programas.
@@ -332,7 +332,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
                 <Building2 className="h-3.5 w-3.5" /> ONG / Organización de origen
               </Label>
               <Input
-                placeholder="Ej. Cruz Roja Internacional (opcional)"
+                placeholder="(opcional)"
                 value={shared.ong}
                 onChange={e => setShared(p => ({ ...p, ong: e.target.value }))}
               />
@@ -386,7 +386,7 @@ export default function VoluntarioForm({ initial, onSave, onCancel }: Props) {
                   />
 
                   <Input
-                    placeholder="Ej. España"
+                    placeholder="Ej. Costa Rica"
                     value={row.nacionalidad}
                     onChange={e => updateRow(row.id, "nacionalidad", e.target.value)}
                   />

@@ -326,11 +326,26 @@ export default function AddCollaboratorModal({ open, mode, initial, onClose, onS
             {/* Nombre */}
             <div>
               <Label htmlFor="fullName">Nombre completo *</Label>
-              <Input id="fullName" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                     onBlur={() => markTouched("fullName")} placeholder={`Entre ${LIMITS.fullName.min} y ${LIMITS.fullName.max} caracteres`}
-                     minLength={LIMITS.fullName.min} maxLength={LIMITS.fullName.max}
-                     aria-invalid={showError("fullName")} aria-describedby="fullName-error" required />
-              {showError("fullName") && <p id="fullName-error" className="text-xs text-red-600 mt-1">{errors.fullName}</p>}
+              <Input
+                id="fullName"
+                value={form.fullName}
+                onChange={(e) => {
+                  const val = e.target.value
+                    .replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s]/g, "")
+                    .replace(/\s{2,}/g, " ");
+                  setForm({ ...form, fullName: val.slice(0, LIMITS.fullName.max) });
+                }}
+                onBlur={() => markTouched("fullName")}
+                placeholder="Nombre y apellidos"
+                maxLength={LIMITS.fullName.max}
+                aria-invalid={showError("fullName")}
+                aria-describedby="fullName-error"
+                required
+              />
+              <p className="text-xs text-slate-400 mt-1 text-right">
+                {form.fullName.length}/{LIMITS.fullName.max}
+              </p>
+              {showError("fullName") && <p id="fullName-error" className="text-xs text-red-600">{errors.fullName}</p>}
             </div>
 
             {/* Email */}

@@ -160,7 +160,7 @@ export default function PortafolioProyectos() {
 
                   <button
                     onClick={() => { setSelected(p); setOpen(true); }}
-                    className="w-full py-2 px-4 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-gradient-to-r hover:from-blue-600 hover:to-emerald-500 hover:text-white hover:border-transparent transition-all duration-300"
+                    className="w-full py-2 px-4 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-blue-600 hover:text-white hover:border-transparent transition-all duration-300"
                   >
                     Ver detalles
                   </button>
@@ -174,7 +174,7 @@ export default function PortafolioProyectos() {
         <div className="flex justify-center mt-10">
           <Link
             href="/landing/projects"
-            className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-emerald-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
+            className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
           >
             Explorar todos los proyectos
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

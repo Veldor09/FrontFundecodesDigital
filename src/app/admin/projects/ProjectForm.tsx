@@ -60,9 +60,9 @@ const AREAS = [
 
 /* ===== Límites realistas ===== */
 const LIMITS = {
-  title:   { min: 3,  max: 100 },
+  title:   { min: 3,  max: 150 },
   select:  { min: 3,  max: 40 },
-  summary: { min: 10, max: 80 },
+  summary: { min: 10, max: 150 },
   content: {        max: 1000 },
   url:     {        max: 200 },
 };

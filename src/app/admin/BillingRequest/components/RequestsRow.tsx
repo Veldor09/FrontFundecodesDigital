@@ -50,9 +50,11 @@ function formatDate(iso?: string | null) {
 type Props = {
   item?: RowItem | null;
   onView?: (id: number) => void;
+  /** Si true, oculta la columna "Solicitante" (rol colaboradorsolicitante) */
+  hideSolicitante?: boolean;
 };
 
-export default function RequestsRow({ item, onView }: Props) {
+export default function RequestsRow({ item, onView, hideSolicitante = false }: Props) {
   const id = (item?.id ?? null) as number | null;
   const titulo = item?.titulo ?? '—';
   const descripcion = item?.descripcion ?? '—';
@@ -99,17 +101,19 @@ export default function RequestsRow({ item, onView }: Props) {
         </div>
       </td>
 
-      {/* ✅ Solicitante real: nombre o correo del usuario que creó la solicitud */}
-      <td className="px-4 py-3">
-        <div className="text-sm text-slate-800 truncate" title={solicitante}>
-          {solicitante}
-        </div>
-        {item?.usuario?.name && (
-          <div className="text-xs text-slate-500 truncate" title={item.usuario.email}>
-            {item.usuario.email}
+      {/* Solicitante — oculto cuando hideSolicitante=true */}
+      {!hideSolicitante && (
+        <td className="px-4 py-3">
+          <div className="text-sm text-slate-800 truncate" title={solicitante}>
+            {solicitante}
           </div>
-        )}
-      </td>
+          {item?.usuario?.name && (
+            <div className="text-xs text-slate-500 truncate" title={item.usuario.email}>
+              {item.usuario.email}
+            </div>
+          )}
+        </td>
+      )}
 
       {/* ✅ Destino: programa o proyecto */}
       <td className="px-4 py-3">

@@ -13,6 +13,7 @@ import { getBillingStatusForSolicitud } from "../services/billing.api";
 import HistoryViewModal from "./HistoryViewModal";
 import ExportButton from "@/app/admin/_components/ExportButton";
 import type { ExportRow } from "@/lib/export";
+import { useSolicitanteRole } from "../hooks/useSolicitanteRole";
 
 const HIST_COLS = [
   { key: "titulo",    header: "Título",             width: 28 },
@@ -60,6 +61,8 @@ function statusClasses(estado?: string) {
 }
 
 export default function HistoryTable() {
+  const { isSolicitante, userEmail, userId } = useSolicitanteRole();
+
   const [items, setItems] = useState<SolicitudListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -95,10 +98,17 @@ export default function HistoryTable() {
     return Array.from(seen).sort();
   }, [items]);
 
-  // Filtro general (título/descripción/área)
+  // Filtro general (título/descripción/área + propias si es solicitante)
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items
+      // Solicitante: solo sus propias solicitudes
+      .filter((it) => {
+        if (!isSolicitante) return true;
+        if (userEmail && it.usuario?.email === userEmail) return true;
+        if (userId != null && (it as any).usuarioId === userId) return true;
+        return false;
+      })
       .filter((it) => areaFilter ? ((it as any).areaOrg?.nombre ?? "") === areaFilter : true)
       .filter((it) => {
         if (!q) return true;
@@ -106,7 +116,7 @@ export default function HistoryTable() {
         const d = (it as any)?.descripcion?.toLowerCase?.() ?? "";
         return t.includes(q) || d.includes(q);
       });
-  }, [items, search, areaFilter]);
+  }, [items, search, areaFilter, isSolicitante, userEmail, userId]);
 
   const candidates = filtered;
 
@@ -149,29 +159,34 @@ export default function HistoryTable() {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 space-y-6">
-      {/* Header: título + Export alineados igual que en el resto de módulos */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Historial</h2>
           <p className="text-xs text-slate-500">
-            Solicitudes con pago registrado.
+            {isSolicitante
+              ? "Tus solicitudes con pago registrado."
+              : "Solicitudes con pago registrado."}
           </p>
         </div>
-        <ExportButton
-          title="Historial de Solicitudes"
-          subtitle="Solicitudes con pago registrado"
-          filename="historial_solicitudes"
-          columns={HIST_COLS}
-          currentRows={visible.map((it) =>
-            solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id]))
-          )}
-          fetchAll={async () => {
-            const all = await fetchSolicitudes();
-            return all.map((it) =>
-              solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id] ?? null))
-            );
-          }}
-        />
+        {/* El botón de exportar solo está disponible para roles administrativos */}
+        {!isSolicitante && (
+          <ExportButton
+            title="Historial de Solicitudes"
+            subtitle="Solicitudes con pago registrado"
+            filename="historial_solicitudes"
+            columns={HIST_COLS}
+            currentRows={visible.map((it) =>
+              solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id]))
+            )}
+            fetchAll={async () => {
+              const all = await fetchSolicitudes();
+              return all.map((it) =>
+                solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id] ?? null))
+              );
+            }}
+          />
+        )}
       </div>
 
       {/* Barra de búsqueda + filtro por área */}

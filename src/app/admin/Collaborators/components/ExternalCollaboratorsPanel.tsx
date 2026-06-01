@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, Trash2, Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import Modal from "@/components/ui/Modal";
 import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 import { toast } from "sonner";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import {
+  getCountryCallingCode,
+  getExampleNumber,
+  parsePhoneNumberFromString,
+} from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile.json";
 import {
   apiListExternalCollaborators,
   apiCreateExternalCollaborator,
@@ -45,7 +53,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   nombreCompleto: "",
   correo: "",
-  telefono: "",
+  telefono: "+506",
   rol: "colaboradorsolicitante",
   areaId: "",
 };
@@ -69,8 +77,66 @@ export default function ExternalCollaboratorsPanel() {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [areas, setAreas] = useState<AreaSelector[]>([]);
+  const [phoneCountry, setPhoneCountry] = useState<string>("CR");
 
   const editing = Boolean(form.id);
+
+  /* ── Helpers de teléfono (igual que AddCollaboratorModal) ── */
+  function getMaxNationalLength(c?: string): number {
+    if (!c) return 15;
+    try {
+      const ex = getExampleNumber(c as any, examples as any);
+      if (ex?.nationalNumber) return String(ex.nationalNumber).length;
+    } catch {}
+    const fb: Record<string, number> = {
+      CR: 8, US: 10, CA: 10, MX: 10, ES: 9, AR: 10, CL: 9, CO: 10,
+      PE: 9, BR: 11, EC: 9, PA: 8, NI: 8, HN: 8, SV: 8, GT: 8, DO: 10, PR: 10,
+    };
+    return fb[c] ?? 15;
+  }
+
+  function handlePhoneChange(value?: string) {
+    const c = phoneCountry || "CR";
+    try {
+      const cc = getCountryCallingCode(c as any);
+      const digits = (value || "").replace(/\D/g, "");
+      const maxNat = getMaxNationalLength(c);
+      let nat = digits.slice(String(cc).length);
+      if (nat.length > maxNat) nat = nat.slice(0, maxNat);
+      setForm((f) => ({ ...f, telefono: `+${cc}${nat}` }));
+    } catch {
+      setForm((f) => ({ ...f, telefono: value ?? f.telefono }));
+    }
+  }
+
+  function handlePhoneCountryChange(c?: string) {
+    const next = c || "CR";
+    setPhoneCountry(next);
+    try {
+      const cc = getCountryCallingCode(next as any);
+      setForm((f) => ({ ...f, telefono: `+${cc}` }));
+    } catch {
+      setForm((f) => ({ ...f, telefono: "" }));
+    }
+  }
+
+  function handlePhoneKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    const key = e.key;
+    if (!/^\d$/.test(key)) return;
+    const input = e.currentTarget;
+    const val = input.value ?? "";
+    try {
+      const cc = getCountryCallingCode((phoneCountry as any) || "CR");
+      const ccLen = String(cc).length;
+      const selStart = input.selectionStart ?? val.length;
+      const selEnd = input.selectionEnd ?? val.length;
+      const replacing = selStart !== selEnd;
+      const digitsAll = val.replace(/\D/g, "");
+      const natLen = Math.max(0, digitsAll.length - ccLen);
+      const maxNat = getMaxNationalLength(phoneCountry);
+      if (natLen >= maxNat && !replacing) e.preventDefault();
+    } catch {}
+  }
 
   const load = useCallback(
     async (pg = page) => {
@@ -109,15 +175,25 @@ export default function ExternalCollaboratorsPanel() {
 
   function openCreate() {
     setForm(EMPTY_FORM);
+    setPhoneCountry("CR");
     setOpen(true);
   }
 
   function openEdit(c: ExternalColaborador) {
+    const tel = c.telefono ?? "+506";
+    // Intentar detectar el país del teléfono guardado
+    try {
+      const parsed = parsePhoneNumberFromString(tel);
+      if (parsed?.country) setPhoneCountry(parsed.country);
+      else setPhoneCountry("CR");
+    } catch {
+      setPhoneCountry("CR");
+    }
     setForm({
       id: c.id,
       nombreCompleto: c.nombreCompleto,
       correo: c.correo,
-      telefono: c.telefono ?? "",
+      telefono: tel,
       rol: c.rol,
       areaId: c.areaId ? String(c.areaId) : "",
     });
@@ -129,10 +205,13 @@ export default function ExternalCollaboratorsPanel() {
     if (!form.correo.trim()) return toast.error("El correo es obligatorio");
     if (!form.areaId) return toast.error("Debe seleccionar un área");
 
-    // Validar formato de teléfono si se ingresó
-    const tel = form.telefono.trim();
-    if (tel && !/^\+\d{6,20}$/.test(tel)) {
-      return toast.error("El teléfono debe estar en formato E.164 (ej: +50688888888)");
+    // Validar teléfono con libphonenumber si se ingresó
+    const tel = (form.telefono || "").replace(/\s+/g, "");
+    if (tel && tel !== `+${getCountryCallingCode(phoneCountry as any)}`) {
+      const parsed = parsePhoneNumberFromString(tel);
+      if (!parsed || !parsed.isValid()) {
+        return toast.error(`Teléfono inválido para ${phoneCountry}`);
+      }
     }
 
     setSaving(true);
@@ -369,10 +448,19 @@ export default function ExternalCollaboratorsPanel() {
             <Input
               id="ext-nombre"
               value={form.nombreCompleto}
-              onChange={(e) => setForm((f) => ({ ...f, nombreCompleto: e.target.value }))}
-              placeholder="Ej: María García"
+              onChange={(e) => {
+                const val = e.target.value
+                  .replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s]/g, "")
+                  .replace(/\s{2,}/g, " ");
+                setForm((f) => ({ ...f, nombreCompleto: val.slice(0, 80) }));
+              }}
+              placeholder="Nombre y apellidos"
+              maxLength={80}
               autoFocus
             />
+            <p className="text-xs text-slate-400 text-right">
+              {form.nombreCompleto.length}/80
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -393,12 +481,22 @@ export default function ExternalCollaboratorsPanel() {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="ext-tel">Teléfono (formato E.164)</Label>
-            <Input
+            <Label htmlFor="ext-tel">Teléfono</Label>
+            <PhoneInput
               id="ext-tel"
-              value={form.telefono}
-              onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))}
-              placeholder="+50688888888"
+              international
+              withCountryCallingCode
+              countryCallingCodeEditable={false}
+              defaultCountry="CR"
+              value={form.telefono || undefined}
+              onCountryChange={handlePhoneCountryChange}
+              onChange={handlePhoneChange}
+              className="PhoneInput"
+              numberInputProps={{
+                inputMode: "tel",
+                autoComplete: "tel",
+                onKeyDown: handlePhoneKeyDown,
+              }}
             />
           </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Users, MapPin, Heart } from "lucide-react";
+import Modal from "@/components/ui/Modal";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
@@ -28,6 +29,8 @@ async function fetchProgramas(): Promise<Programa[]> {
 export default function ProgramasPortfolio() {
   const [items, setItems] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Programa | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProgramas()
@@ -36,7 +39,18 @@ export default function ProgramasPortfolio() {
       .finally(() => setLoading(false));
   }, []);
 
+  function openModal(p: Programa) { setSelected(p); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); }
+
+  const sel = selected;
+  const selAsignados = Array.isArray(sel?.voluntarios) ? sel!.voluntarios!.length : (sel?._count?.asignaciones ?? 0);
+  const selLimite = Number(sel?.limiteParticipantes ?? 0);
+  const selSinLimite = selLimite === 0;
+  const selDisponibles = selSinLimite ? null : Math.max(selLimite - selAsignados, 0);
+  const selLleno = !selSinLimite && selAsignados >= selLimite;
+
   return (
+    <>
     <section className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mx-4 sm:mx-6">
       {/* Top accent bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-emerald-400 to-green-500" />
@@ -135,17 +149,17 @@ export default function ProgramasPortfolio() {
                     )}
 
                     {p.descripcion && (
-                      <p className="text-gray-500 text-sm line-clamp-2 mb-4 leading-relaxed flex-1">
+                      <p className="text-gray-500 text-sm line-clamp-2 mb-4 leading-relaxed flex-1 break-words hyphens-auto">
                         {p.descripcion}
                       </p>
                     )}
 
-                    <Link
-                      href="/PagInfo/Voluntariado#programas"
-                      className="w-full py-2 px-4 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-gradient-to-r hover:from-green-600 hover:to-emerald-500 hover:text-white hover:border-transparent transition-all duration-300 text-center block"
+                    <button
+                      onClick={() => openModal(p)}
+                      className="w-full py-2 px-4 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-gradient-to-r hover:from-green-600 hover:to-emerald-500 hover:text-white hover:border-transparent transition-all duration-300 text-center"
                     >
-                      Ver programa
-                    </Link>
+                      Ver detalles
+                    </button>
                   </div>
                 </div>
               );
@@ -165,5 +179,67 @@ export default function ProgramasPortfolio() {
         </div>
       </div>
     </section>
+
+    {/* Modal de detalle */}
+    <Modal open={modalOpen} onClose={closeModal} title={sel?.nombre ?? ""}>
+      {sel && (
+        <div className="space-y-5">
+          {sel.imagenUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={sel.imagenUrl} alt={sel.nombre} className="w-full h-56 object-cover rounded-xl" />
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {sel.lugar && (
+              <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg">
+                <MapPin className="w-3.5 h-3.5" />{sel.lugar}
+              </span>
+            )}
+            <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold border ${
+              selLleno      ? "bg-red-100 text-red-700 border-red-200"
+              : selSinLimite ? "bg-blue-100 text-blue-700 border-blue-200"
+              :                "bg-green-100 text-green-700 border-green-200"
+            }`}>
+              <Users className="w-3.5 h-3.5" />
+              {selLleno ? "Cupos llenos" : selSinLimite ? "Sin límite de cupos" : `${selDisponibles} cupo${selDisponibles !== 1 ? "s" : ""} disponible${selDisponibles !== 1 ? "s" : ""}`}
+            </span>
+          </div>
+
+          {sel.descripcion && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">Descripción</h4>
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line break-words hyphens-auto">
+                {sel.descripcion}
+              </p>
+            </div>
+          )}
+
+          {!selSinLimite && (
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-slate-400" />
+                {selAsignados} de {selLimite} participantes inscritos
+              </span>
+              {selLleno
+                ? <span className="text-red-600 font-semibold">Sin cupos</span>
+                : <span className="text-green-600 font-semibold">{selDisponibles} libre{selDisponibles !== 1 ? "s" : ""}</span>
+              }
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-slate-100">
+            <Link
+              href="/PagInfo/Voluntariado#formulario"
+              onClick={closeModal}
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl text-sm font-semibold bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white shadow-md shadow-green-500/20 hover:shadow-green-500/30 transition-all duration-300"
+            >
+              {selLleno ? "Unirse a lista de espera" : "Quiero participar"}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      )}
+    </Modal>
+    </>
   );
 }

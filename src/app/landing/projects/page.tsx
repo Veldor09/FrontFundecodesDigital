@@ -228,7 +228,7 @@ export default function ProjectsPublicPage() {
                 {items.map((p) => (
                   <div
                     key={p.id}
-                    className="group bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:border-green-200 hover:-translate-y-1 transition-all duration-300"
+                    className="group bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all duration-300"
                   >
                     <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
                       {p.coverUrl ? (
@@ -260,7 +260,7 @@ export default function ProjectsPublicPage() {
                       )}
                     </div>
                     <div className="p-5">
-                      <h3 className="font-semibold text-slate-900 text-lg mb-2 line-clamp-2 group-hover:text-green-700 transition-colors">
+                      <h3 className="font-semibold text-slate-900 text-lg mb-2 line-clamp-2 group-hover:text-blue-700 transition-colors">
                         {p.title}
                       </h3>
                       {p.summary && (
@@ -279,7 +279,7 @@ export default function ProjectsPublicPage() {
                       <Button
                         onClick={() => { setSelected(p); setOpen(true); }}
                         variant="outline"
-                        className="w-full rounded-xl border-slate-200 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-all"
+                        className="w-full rounded-xl border-slate-200 hover:bg-blue-600 hover:text-white hover:border-transparent transition-all"
                       >
                         Ver detalles
                       </Button>

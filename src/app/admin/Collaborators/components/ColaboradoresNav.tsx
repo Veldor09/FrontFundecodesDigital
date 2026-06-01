@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserCog } from "lucide-react";
 
 export type CollabTab = "colaboradores" | "externos";
 
@@ -28,7 +28,7 @@ export default function ColaboradoresNav({ active, onChange }: Props) {
           </p>
         </div>
 
-        {/* Desktop — back izq · tabs center */}
+        {/* Desktop — back izq · tabs center · usuarios der */}
         <div className="hidden md:block">
           <div className="relative flex items-center justify-center h-16">
             <a href="/admin" className="absolute left-0">
@@ -53,6 +53,13 @@ export default function ColaboradoresNav({ active, onChange }: Props) {
                 </button>
               ))}
             </nav>
+
+            <a href="/admin/users" className="absolute right-0">
+              <button className="bg-slate-800 text-white border border-slate-700 hover:bg-slate-700 shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2 font-medium rounded-md text-sm flex items-center gap-2">
+                <UserCog className="w-4 h-4" />
+                Gestión de Usuarios
+              </button>
+            </a>
           </div>
         </div>
 
@@ -80,6 +87,12 @@ export default function ColaboradoresNav({ active, onChange }: Props) {
                 {label}
               </button>
             ))}
+            <a href="/admin/users" className="flex-1">
+              <button className="w-full bg-slate-800 text-white border border-slate-700 hover:bg-slate-700 shadow-sm transition-all duration-200 px-4 py-2.5 font-medium rounded-md text-sm flex items-center justify-center gap-2">
+                <UserCog className="w-4 h-4" />
+                Gestión de Usuarios
+              </button>
+            </a>
           </nav>
         </div>
       </div>
