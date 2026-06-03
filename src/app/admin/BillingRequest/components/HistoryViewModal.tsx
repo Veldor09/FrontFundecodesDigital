@@ -368,8 +368,8 @@ export default function HistoryViewModal({ open, solicitudId, onClose }: Props) 
                           </a>
 
                           <a
-                            className="rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
                             href={makeDownloadUrl(f.url, f.name)}
+                            className="rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
                           >
                             Descargar
                           </a>
@@ -534,20 +534,6 @@ export default function HistoryViewModal({ open, solicitudId, onClose }: Props) 
                         <span className="font-normal break-words break-all">{payPreview.name}</span>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <a
-                          href={payPreview.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-md border border-indigo-700 bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
-                        >
-                          Abrir ↗
-                        </a>
-                        <a
-                          href={makeDownloadUrl(payPreview.url, payPreview.name)}
-                          className="rounded-md border border-emerald-700 bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
-                        >
-                          Descargar
-                        </a>
                         <button
                           type="button"
                           className="rounded-md border border-rose-700 bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1"

@@ -63,7 +63,7 @@ export default function ProgramasPortfolio() {
         {/* Header */}
         <div className="text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
-            <span className="text-green-600">Programas</span> de{" "}
+            <span className="text-green-600">Programa</span> de{" "}
             <span className="text-emerald-600">Voluntariado</span>
           </h2>
           <p className="mt-3 text-gray-500 max-w-xl mx-auto text-sm">

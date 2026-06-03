@@ -271,7 +271,7 @@ export class ReportService {
 
   private static mapDepartmentToModules(department: string): string {
     if (department === "todos") {
-      return "projects,billing,solicitudes,collaborators,volunteers,programas,sanciones,contabilidad,areas";
+      return "projects,billing,solicitudes,collaborators,volunteers,programas,sanciones,contabilidad,areas,visitaciones";
     }
     const mapping: Record<string, string> = {
       proyectos: "projects",
@@ -283,6 +283,7 @@ export class ReportService {
       programas: "programas",
       sanciones: "sanciones",
       areas: "areas",
+      visitacion: "visitaciones",
     };
     if (department.includes(",")) {
       return department
@@ -493,6 +494,17 @@ export class ReportService {
       };
     }
 
+    if (detalles.visitaciones) {
+      const d = detalles.visitaciones;
+      const items = d.items || [];
+      moduleData.visitacion = {
+        totalVisitas: d.total || 0,
+        totalPersonas: items.reduce((s: number, v: any) => s + Number(v.totalPersonas || 0), 0),
+        nacionales: items.reduce((s: number, v: any) => s + Number(v.nacionales || 0), 0),
+        extranjeros: items.reduce((s: number, v: any) => s + Number(v.extranjeros || 0), 0),
+      };
+    }
+
     return moduleData;
   }
 
@@ -638,6 +650,17 @@ export class ReportService {
         totalParticipantes: totalPart,
         cuposDisponibles: Math.max(0, limite - totalPart),
         programasActivos: Math.floor(totalPrograms * 0.8),
+      };
+    }
+    if (modules.includes("visitaciones")) {
+      const totalVisitas = Math.floor(Math.random() * 120) + 20;
+      const nacionales = Math.floor(totalVisitas * 0.6 * (Math.floor(Math.random() * 30) + 10));
+      const extranjeros = Math.floor(totalVisitas * 0.4 * (Math.floor(Math.random() * 20) + 5));
+      moduleData.visitacion = {
+        totalVisitas,
+        totalPersonas: nacionales + extranjeros,
+        nacionales,
+        extranjeros,
       };
     }
     return moduleData;

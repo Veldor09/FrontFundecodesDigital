@@ -65,6 +65,12 @@ export interface ReportData {
       cuposDisponibles: number
       programasActivos: number
     }
+    visitacion?: {
+      totalVisitas: number
+      totalPersonas: number
+      nacionales: number
+      extranjeros: number
+    }
   }
 }
 

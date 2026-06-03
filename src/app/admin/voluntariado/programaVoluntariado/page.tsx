@@ -591,7 +591,13 @@ export default function Page() {
                       <td className="px-4 py-3 text-center w-16">
                           <div className="relative inline-block">
                             <button
-                              onClick={() => setOpenMenuVol(menuAbierto ? null : vid)}
+                              onClick={() => {
+                                if (!menuAbierto && v.ong && !origenPorVol[vid]) {
+                                  setOrigenPorVol((prev) => ({ ...prev, [vid]: "INTERMEDIARIO" }));
+                                  setEmpresaPorVol((prev) => ({ ...prev, [vid]: v.ong! }));
+                                }
+                                setOpenMenuVol(menuAbierto ? null : vid);
+                              }}
                               className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
                             >
                               <svg
@@ -676,20 +682,26 @@ export default function Page() {
                                       {(origenPorVol[vid] ?? "CUENTA_PROPIA") ===
                                         "INTERMEDIARIO" && (
                                         <div className="space-y-1">
-                                          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                             Empresa
+                                            {v.ong && (
+                                              <span className="normal-case font-normal px-1.5 py-0.5 bg-blue-100 text-blue-600 text-[9px] rounded-full">
+                                                Auto-detectado
+                                              </span>
+                                            )}
                                           </label>
 
                                           <Input
                                             value={empresaPorVol[vid] ?? ""}
                                             onChange={(e) =>
-                                              setEmpresaPorVol((prev) => ({
+                                              !v.ong && setEmpresaPorVol((prev) => ({
                                                 ...prev,
                                                 [vid]: e.target.value,
                                               }))
                                             }
+                                            readOnly={!!v.ong}
                                             placeholder="Nombre de la empresa"
-                                            className="h-8 text-sm rounded-lg border-slate-200"
+                                            className={`h-8 text-sm rounded-lg border-slate-200 ${v.ong ? "bg-slate-50 text-slate-500 cursor-default" : ""}`}
                                           />
                                         </div>
                                       )}

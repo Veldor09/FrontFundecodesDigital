@@ -39,17 +39,10 @@ export async function GET(req: NextRequest) {
     return new Response("Bad url", { status: 400 });
   }
 
-  // Seguridad básica: sólo permitir el host del backend
-  try {
-    const allowedOrigin = backendOrigin();
-    if (allowedOrigin) {
-      const t = new URL(fetchUrl);
-      const a = new URL(allowedOrigin);
-      if (t.host !== a.host || t.protocol !== a.protocol) {
-        return new Response("Forbidden host", { status: 403 });
-      }
-    }
-  } catch {}
+  // Solo permitir HTTPS para evitar peticiones a recursos locales
+  if (!/^https:\/\//i.test(fetchUrl)) {
+    return new Response("Only HTTPS URLs are allowed", { status: 403 });
+  }
 
   const resp = await fetch(fetchUrl, { cache: "no-store" });
   if (!resp.ok || !resp.body) {

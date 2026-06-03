@@ -27,9 +27,11 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
   const [programaSeleccionado, setProgramaSeleccionado] = useState<string>("");
   const [guardando, setGuardando] = useState(false);
 
+  const tieneOng = !!voluntario.ong;
+
   const [pagoRealizado, setPagoRealizado] = useState(false);
-  const [origen, setOrigen] = useState<OrigenVoluntariado>("CUENTA_PROPIA");
-  const [intermediario, setIntermediario] = useState("");
+  const [origen, setOrigen] = useState<OrigenVoluntariado>(tieneOng ? "INTERMEDIARIO" : "CUENTA_PROPIA");
+  const [intermediario, setIntermediario] = useState(voluntario.ong ?? "");
   const [fechaEntrada, setFechaEntrada] = useState(() =>
     new Date().toISOString().slice(0, 10)
   );
@@ -243,7 +245,13 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
             <select
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={origen}
-              onChange={(e) => setOrigen(e.target.value as OrigenVoluntariado)}
+              onChange={(e) => {
+                const nuevoOrigen = e.target.value as OrigenVoluntariado;
+                setOrigen(nuevoOrigen);
+                if (nuevoOrigen === "INTERMEDIARIO" && tieneOng) {
+                  setIntermediario(voluntario.ong ?? "");
+                }
+              }}
             >
               <option value="CUENTA_PROPIA">Cuenta propia</option>
               <option value="INTERMEDIARIO">Intermediario / Empresa</option>
@@ -252,11 +260,20 @@ export default function AsignacionModal({ voluntario, open, onClose }: Props) {
 
           {origen === "INTERMEDIARIO" && (
             <div className="space-y-2 md:col-span-2">
-              <Label className="text-slate-700">Intermediario / Empresa</Label>
+              <Label className="text-slate-700 flex items-center gap-2">
+                Intermediario / Empresa
+                {tieneOng && (
+                  <span className="text-xs font-normal px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                    Auto-detectado de ONG
+                  </span>
+                )}
+              </Label>
               <Input
                 value={intermediario}
-                onChange={(e) => setIntermediario(e.target.value)}
+                onChange={(e) => !tieneOng && setIntermediario(e.target.value)}
+                readOnly={tieneOng}
                 placeholder="Ej: Empresa XYZ"
+                className={tieneOng ? "bg-slate-50 text-slate-600 cursor-default" : ""}
               />
             </div>
           )}

@@ -14,6 +14,7 @@ import {
   DollarSign,
   AlertTriangle,
   BookOpen,
+  Eye,
 } from "lucide-react"
 import type { SavedReport } from "../types/report"
 
@@ -82,6 +83,7 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
     solicitudes: "Solicitudes",
     colaboradores: "Colaboradores",
     contabilidad: "Contabilidad",
+    visitacion: "Visitación",
   }
 
   const growthValue =
@@ -95,7 +97,7 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
   const FINANCIAL_MODULES = ["facturacion", "solicitudes", "contabilidad"]
   const selectedModules: string[] =
     data.department === "todos"
-      ? ["voluntariado", "programas", "sanciones", "proyectos", "facturacion", "solicitudes", "colaboradores", "contabilidad"]
+      ? ["voluntariado", "programas", "sanciones", "proyectos", "facturacion", "solicitudes", "colaboradores", "contabilidad", "visitacion"]
       : (data.department || "").split(",").map((m) => m.trim())
   const hasFinancialModule = selectedModules.some((m) => FINANCIAL_MODULES.includes(m))
 
@@ -514,6 +516,41 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
                   <div className="text-xs text-muted-foreground">Programas activos</div>
                   <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
                     {data.data.moduleData.programas.programasActivos}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          )}
+          {/* Visitación */}
+          {data.data.moduleData.visitacion && (
+            <div className="mb-6">
+              <h3 className="mb-3 flex items-center gap-2 text-base sm:text-lg font-medium text-foreground">
+                <Eye className="h-5 w-5 text-primary flex-shrink-0" />
+                Visitación
+              </h3>
+              <div className={moduleGridClass}>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Total visitas</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.visitacion.totalVisitas}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Total personas</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.visitacion.totalPersonas.toLocaleString()}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Nacionales</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.visitacion.nacionales.toLocaleString()}
+                  </div>
+                </Card>
+                <Card className="border-border bg-card p-3">
+                  <div className="text-xs text-muted-foreground">Extranjeros</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
+                    {data.data.moduleData.visitacion.extranjeros.toLocaleString()}
                   </div>
                 </Card>
               </div>
