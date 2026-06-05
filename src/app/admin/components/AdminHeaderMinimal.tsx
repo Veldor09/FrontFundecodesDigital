@@ -96,7 +96,7 @@ export default function AdminHeaderMinimal() {
             >
               <div className="flex-shrink-0 bg-white rounded-full p-1.5 sm:p-2 shadow-md flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12">
                 <Image
-                  src="/Img/FUNDECODES_Logo.png"
+                  src="/Img/iconfundecodes.png"
                   alt="Fundecodes"
                   width={40}
                   height={40}

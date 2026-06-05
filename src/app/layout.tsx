@@ -11,6 +11,11 @@ const openSans = Open_Sans({
 export const metadata: Metadata = {
   title: "FUNDECODES",
   description: "Plataforma administrativa",
+  icons: {
+    icon: "/Img/iconfundecodes.png",
+    shortcut: "/Img/iconfundecodes.png",
+    apple: "/Img/iconfundecodes.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

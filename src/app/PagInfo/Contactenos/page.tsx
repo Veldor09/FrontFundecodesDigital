@@ -10,7 +10,7 @@ export default function ContactenosPage() {
     {
       icon: Phone,
       title: "Teléfono",
-      value: "+506 2222-2222",
+      value: "+506 8670-3535",
       color: "bg-blue-100 text-blue-600",
     },
     {
