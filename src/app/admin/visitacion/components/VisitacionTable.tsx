@@ -27,7 +27,8 @@ function pct(part: number, total: number): string {
 function fmt(d: string | undefined): string {
   if (!d) return "—";
   try {
-    return new Date(d).toLocaleDateString("es-CR", { day: "2-digit", month: "short", year: "numeric" });
+    const [year, month, day] = d.slice(0, 10).split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("es-CR", { day: "2-digit", month: "short", year: "numeric" });
   } catch {
     return d;
   }
