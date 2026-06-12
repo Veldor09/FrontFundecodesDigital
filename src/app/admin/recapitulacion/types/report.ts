@@ -9,7 +9,7 @@ export interface ReportData {
     totalRecords: number
     totalAmount: number
     averageValue: number
-    growth: string | number
+    growth: string | number | null
   }
   monthlyData: Array<{
     month: string

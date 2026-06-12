@@ -137,8 +137,10 @@ export default function VisitacionTable({
                         {pct(ext, item.totalPersonas)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 max-w-[180px] truncate">
-                      {item.notas || <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-3 text-slate-500 max-w-[220px]">
+                      {item.notas
+                        ? <span title={item.notas} className="line-clamp-2 cursor-help">{item.notas}</span>
+                        : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">

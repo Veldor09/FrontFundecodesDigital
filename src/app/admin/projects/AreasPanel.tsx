@@ -27,7 +27,7 @@ type FormState = {
 
 const EMPTY_FORM: FormState = { nombre: "", descripcion: "" };
 
-export default function AreasPanel() {
+export default function AreasPanel({ refreshTrigger = 0 }: { refreshTrigger?: number }) {
   const [areas, setAreas] = useState<Area[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -69,6 +69,11 @@ export default function AreasPanel() {
     load(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) load(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   function openCreate() {
     setForm(EMPTY_FORM);

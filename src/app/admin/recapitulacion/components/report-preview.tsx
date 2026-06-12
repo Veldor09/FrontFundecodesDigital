@@ -87,7 +87,9 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
   }
 
   const growthValue =
-    typeof data.data.summary.growth === "string"
+    data.data.summary.growth === null || data.data.summary.growth === undefined
+      ? null
+      : typeof data.data.summary.growth === "string"
       ? Number.parseFloat(data.data.summary.growth)
       : data.data.summary.growth
 
@@ -114,7 +116,7 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
           {reportTypeNames[data.reportType] || data.reportType}
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-          Informe {data.dateRange ? "de Período" : `Anual ${data.year}`}
+          Informe {data.dateRange ? "de Período" : `${reportTypeNames[data.reportType] || data.reportType} ${data.year}`}
         </h1>
         {/* FIX: en móvil se apilan, en sm van en fila */}
         <div className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground sm:grid sm:grid-cols-3">
@@ -185,11 +187,17 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
           <Card className="border-border bg-card p-3 sm:p-4">
             <div className="text-xs sm:text-sm text-muted-foreground">Variación respecto al período anterior</div>
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-xl sm:text-2xl font-bold text-card-foreground">{growthValue.toFixed(1)}%</span>
-              {growthValue > 0 ? (
-                <TrendingUp className="h-5 w-5 text-green-600" />
+              {growthValue === null ? (
+                <span className="text-xl sm:text-2xl font-bold text-muted-foreground">Sin datos</span>
               ) : (
-                <TrendingDown className="h-5 w-5 text-red-600" />
+                <>
+                  <span className="text-xl sm:text-2xl font-bold text-card-foreground">{growthValue.toFixed(1)}%</span>
+                  {growthValue > 0 ? (
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <TrendingDown className="h-5 w-5 text-red-600" />
+                  )}
+                </>
               )}
             </div>
           </Card>

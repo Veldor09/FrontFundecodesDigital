@@ -342,11 +342,10 @@ export class ReportService {
     return records > 0 ? total / records : 0;
   }
 
-  // TODO: implementar cálculo real de crecimiento usando `detalles`.
-  // De momento, mantiene el placeholder original (Math.random) pero acepta
-  // el parámetro para que la firma coincida con el call-site (línea ~302).
-  private static calculateGrowth(_detalles: unknown): string {
-    return (Math.random() * 30 - 10).toFixed(1);
+  private static calculateGrowth(_detalles: unknown): null {
+    // No hay datos del período anterior en la respuesta del backend;
+    // retornamos null para que la UI muestre "Sin datos" en lugar de un valor inventado.
+    return null;
   }
 
   private static generateMonthlyDataFromBackend(detalles: any, filtros: any, hasFinancial = true): Array<{
@@ -521,7 +520,7 @@ export class ReportService {
         totalRecords,
         totalAmount: hasFinancial ? Math.random() * 5000000 + 1000000 : 0,
         averageValue: hasFinancial ? Math.random() * 5000 + 2000 : 0,
-        growth: (Math.random() * 40 - 15).toFixed(1),
+        growth: null,
       },
       monthlyData: this.generateMonthlyData(filters.reportType, hasFinancial),
     };

@@ -80,6 +80,7 @@ export default function AdminProjectsPage() {
   const [filesModalOpen, setFilesModalOpen] = useState(false);
   const [newProjectId, setNewProjectId] = useState<number | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [areaRefreshKey, setAreaRefreshKey] = useState(0);
 
   async function load(nextPage: number = page): Promise<void> {
     setLoading(true);
@@ -140,6 +141,7 @@ export default function AdminProjectsPage() {
 
     // 4) Refrescar lista
     load(1);
+    setAreaRefreshKey(k => k + 1);
   }
 
   async function handleUpdate(
@@ -149,6 +151,7 @@ export default function AdminProjectsPage() {
     await updateProject(id, payload);
     setMode({ kind: "none" });
     await load(page);
+    setAreaRefreshKey(k => k + 1);
   }
 
   function handleRemove(id: number): void {
@@ -160,6 +163,7 @@ export default function AdminProjectsPage() {
       onConfirm: async () => {
         await removeProject(id);
         await load(page);
+        setAreaRefreshKey(k => k + 1);
       },
     });
   }
@@ -304,7 +308,7 @@ export default function AdminProjectsPage() {
         {activeTab === "programas" ? (
           <ProgramasPanel />
         ) : activeTab === "areas" ? (
-          <AreasPanel />
+          <AreasPanel refreshTrigger={areaRefreshKey} />
         ) : (
           <>
 

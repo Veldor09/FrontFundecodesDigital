@@ -186,9 +186,6 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
       errors.descripcion = `La descripción excede el límite de ${MAX_DESCRIPCION_CHARS} caracteres`
     }
 
-    if (!newTransaction.programa?.trim()) {
-      errors.programa = "El proyecto es requerido"
-    }
 
     if (!newTransaction.monto || newTransaction.monto <= 0) {
       errors.monto = "El monto debe ser mayor a 0"
@@ -370,7 +367,7 @@ const TransactionsList = ({ selectedProject, onDataChange }: TransactionsListPro
                       disabled={Boolean(selectedProject)}
                       onChange={(e) => setNewTransaction({ ...newTransaction, programa: e.target.value })}
                     >
-                      <option value="">Selecciona un proyecto</option>
+                      <option value="">Sin proyecto (opcional)</option>
                       {proyectos.map((p) => (
                         <option key={p} value={p}>
                           {p}

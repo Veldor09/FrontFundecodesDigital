@@ -28,6 +28,22 @@ type RowItem = {
   usuario?: { id: number; name: string | null; email: string } | null;
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  PAGADA: 'Pagada',
+  APROBADA: 'Aprobada',
+  RECHAZADA: 'Rechazada',
+  VALIDADA: 'Validada',
+  DEVUELTA: 'Devuelta',
+  PENDIENTE: 'Pendiente',
+  EN_REVISION: 'En revisión',
+  REVISION: 'En revisión',
+};
+
+function statusLabel(estado?: string) {
+  const e = (estado ?? '').toUpperCase();
+  return STATUS_LABELS[e] ?? estado ?? 'Pendiente';
+}
+
 function statusClasses(estado?: string) {
   const e = (estado ?? '').toUpperCase();
   if (e === 'PAGADA') return 'bg-emerald-100 text-emerald-800';
@@ -132,7 +148,7 @@ export default function RequestsRow({ item, onView, hideSolicitante = false }: P
 
       <td className="px-4 py-3">
         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs ${statusClasses(estado)}`}>
-          {estado}
+          {statusLabel(estado)}
         </span>
       </td>
 

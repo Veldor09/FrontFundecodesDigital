@@ -324,7 +324,7 @@ export default function ExternalCollaboratorsPanel() {
                     ? "bg-green-100 text-green-700 border-green-200 shrink-0"
                     : "bg-gray-100 text-gray-500 border-gray-200 shrink-0"
                   }>
-                    {c.estado}
+                    {c.estado === "ACTIVO" ? "Activo" : "Inactivo"}
                   </Badge>
                 </div>
 
@@ -388,7 +388,7 @@ export default function ExternalCollaboratorsPanel() {
                         ? "bg-green-100 text-green-700 border-green-200"
                         : "bg-gray-100 text-gray-500 border-gray-200"
                       }>
-                        {c.estado}
+                        {c.estado === "ACTIVO" ? "Activo" : "Inactivo"}
                       </Badge>
                     </td>
                     <td className="px-4 py-2">
