@@ -109,7 +109,7 @@ export default function Footer() {
           <p>&copy; 2025 FUNDECODES. Todos los derechos reservados.</p>
           <p className="flex items-center gap-1">
             Conservando Costa Rica
-            <span className="text-green-500">🌿</span>
+            <span className="text-green-500"></span>
           </p>
         </div>
       </div>

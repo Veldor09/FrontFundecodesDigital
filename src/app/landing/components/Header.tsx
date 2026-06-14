@@ -128,9 +128,6 @@ export default function Header() {
               <h1 className="text-base sm:text-xl font-bold font-modern tracking-wide leading-tight truncate">
                 Fundecodes
               </h1>
-              <p className="text-[11px] sm:text-sm text-blue-100 font-medium font-modern leading-tight truncate">
-                Haciendo la diferencia
-              </p>
             </div>
           </Link>
 

@@ -40,7 +40,7 @@ export default function HeroVideo({
             className="text-sm sm:text-xl md:text-2xl font-extralight tracking-[0.15em] sm:tracking-[0.25em] drop-shadow-lg uppercase"
             style={{ fontFamily: "'Raleway', sans-serif" }}
           >
-            Equilibrio entre conservación y desarrollo
+            Armonizando desarrollo y conservación
           </p>
           <div className="h-px flex-1 max-w-[3rem] sm:max-w-[4rem] bg-gradient-to-l from-transparent to-green-400" />
         </div>
