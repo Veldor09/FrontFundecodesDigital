@@ -18,6 +18,32 @@ export interface ExportColumn {
 
 export type ExportRow = Record<string, string | number | boolean | null | undefined>;
 
+// Color institucional FUNDECODES
+const BRAND_COLOR: [number, number, number] = [0, 51, 102]; // #003366
+const BRAND_LIGHT: [number, number, number] = [219, 232, 245]; // #dbe8f5
+const ALT_ROW: [number, number, number] = [247, 249, 251]; // #f7f9fb
+
+async function loadLogoDataUrl(): Promise<string | null> {
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("logo load failed"));
+      img.src = "/Img/FUNDECODES_Logo.png";
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
 // ─── PDF ────────────────────────────────────────────────────────────────────
 
 export async function exportToPDF(options: {
@@ -41,51 +67,107 @@ export async function exportToPDF(options: {
   } = options;
 
   const doc = new jsPDF({ orientation, unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const headerH = 30;
 
-  // Encabezado
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text(title, 14, 18);
+  // ── Encabezado institucional ──────────────────────────────────────────────
+  doc.setFillColor(...BRAND_COLOR);
+  doc.rect(0, 0, pageW, headerH, "F");
 
-  if (subtitle) {
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text(subtitle, 14, 26);
-    doc.setTextColor(0);
+  // Logo
+  const logoData = await loadLogoDataUrl();
+  if (logoData) {
+    doc.addImage(logoData, "PNG", margin, 4, 22, 22);
   }
 
+  // Nombre institucional en el encabezado
+  const textX = logoData ? margin + 26 : margin;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(255, 255, 255);
+  doc.text("FUNDECODES DIGITAL", textX, headerH * 0.42);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text("Sistema Administrativo de Gestión", textX, headerH * 0.42 + 5);
+
+  // Fecha de generación
   const generatedAt = new Date().toLocaleString("es-CR", {
     dateStyle: "medium",
     timeStyle: "short",
   });
   doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text(`Generado: ${generatedAt}`, 14, subtitle ? 32 : 26);
-  doc.setTextColor(0);
+  doc.text(`Generado: ${generatedAt}`, pageW - margin, headerH * 0.75, { align: "right" });
 
-  const startY = subtitle ? 38 : 32;
+  // ── Título del reporte ────────────────────────────────────────────────────
+  let cursorY = headerH + 8;
+  doc.setTextColor(...BRAND_COLOR);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text(title, margin, cursorY);
+  cursorY += 6;
 
+  if (subtitle) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(subtitle, margin, cursorY);
+    cursorY += 6;
+  }
+
+  doc.setTextColor(0, 0, 0);
+
+  // ── Línea separadora ─────────────────────────────────────────────────────
+  doc.setDrawColor(...BRAND_COLOR);
+  doc.setLineWidth(0.4);
+  doc.line(margin, cursorY, pageW - margin, cursorY);
+  cursorY += 4;
+
+  // ── Tabla ─────────────────────────────────────────────────────────────────
   const head = [columns.map((c) => c.header)];
   const body = rows.map((r) => columns.map((c) => formatCell(r[c.key])));
 
   autoTable(doc, {
     head,
     body,
-    startY,
+    startY: cursorY,
+    margin: { left: margin, right: margin, bottom: 16 },
     styles: {
       fontSize: 9,
-      cellPadding: { top: 2, right: 4, bottom: 2, left: 4 },
+      cellPadding: { top: 4, right: 5, bottom: 4, left: 5 },
+      overflow: "linebreak",
+      lineColor: [220, 220, 220],
+      lineWidth: 0.2,
     },
     headStyles: {
-      fillColor: [30, 64, 175], // blue-800
-      textColor: 255,
+      fillColor: BRAND_COLOR,
+      textColor: [255, 255, 255],
       fontStyle: "bold",
+      cellPadding: { top: 5, right: 5, bottom: 5, left: 5 },
+      fontSize: 9,
     },
-    alternateRowStyles: { fillColor: [241, 245, 249] }, // slate-100
+    alternateRowStyles: { fillColor: ALT_ROW },
     columnStyles: Object.fromEntries(
       columns.map((c, i) => [i, c.width ? { cellWidth: c.width } : {}])
     ),
+    didDrawPage: () => {
+      // Footer en cada página
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(130, 130, 130);
+      doc.text(
+        "FUNDECODES DIGITAL – Sistema Administrativo · Documento confidencial",
+        margin,
+        pageH - 7
+      );
+      const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
+      const totalPages = (doc as any).internal.pages.length - 1;
+      doc.text(`Página ${currentPage} de ${totalPages}`, pageW - margin, pageH - 7, {
+        align: "right",
+      });
+      doc.setTextColor(0, 0, 0);
+    },
   });
 
   doc.save(`${filename}.pdf`);
