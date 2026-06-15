@@ -7,34 +7,8 @@ import VisitacionForm from "./components/VisitacionForm";
 import VisitacionTable from "./components/VisitacionTable";
 import { useVisitaciones } from "./hooks/useVisitaciones";
 import type { Visitacion } from "./types/visitacion";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import type { ExportRow } from "@/lib/export";
-import { visitacionService } from "./services/visitacion.service";
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 
-const EXPORT_COLS = [
-  { key: "fecha",         header: "Fecha",        width: 18 },
-  { key: "totalPersonas", header: "Total",         width: 12 },
-  { key: "nacionales",    header: "Nacionales",    width: 14 },
-  { key: "pctNac",        header: "% Nac.",        width: 10 },
-  { key: "extranjeros",   header: "Extranjeros",   width: 14 },
-  { key: "pctExt",        header: "% Ext.",        width: 10 },
-  { key: "notas",         header: "Notas",         width: 30 },
-];
-
-function toExportRow(v: Visitacion): ExportRow {
-  const ext = Math.max(0, v.totalPersonas - v.nacionales);
-  const pctNac = v.totalPersonas ? `${Math.round((v.nacionales / v.totalPersonas) * 100)}%` : "0%";
-  const pctExt = v.totalPersonas ? `${Math.round((ext / v.totalPersonas) * 100)}%` : "0%";
-  return {
-    fecha:         v.fecha?.slice(0, 10) ?? "",
-    totalPersonas: v.totalPersonas,
-    nacionales:    v.nacionales,
-    pctNac,
-    extranjeros:   ext,
-    pctExt,
-    notas:         v.notas ?? "",
-  };
-}
 
 function StatCard({
   icon: Icon,
@@ -109,17 +83,7 @@ export default function VisitacionPage() {
       <VisitacionNav
         onNew={openNew}
         rightAction={
-          <ExportButton
-            title="Visitación"
-            subtitle="Registro de visitas nacionales y extranjeras"
-            filename="visitacion"
-            columns={EXPORT_COLS}
-            currentRows={items.map(toExportRow)}
-            fetchAll={async () => {
-              const res = await visitacionService.list({ page: 1, limit: 9999 });
-              return res.data.map(toExportRow);
-            }}
-          />
+          <ModuleExportButton moduloKey="visitaciones" currentData={items} />
         }
       />
 

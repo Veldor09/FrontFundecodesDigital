@@ -12,29 +12,7 @@ import { useVoluntarios } from "../hooks/useVoluntarios";
 import { Plus, Search, AlertTriangle, Ban } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "./ConfirmDialog";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import { listSanciones } from "../services/sancionService";
-import type { ExportRow } from "@/lib/export";
-
-const SANCION_EXPORT_COLS = [
-  { key: "voluntario",  header: "Voluntario",   width: 24 },
-  { key: "tipo",        header: "Tipo",          width: 16 },
-  { key: "estado",      header: "Estado",        width: 12 },
-  { key: "motivo",      header: "Motivo",        width: 28 },
-  { key: "fechaInicio", header: "Fecha inicio",  width: 14 },
-  { key: "fechaVence",  header: "Vencimiento",   width: 14 },
-];
-
-function sancionToRow(s: Sancion): ExportRow {
-  return {
-    voluntario:  (s as any).voluntario?.nombreCompleto ?? (s as any).voluntario?.nombre ?? String(s.voluntarioId ?? ""),
-    tipo:        s.tipo ?? "",
-    estado:      s.estado ?? "",
-    motivo:      s.motivo ?? "",
-    fechaInicio: s.fechaInicio?.slice(0, 10) ?? "",
-    fechaVence:  s.fechaVencimiento?.slice(0, 10) ?? "",
-  };
-}
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 
 // NUEVO: filtro por sanciones
 type FiltroSancion = "TODOS" | "CON" | "SIN";
@@ -126,17 +104,7 @@ export default function SancionTable() {
             Administrar sanciones disciplinarias por voluntario
           </p>
         </div>
-        <ExportButton
-          title="Sanciones"
-          subtitle="Registro de sanciones disciplinarias"
-          filename="sanciones"
-          columns={SANCION_EXPORT_COLS}
-          currentRows={listaSanciones.map(sancionToRow)}
-          fetchAll={async () => {
-            const res = await listSanciones({ page: 1, limit: 9999 });
-            return (res.data ?? []).map(sancionToRow);
-          }}
-        />
+        <ModuleExportButton moduloKey="sanciones" currentData={listaSanciones} />
       </div>
 
       {/* Modal */}

@@ -9,16 +9,7 @@ import {
   updateProject,
   removeProject,
 } from "@/services/projects.service";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import type { ExportRow } from "@/lib/export";
-
-const PROJ_EXPORT_COLS = [
-  { key: "title",    header: "Título",          width: 28 },
-  { key: "status",   header: "Estado",          width: 14 },
-  { key: "area",     header: "Área de enfoque", width: 18 },
-  { key: "category", header: "Categoría",       width: 18 },
-  { key: "place",    header: "Lugar",           width: 16 },
-];
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 import type { Project, ProjectStatus } from "@/lib/projects.types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -217,30 +208,7 @@ export default function AdminProjectsPage() {
 
               {activeTab === "proyectos" && (
                 <div className="absolute right-0 flex gap-2 items-center">
-                  <ExportButton
-                    title="Proyectos"
-                    subtitle="Listado de proyectos de Fundecodes"
-                    filename="proyectos"
-                    columns={PROJ_EXPORT_COLS}
-                    currentRows={items.map((p) => ({
-                      title:    p.title    ?? "",
-                      status:   p.status   ?? "",
-                      area:     p.area     ?? "",
-                      category: p.category ?? "",
-                      place:    p.place    ?? "",
-                    } as ExportRow))}
-                    fetchAll={async () => {
-                      const res = await listProjects({ page: 1, pageSize: 9999 });
-                      const all: Project[] = Array.isArray(res) ? res : (res?.data ?? []);
-                      return all.map((p) => ({
-                        title:    p.title    ?? "",
-                        status:   p.status   ?? "",
-                        area:     p.area     ?? "",
-                        category: p.category ?? "",
-                        place:    p.place    ?? "",
-                      } as ExportRow));
-                    }}
-                  />
+                  <ModuleExportButton moduloKey="projects" currentData={items} />
                   <Button
                     variant="outline"
                     size="sm"

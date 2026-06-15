@@ -330,6 +330,17 @@ export class ReportService {
         return sum + (isNaN(monto) ? 0 : monto);
       }, 0);
     }
+    if (detalles.contabilidad?.items) {
+      const items = detalles.contabilidad.items;
+      if (items[0]?._esCuenta) {
+        // Nueva estructura por cuenta: sumar fondos disponibles de todas las cuentas
+        total += items.reduce((s: number, c: any) => s + Number(c.totales?.disponible || 0), 0);
+      } else {
+        total += items
+          .filter((c: any) => String(c.tipo).toUpperCase() === "INGRESO")
+          .reduce((s: number, c: any) => s + Number(c.monto || 0), 0);
+      }
+    }
     return total;
   }
 
@@ -456,13 +467,31 @@ export class ReportService {
 
     if (detalles.contabilidad) {
       const d = detalles.contabilidad;
-      const items = d.items || [];
-      const ingresos = items.filter((c: any) => c.tipo === "INGRESO").reduce((s: number, c: any) => s + Number(c.monto || 0), 0);
-      const egresos = items.filter((c: any) => c.tipo === "EGRESO").reduce((s: number, c: any) => s + Number(c.monto || 0), 0);
+      const items: any[] = d.items || [];
+      let ingresos = 0;
+      let egresos = 0;
+      let disponible = 0;
+
+      if (items[0]?._esCuenta) {
+        // Nueva estructura: objetos de cuenta con totales acumulados
+        ingresos = items.reduce((s, c) => s + Number(c.totales?.ingresos || 0), 0);
+        egresos = items.reduce((s, c) => s + Number(c.totales?.egresos || 0), 0);
+        disponible = items.reduce((s, c) => s + Number(c.totales?.disponible || 0), 0);
+      } else {
+        // Estructura plana de transacciones (fallback)
+        ingresos = items
+          .filter((c) => String(c.tipo).toUpperCase() === "INGRESO")
+          .reduce((s, c) => s + Number(c.monto || 0), 0);
+        egresos = items
+          .filter((c) => String(c.tipo).toUpperCase() === "EGRESO")
+          .reduce((s, c) => s + Number(c.monto || 0), 0);
+        disponible = ingresos - egresos;
+      }
+
       moduleData.contabilidad = {
         ingresos,
         egresos,
-        balance: ingresos - egresos,
+        balance: disponible,
         reportesGenerados: d.total || 0,
       };
     }

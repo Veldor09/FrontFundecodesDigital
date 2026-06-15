@@ -11,18 +11,7 @@ import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import { apiListCollaborators } from "../services/collaborators.api";
-import type { ExportRow } from "@/lib/export";
-
-const COLLAB_EXPORT_COLS = [
-  { key: "fullName",       header: "Nombre",          width: 24 },
-  { key: "email",          header: "Correo",           width: 26 },
-  { key: "role",           header: "Rol",              width: 22 },
-  { key: "status",         header: "Estado",           width: 12 },
-  { key: "identification", header: "Identificación",   width: 16 },
-  { key: "phone",          header: "Teléfono",         width: 16 },
-];
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 
 const ROLE_LABEL: Record<string, string> = {
   admin:                          "Admin",
@@ -34,18 +23,6 @@ const ROLE_LABEL: Record<string, string> = {
   colaboradorsolicitante:         "Solicitante",
   colaboradorvoluntariadoexterno: "Vol. Externo",
 };
-
-function collabToRow(c: UiCollaborator): ExportRow {
-  const rolesDisplay = c.roles?.length ? c.roles.join(", ") : (c.role ?? "");
-  return {
-    fullName:       c.fullName ?? "",
-    email:          c.email ?? "",
-    role:           rolesDisplay,
-    status:         c.status ?? "",
-    identification: (c as any).identification ?? "",
-    phone:          c.phone ?? "",
-  };
-}
 
 function useDebouncedValue<T>(value: T, delay = 400) {
   const [debounced, setDebounced] = useState(value);
@@ -132,17 +109,16 @@ export default function CollaboratorsTable() {
           <p className="text-sm text-slate-500">Crear, editar y administrar colaboradores registrados</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <ExportButton
-            title="Colaboradores"
-            subtitle="Listado de colaboradores de Fundecodes"
-            filename="colaboradores"
-            columns={COLLAB_EXPORT_COLS}
-            currentRows={items.map(collabToRow)}
-            fetchAll={async () => {
-              const res = await apiListCollaborators({ page: 1, pageSize: 9999 });
-              const all: UiCollaborator[] = Array.isArray(res) ? res : (res?.data ?? []);
-              return all.map(toUi).map(collabToRow);
-            }}
+          <ModuleExportButton
+            moduloKey="collaborators"
+            currentData={items}
+            mapCurrentRow={(r) => ({
+              id: r.id,
+              nombreCompleto: r.fullName,
+              correo: r.email,
+              cedula: r.identification,
+              telefono: r.phone,
+            })}
           />
           <Button onClick={abrirModalCrear} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none">
             <Plus className="h-4 w-4" /> Añadir

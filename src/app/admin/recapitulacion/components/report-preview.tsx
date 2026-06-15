@@ -431,25 +431,25 @@ export default function ReportPreview({ data }: ReportPreviewProps) {
               </h3>
               <div className={moduleGridClass}>
                 <Card className="border-border bg-card p-3">
-                  <div className="text-xs text-muted-foreground">Ingresos</div>
-                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground break-words">
+                  <div className="text-xs text-muted-foreground">Ingresos acumulados</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-green-700 break-words">
                     {formatCurrency(data.data.moduleData.contabilidad.ingresos)}
                   </div>
                 </Card>
                 <Card className="border-border bg-card p-3">
-                  <div className="text-xs text-muted-foreground">Egresos</div>
-                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground break-words">
+                  <div className="text-xs text-muted-foreground">Egresos acumulados</div>
+                  <div className="mt-1 text-lg sm:text-xl font-bold text-red-600 break-words">
                     {formatCurrency(data.data.moduleData.contabilidad.egresos)}
                   </div>
                 </Card>
                 <Card className="border-border bg-card p-3">
-                  <div className="text-xs text-muted-foreground">Balance</div>
-                  <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground break-words">
+                  <div className="text-xs text-muted-foreground">Fondos disponibles</div>
+                  <div className={`mt-1 text-lg sm:text-xl font-bold break-words ${data.data.moduleData.contabilidad.balance >= 0 ? "text-green-700" : "text-red-600"}`}>
                     {formatCurrency(data.data.moduleData.contabilidad.balance)}
                   </div>
                 </Card>
                 <Card className="border-border bg-card p-3">
-                  <div className="text-xs text-muted-foreground">Reportes generados</div>
+                  <div className="text-xs text-muted-foreground">Total cuentas</div>
                   <div className="mt-1 text-lg sm:text-xl font-bold text-card-foreground">
                     {data.data.moduleData.contabilidad.reportesGenerados}
                   </div>

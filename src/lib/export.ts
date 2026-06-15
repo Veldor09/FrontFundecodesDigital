@@ -82,23 +82,15 @@ export async function exportToPDF(options: {
     doc.addImage(logoData, "PNG", margin, 4, 22, 22);
   }
 
-  // Nombre institucional en el encabezado
-  const textX = logoData ? margin + 26 : margin;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(255, 255, 255);
-  doc.text("FUNDECODES DIGITAL", textX, headerH * 0.42);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.text("Sistema Administrativo de Gestión", textX, headerH * 0.42 + 5);
-
-  // Fecha de generación
+  // Fecha de generación (esquina derecha)
   const generatedAt = new Date().toLocaleString("es-CR", {
     dateStyle: "medium",
     timeStyle: "short",
   });
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(`Generado: ${generatedAt}`, pageW - margin, headerH * 0.75, { align: "right" });
+  doc.setTextColor(200, 225, 240);
+  doc.text(`Generado: ${generatedAt}`, pageW - margin, headerH * 0.58, { align: "right" });
 
   // ── Título del reporte ────────────────────────────────────────────────────
   let cursorY = headerH + 8;
@@ -128,10 +120,16 @@ export async function exportToPDF(options: {
   const head = [columns.map((c) => c.header)];
   const body = rows.map((r) => columns.map((c) => formatCell(r[c.key])));
 
+  // Escalar anchos de columnas para llenar el ancho disponible de la página
+  const availableW = pageW - margin * 2;
+  const totalColW = columns.reduce((s, c) => s + (c.width ?? 18), 0);
+  const colScale = totalColW > 0 ? availableW / totalColW : 1;
+
   autoTable(doc, {
     head,
     body,
     startY: cursorY,
+    tableWidth: availableW,
     margin: { left: margin, right: margin, bottom: 16 },
     styles: {
       fontSize: 9,
@@ -149,10 +147,13 @@ export async function exportToPDF(options: {
     },
     alternateRowStyles: { fillColor: ALT_ROW },
     columnStyles: Object.fromEntries(
-      columns.map((c, i) => [i, c.width ? { cellWidth: c.width } : {}])
+      columns.map((c, i) => [
+        i,
+        { cellWidth: Math.floor((c.width ?? 18) * colScale) },
+      ])
     ),
     didDrawPage: () => {
-      // Footer en cada página
+      // Solo texto institucional — número de página se agrega en post-proceso
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.setTextColor(130, 130, 130);
@@ -161,14 +162,22 @@ export async function exportToPDF(options: {
         margin,
         pageH - 7
       );
-      const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
-      const totalPages = (doc as any).internal.pages.length - 1;
-      doc.text(`Página ${currentPage} de ${totalPages}`, pageW - margin, pageH - 7, {
-        align: "right",
-      });
       doc.setTextColor(0, 0, 0);
     },
   });
+
+  // Post-proceso: numerar páginas con total correcto
+  const totalPages = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(130, 130, 130);
+    doc.text(`Página ${p} de ${totalPages}`, pageW - margin, pageH - 7, {
+      align: "right",
+    });
+    doc.setTextColor(0, 0, 0);
+  }
 
   doc.save(`${filename}.pdf`);
 }

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Modal from "@/components/ui/Modal";
 import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 import { toast } from "sonner";
 import {
   listAreas,
@@ -168,6 +169,7 @@ export default function AreasPanel({ refreshTrigger = 0 }: { refreshTrigger?: nu
           </p>
         </div>
         <div className="flex gap-2">
+          <ModuleExportButton moduloKey="areas" currentData={areas} />
           <Button
             variant="secondary"
             size="sm"

@@ -10,29 +10,7 @@ import { useVoluntarios } from "../hooks/useVoluntarios";
 import { Plus, Search } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import AsignacionModal from "./AsignacionModal";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import { apiListVoluntarios } from "../services/voluntarioService";
-import type { ExportRow } from "@/lib/export";
-
-const VOL_EXPORT_COLS = [
-  { key: "nombre",       header: "Nombre",       width: 24 },
-  { key: "nacionalidad", header: "Nacionalidad",  width: 18 },
-  { key: "email",        header: "Email",         width: 26 },
-  { key: "fechaEntrada", header: "Entrada",       width: 14 },
-  { key: "fechaSalida",  header: "Salida",        width: 14 },
-  { key: "ong",          header: "ONG",           width: 20 },
-];
-
-function volToRow(v: Voluntario): ExportRow {
-  return {
-    nombre:       v.nombre ?? "",
-    nacionalidad: v.nacionalidad ?? "",
-    email:        (v as any).email ?? "",
-    fechaEntrada: v.fechaEntrada?.slice(0, 10) ?? "",
-    fechaSalida:  v.fechaSalida?.slice(0, 10) ?? "",
-    ong:          v.ong ?? "",
-  };
-}
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 
 export default function VoluntarioTable() {
   const { data: rawData, total: rawTotal, loading, save, remove } = useVoluntarios();
@@ -94,18 +72,7 @@ export default function VoluntarioTable() {
           <p className="text-sm text-slate-500">Crear, editar y administrar voluntarios registrados</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportButton
-            title="Voluntarios"
-            subtitle="Registro de voluntarios de Fundecodes"
-            filename="voluntarios"
-            columns={VOL_EXPORT_COLS}
-            currentRows={filtered.map(volToRow)}
-            fetchAll={async () => {
-              const res = await apiListVoluntarios({ page: 1, pageSize: 9999 });
-              const all: Voluntario[] = Array.isArray(res) ? res : (res?.data ?? []);
-              return all.map(volToRow);
-            }}
-          />
+          <ModuleExportButton moduloKey="volunteers" currentData={filtered} />
           <Button onClick={abrirModalCrear} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
             <Plus className="h-4 w-4" /> Nuevo Voluntario
           </Button>

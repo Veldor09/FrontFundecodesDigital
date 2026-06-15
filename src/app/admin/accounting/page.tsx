@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import { CuentasService as _CuentasServiceForExport } from "./services/cuentas-service";
-import type { ExportRow } from "@/lib/export";
 import {
   ArrowLeft, Plus, RefreshCw, Wallet, TrendingUp, TrendingDown,
   BarChart3, Building2, FolderKanban, Handshake, ChevronRight,
-  X, Archive, RotateCcw, Pencil, Check, AlertCircle,
+  X, Archive, RotateCcw, Pencil, Check, AlertCircle, Download, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -282,31 +279,6 @@ function CuentasList({
                 </button>
               </Link>
               <div className="absolute right-0 flex items-center gap-2">
-                <ExportButton
-                  title="Cuentas Contables"
-                  subtitle="Listado de cuentas contables de Fundecodes"
-                  filename="cuentas_contables"
-                  columns={[
-                    { key: "nombre",      header: "Nombre",   width: 24 },
-                    { key: "codigo",      header: "Código",   width: 14 },
-                    { key: "monedaBase",  header: "Moneda",   width: 10 },
-                    { key: "activa",      header: "Activa",   width: 10 },
-                    { key: "descripcion", header: "Descripción", width: 30 },
-                  ]}
-                  currentRows={filtered.map((c) => ({
-                    nombre: c.nombre, codigo: c.codigo,
-                    monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
-                    descripcion: c.descripcion ?? "",
-                  } as ExportRow))}
-                  fetchAll={async () => {
-                    const res = await _CuentasServiceForExport.list({ pageSize: 9999 });
-                    return res.items.map((c: any) => ({
-                      nombre: c.nombre, codigo: c.codigo,
-                      monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
-                      descripcion: c.descripcion ?? "",
-                    } as ExportRow));
-                  }}
-                />
                 <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreate(true)}>
                   <Plus className="h-4 w-4" />
                   Nueva cuenta
@@ -323,38 +295,10 @@ function CuentasList({
                 Volver al Dashboard
               </button>
             </Link>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <ExportButton
-                  title="Cuentas Contables"
-                  filename="cuentas_contables"
-                  columns={[
-                    { key: "nombre",      header: "Nombre",      width: 24 },
-                    { key: "codigo",      header: "Código",      width: 14 },
-                    { key: "monedaBase",  header: "Moneda",      width: 10 },
-                    { key: "activa",      header: "Activa",      width: 10 },
-                    { key: "descripcion", header: "Descripción", width: 30 },
-                  ]}
-                  currentRows={filtered.map((c) => ({
-                    nombre: c.nombre, codigo: c.codigo,
-                    monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
-                    descripcion: c.descripcion ?? "",
-                  } as ExportRow))}
-                  fetchAll={async () => {
-                    const res = await _CuentasServiceForExport.list({ pageSize: 9999 });
-                    return res.items.map((c: any) => ({
-                      nombre: c.nombre, codigo: c.codigo,
-                      monedaBase: c.monedaBase, activa: c.activa ? "Sí" : "No",
-                      descripcion: c.descripcion ?? "",
-                    } as ExportRow));
-                  }}
-                />
-              </div>
-              <Button size="sm" className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreate(true)}>
-                <Plus className="h-4 w-4" />
-                Nueva cuenta
-              </Button>
-            </div>
+            <Button size="sm" className="w-full gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4" />
+              Nueva cuenta
+            </Button>
           </div>
 
           {/* Filtros */}
@@ -559,6 +503,43 @@ function CuentaDetail({
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [loadingTx, setLoadingTx] = useState(false);
 
+  // ─── Exportar PDF de esta cuenta ──────────────────────────────
+  const currentYear = new Date().getFullYear();
+  const [exportYear, setExportYear] = useState(String(currentYear));
+  const [isExporting, setIsExporting] = useState(false);
+
+  async function handleExportPdf() {
+    setIsExporting(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const params = new URLSearchParams({
+        periodo: "ANIO",
+        anio: exportYear,
+        tipoReporte: "Anual",
+        modulos: "contabilidad",
+        formato: "pdf",
+        cuentaId: String(cuenta.id),
+      });
+      const resp = await fetch(`${API_URL}/api/reportes/exportar?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error("Error al generar PDF");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `informe-${cuenta.nombre.toLowerCase().replace(/\s+/g, "-")}-${exportYear}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Error al generar el PDF. Intenta nuevamente.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   // Todos los proyectos del sistema (para selector de asignación)
   const [allProjects, setAllProjects] = useState<{ id: number; title: string }[]>([]);
   const [allProgramas, setAllProgramas] = useState<{ id: number; nombre: string }[]>([]);
@@ -617,11 +598,11 @@ function CuentaDetail({
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Button variant="outline" size="sm" onClick={onBack} className="gap-1">
               <ArrowLeft className="h-4 w-4" /> Cuentas
             </Button>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl font-bold text-slate-900 truncate">{cuenta.nombre}</h1>
               <p className="text-xs text-slate-400 font-mono">
                 {cuenta.codigo} · {cuenta.monedaBase}
@@ -631,6 +612,21 @@ function CuentaDetail({
               </p>
             </div>
             {!cuenta.activa && <Badge variant="secondary">Archivada</Badge>}
+
+            {/* Exportar PDF de esta cuenta */}
+            <Button
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={isExporting}
+              className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white ml-auto"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isExporting ? "Generando..." : "Exportar PDF"}
+            </Button>
           </div>
 
           {/* Tabs */}

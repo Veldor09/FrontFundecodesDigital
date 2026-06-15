@@ -9,8 +9,7 @@ import Modal from "@/components/ui/Modal";
 import { ImageIcon, Users, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useProgramaVoluntariadoCrud } from "@/app/admin/voluntariado/hooks/useProgramaVoluntariadoCrud";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import type { ExportRow } from "@/lib/export";
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 import { resolveMediaUrl } from "@/lib/media-url";
 import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 
@@ -18,13 +17,6 @@ import ConfirmModal, { type ConfirmState } from "@/components/ui/ConfirmModal";
 const BTN_EDIT   = "bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors";
 const BTN_DELETE = "bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors";
 
-const PROG_COLS = [
-  { key: "nombre",        header: "Nombre",          width: 26 },
-  { key: "lugar",         header: "Área/Lugar",       width: 20 },
-  { key: "limite",        header: "Límite",           width: 10 },
-  { key: "participantes", header: "Participantes",    width: 14 },
-  { key: "descripcion",   header: "Descripción",      width: 36 },
-];
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
@@ -149,26 +141,7 @@ export default function ProgramasPanel() {
           <p className="text-sm text-slate-500">Crea y administra programas para luego asignar voluntarios.</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportButton
-            title="Programas de Voluntariado"
-            subtitle="Listado de programas activos"
-            filename="programas"
-            columns={PROG_COLS}
-            currentRows={programas.map((p: any) => ({
-              nombre:        p.nombre ?? "",
-              lugar:         p.lugar ?? "",
-              limite:        p.limiteParticipantes ?? 0,
-              participantes: p._count?.asignaciones ?? p.asignaciones?.length ?? 0,
-              descripcion:   p.descripcion ?? "",
-            } as ExportRow))}
-            fetchAll={async () => programas.map((p: any) => ({
-              nombre:        p.nombre ?? "",
-              lugar:         p.lugar ?? "",
-              limite:        p.limiteParticipantes ?? 0,
-              participantes: p._count?.asignaciones ?? p.asignaciones?.length ?? 0,
-              descripcion:   p.descripcion ?? "",
-            } as ExportRow))}
-          />
+          <ModuleExportButton moduloKey="programas" currentData={programas} />
           <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={openCreate}>
             + Nuevo programa
           </Button>

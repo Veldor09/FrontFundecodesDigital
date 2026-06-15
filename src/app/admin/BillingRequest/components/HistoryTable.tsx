@@ -11,31 +11,9 @@ import {
 } from "../services/solicitudes.api";
 import { getBillingStatusForSolicitud } from "../services/billing.api";
 import HistoryViewModal from "./HistoryViewModal";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import type { ExportRow } from "@/lib/export";
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 import { useSolicitanteRole } from "../hooks/useSolicitanteRole";
 
-const HIST_COLS = [
-  { key: "titulo",    header: "Título",             width: 28 },
-  { key: "monto",     header: "Monto",              width: 14 },
-  { key: "origen",    header: "Origen",             width: 12 },
-  { key: "programa",  header: "Programa/Proyecto",  width: 22 },
-  { key: "solicitante", header: "Solicitante",      width: 22 },
-  { key: "estado",    header: "Estado",             width: 14 },
-  { key: "fecha",     header: "Fecha",              width: 16 },
-];
-
-function solicitudToRow(it: SolicitudListItem, estado: string): ExportRow {
-  return {
-    titulo:      (it as any).titulo ?? "",
-    monto:       it.monto != null ? String(it.monto) : "",
-    origen:      it.tipoOrigen ?? "",
-    programa:    it.programa?.nombre ?? it.project?.title ?? "",
-    solicitante: it.usuario?.name ?? it.usuario?.email ?? "",
-    estado,
-    fecha:       it.createdAt?.slice(0, 10) ?? "",
-  };
-}
 
 /** Deriva el estado visual mezclando Contadora/Dirección + Billing (PAID). */
 function computeDisplayStatus(
@@ -171,20 +149,10 @@ export default function HistoryTable() {
         </div>
         {/* El botón de exportar solo está disponible para roles administrativos */}
         {!isSolicitante && (
-          <ExportButton
-            title="Historial de Solicitudes"
-            subtitle="Solicitudes con pago registrado"
-            filename="historial_solicitudes"
-            columns={HIST_COLS}
-            currentRows={visible.map((it) =>
-              solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id]))
-            )}
-            fetchAll={async () => {
-              const all = await fetchSolicitudes();
-              return all.map((it) =>
-                solicitudToRow(it, computeDisplayStatus(it, bStatusMap[it.id] ?? null))
-              );
-            }}
+          <ModuleExportButton
+            moduloKey="solicitudes,billing"
+            currentModuloKey="solicitudes"
+            currentData={visible}
           />
         )}
       </div>

@@ -19,28 +19,7 @@ import {
   type AuditoriaItem,
   type AuditoriaQuery,
 } from "./services/auditoria.api";
-import ExportButton from "@/app/admin/_components/ExportButton";
-import type { ExportRow } from "@/lib/export";
-
-const AUDIT_COLS = [
-  { key: "fecha",    header: "Fecha/Hora",  width: 20 },
-  { key: "usuario",  header: "Usuario",     width: 24 },
-  { key: "accion",   header: "Acción",      width: 24 },
-  { key: "entidad",  header: "Entidad",     width: 16 },
-  { key: "detalle",  header: "Detalle",     width: 40 },
-  { key: "ip",       header: "IP",          width: 14 },
-];
-
-function auditToRow(item: AuditoriaItem): ExportRow {
-  return {
-    fecha:   item.createdAt ? new Date(item.createdAt).toLocaleString("es-CR") : "",
-    usuario: item.user?.name ?? item.userName ?? item.user?.email ?? item.userEmail ?? "",
-    accion:  item.accion ?? "",
-    entidad: item.entidad ?? "",
-    detalle: item.detalle ?? "",
-    ip:      item.ip ?? "",
-  };
-}
+import ModuleExportButton from "@/app/admin/_components/ModuleExportButton";
 
 /* ========= Helpers de rol (mismo patrón que el resto del admin) ========= */
 function getToken(): string | null {
@@ -247,18 +226,7 @@ export default function AuditoriaPage() {
                 </button>
               </Link>
               <div className="absolute right-0 flex items-center gap-2">
-                <ExportButton
-                  title="Auditoría del Sistema"
-                  subtitle="Registro cronológico de acciones"
-                  filename="auditoria"
-                  columns={AUDIT_COLS}
-                  currentRows={items.map(auditToRow)}
-                  fetchAll={async () => {
-                    const res = await fetchAuditoria({ ...appliedQuery, page: 1, pageSize: 9999 });
-                    return res.items.map(auditToRow);
-                  }}
-                  pdfOrientation="landscape"
-                />
+                <ModuleExportButton moduloKey="auditoria" currentData={items} />
                 <Button
                   variant="outline"
                   size="sm"
