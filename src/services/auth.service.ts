@@ -40,6 +40,13 @@ export async function login(email: string, password: string): Promise<User> {
     const permissions = rawUser.permissions ?? rawUser.perms ?? [];
     const roles = rawUser.roles ?? [];
 
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({ name: rawUser.name ?? "", email: rawUser.email ?? "" })
+      );
+    }
+
     // devolvemos usuario normalizado con permissions y roles asegurados
     return { ...rawUser, permissions, roles };
   } catch (err: any) {
@@ -104,6 +111,7 @@ export function logout() {
   setAuthToken(undefined);
   if (typeof window !== "undefined") {
     localStorage.removeItem("token");
+    localStorage.removeItem("currentUser");
   }
 }
 

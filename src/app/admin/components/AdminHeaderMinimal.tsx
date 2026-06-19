@@ -23,8 +23,24 @@ export default function AdminHeaderMinimal() {
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  // En producción reemplaza por datos reales (contexto/auth)
-  const user = { name: "AdminFUNDECODES", email: "admin@fundecodes.org", photoUrl: "" };
+  const [user, setUser] = useState({ name: "", email: "", photoUrl: "" });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("currentUser");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setUser({ name: parsed.name ?? "", email: parsed.email ?? "", photoUrl: "" });
+      } else {
+        // Fallback: leer email del JWT si no hay datos guardados
+        const token = localStorage.getItem("token");
+        if (token) {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          setUser({ name: "", email: payload.email ?? "", photoUrl: "" });
+        }
+      }
+    } catch { /* sin datos */ }
+  }, []);
 
   // Cerrar menú con click fuera o Escape
   useEffect(() => {
@@ -146,8 +162,10 @@ export default function AdminHeaderMinimal() {
                 className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden"
               >
                 <div className="px-5 py-4">
-                  <p className="font-semibold text-slate-900 leading-tight">{user.name}</p>
-                  {user.email && (
+                  <p className="font-semibold text-slate-900 leading-tight">
+                    {user.name || user.email || "Usuario"}
+                  </p>
+                  {user.name && user.email && (
                     <p className="text-sm text-slate-500 truncate">{user.email}</p>
                   )}
                 </div>
