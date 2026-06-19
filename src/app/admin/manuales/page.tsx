@@ -23,12 +23,7 @@ const MANUALES = [
 export default function ManualesPage() {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Manuales del sistema</h1>
-          <p className="text-slate-500">Documentación de uso y despliegue</p>
-        </div>
-
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
         <Link
           href="/admin"
           className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors w-fit"
@@ -36,6 +31,11 @@ export default function ManualesPage() {
           <ArrowLeft className="h-4 w-4" />
           Volver
         </Link>
+
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Manuales del sistema</h1>
+          <p className="text-slate-500">Documentación de uso y despliegue</p>
+        </div>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
@@ -58,7 +58,7 @@ export default function ManualesPage() {
 
               <button
                 onClick={() => window.open(m.url, "_blank")}
-                className="mt-4 w-fit rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 transition-colors"
+                className="mt-4 w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
               >
                 Abrir manual
               </button>
