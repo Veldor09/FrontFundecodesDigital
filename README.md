@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+```
+# FUNDECODES Digital — Frontend
 
-## Getting Started
+Plataforma digital de FUNDECODES, desarrollada con Next.js 14 (App Router) y Tailwind CSS. Incluye un portal público informativo y un panel de administración interno.
 
-First, run the development server:
+## Requisitos previos
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js v18 o superior
+- npm v9 o superior
+- Backend de FUNDECODES corriendo (ver repositorio backend)
+
+## Variables de entorno
+
+Crear un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
+
+```env
+NEXT_PUBLIC_API_URL="http://localhost:3001"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Instalación
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Ejecutar el proyecto
 
-## Learn More
+```bash
+# Modo desarrollo
+npm run dev
 
-To learn more about Next.js, take a look at the following resources:
+# Compilar para producción
+npm run build
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Ejecutar en producción
+npm run start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+La aplicación quedará disponible en `http://localhost:3000`.
 
-## Deploy on Vercel
+## Estructura del proyecto
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+src/
+├── app/
+│   ├── landing/           # Portal público informativo
+│   ├── admin/             # Panel administrativo
+│   │   ├── page.tsx       # Dashboard con módulos
+│   │   ├── voluntariado/  # Gestión de voluntarios y sanciones
+│   │   ├── Collaborators/ # Colaboradores y asignaciones
+│   │   ├── projects/      # Áreas, proyectos y programas
+│   │   ├── accounting/    # Contabilidad y cuentas
+│   │   ├── BillingRequest/# Solicitudes y facturación
+│   │   ├── visitacion/    # Registro de visitas
+│   │   ├── auditoria/     # Auditoría del sistema
+│   │   ├── recapitulacion/# Reportes y métricas
+│   │   ├── manuales/      # Manuales del sistema
+│   │   ├── comments/      # Moderación de comentarios
+│   │   ├── respuestas-formulario/ # Respuestas de formularios públicos
+│   ├── login/             # Inicio de sesión
+│   └── PagInfo/           # Formularios públicos (contacto, voluntariado)
+├── services/              # Servicios de conexión con la API
+├── lib/                   # Utilidades (autenticación, JWT)
+└── components/            # Componentes reutilizables
+public/
+├── Img/                   # Imágenes del sistema
+├── videos/                # Videos del portal público
+└── manuales/              # Manuales en PDF
+    ├── manual-externo.pdf
+    ├── manual-interno.pdf
+    └── manual-despliegue.pdf
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Roles de usuario
+
+| Rol | Acceso |
+|---|---|
+| `admin` | Acceso completo a todos los módulos |
+| `colaboradorfactura` | Solicitudes y facturación (solo destinos asignados) |
+| `colaboradorvoluntariado` | Módulo de voluntariado |
+| `colaboradorproyecto` | Módulo de proyectos |
+| `colaboradorcontabilidad` | Contabilidad y facturación |
+| `colaboradorvisitacion` | Registro de visitaciones |
+| `voluntario` | Acceso básico al panel |
+
+## Equipo
+
+Proyecto desarrollado para FUNDECODES — Universidad Nacional de Costa Rica, Sede Regional Chorotega, Campus Nicoya.
+```
