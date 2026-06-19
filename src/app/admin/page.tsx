@@ -14,6 +14,7 @@ import {
   FileText,
   ShieldCheck,
   Eye,
+  BookOpen,
 } from "lucide-react";
 import { DashboardMetrics } from "./components/DashboardMetrics";
 import { Button } from "@/components/ui/button";
@@ -293,6 +294,28 @@ export default function AdminDashboardPage() {
         linkClasses:
           "mt-4 text-sm font-medium text-amber-700 opacity-0 group-hover:opacity-100 transition-opacity",
         roles: ["admin"], // ⚠️ solo admin
+      },
+      {
+        key: "manuales",
+        title: "Manuales",
+        desc: "Manuales de usuario y despliegue del sistema",
+        href: "/admin/manuales",
+        icon: BookOpen,
+        cardClasses:
+          "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-teal-300",
+        badgeClasses:
+          "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-teal-50 group-hover:border-teal-200",
+        linkClasses:
+          "mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity",
+        roles: [
+          "admin",
+          "colaboradorfactura",
+          "colaboradorvoluntariado",
+          "colaboradorproyecto",
+          "colaboradorcontabilidad",
+          "colaboradorvisitacion",
+          "voluntario",
+        ],
       },
     ],
     [pendingCommentsCount, pendingRespuestasFormulariosCount]
