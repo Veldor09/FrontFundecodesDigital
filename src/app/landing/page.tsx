@@ -6,6 +6,7 @@ import Comentarios from "./components/Comments";
 import Footer from "./components/Footer";
 import VisionMision from "./components/VisionMision";
 import HeroVideo from "./components/HeroVideo";
+import ManualButton from "./components/ManualButton";
 
 export default function Page() {
   return (
@@ -37,6 +38,8 @@ export default function Page() {
       </main>
 
       <Footer />
+
+      <ManualButton />
     </div>
   );
 }
