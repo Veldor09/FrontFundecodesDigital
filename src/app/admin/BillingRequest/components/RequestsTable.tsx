@@ -105,7 +105,7 @@ export default function RequestsTable() {
         <div className="flex w-full flex-col gap-2 sm:flex-row">
           <input
             className="w-full rounded-md border px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 sm:max-w-xs"
-            placeholder="Buscar por título, descripción, estado…"
+            placeholder="Buscar por número de factura, descripción, estado…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -153,7 +153,7 @@ export default function RequestsTable() {
         <table className="min-w-full table-fixed border-collapse text-sm">
           <thead className="bg-slate-50 text-left">
             <tr className="text-slate-700">
-              <th className="px-4 py-3">Título</th>
+              <th className="px-4 py-3">Número de factura</th>
               {!isSolicitante && <th className="px-4 py-3 w-44">Solicitante</th>}
               <th className="px-4 py-3 w-44">Destino</th>
               <th className="px-4 py-3 w-32 text-right">Monto</th>

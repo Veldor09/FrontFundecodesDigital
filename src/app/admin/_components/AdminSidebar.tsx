@@ -27,7 +27,9 @@ type Role =
   | "colaboradorvoluntariado"
   | "colaboradorproyecto"
   | "colaboradorcontabilidad"
-  | "colaboradorvisitacion";
+  | "colaboradorvisitacion"
+  | "colaboradorsolicitante"
+  | "colaboradorvoluntariadoexterno";
 
 type ModuleItem = {
   key: string;
@@ -61,7 +63,7 @@ function normalizeRole(v?: string | null): Role | null {
   const allowed: Role[] = [
     "admin", "voluntario", "colaboradorfactura",
     "colaboradorvoluntariado", "colaboradorproyecto", "colaboradorcontabilidad",
-    "colaboradorvisitacion",
+    "colaboradorvisitacion", "colaboradorsolicitante", "colaboradorvoluntariadoexterno",
   ];
   return (allowed as string[]).includes(low) ? (low as Role) : null;
 }
@@ -73,7 +75,7 @@ const ALL_MODULES: ModuleItem[] = [
     desc: "Formularios, estados y participantes",
     href: "/admin/voluntariado",
     icon: Handshake,
-    roles: ["admin", "colaboradorvoluntariado", "voluntario"],
+    roles: ["admin", "colaboradorvoluntariado", "voluntario", "colaboradorvoluntariadoexterno"],
   },
   {
     key: "proy",
@@ -89,7 +91,7 @@ const ALL_MODULES: ModuleItem[] = [
     desc: "Consulta y administración de solicitudes",
     href: "/admin/BillingRequest",
     icon: Receipt,
-    roles: ["admin", "colaboradorfactura", "colaboradorcontabilidad"],
+    roles: ["admin", "colaboradorfactura", "colaboradorsolicitante"],
   },
   {
     key: "colabs",
@@ -153,6 +155,7 @@ export function AdminSidebar({ pendingCommentsCount: initialPendingCount = 0 }: 
   const [open, setOpen] = useState(false);
   /** Todos los roles del usuario (multi-rol) */
   const [userRoles, setUserRoles] = useState<Role[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [navbarHeight, setNavbarHeight] = useState(72);
   const [pendingCommentsCount, setPendingCommentsCount] = useState(initialPendingCount);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -171,6 +174,7 @@ export function AdminSidebar({ pendingCommentsCount: initialPendingCount = 0 }: 
       .map((r) => normalizeRole(r))
       .filter((r): r is Role => r !== null);
     setUserRoles([...new Set(normalized)]);
+    setRolesLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -261,7 +265,7 @@ export function AdminSidebar({ pendingCommentsCount: initialPendingCount = 0 }: 
 
   const visibleModules = ALL_MODULES
     .filter((m) => {
-      if (!userRoles.length) return true; // aún cargando
+      if (!rolesLoaded) return true; // aún cargando
       if (userRoles.includes("admin")) return true;
       return m.roles.some((r) => userRoles.includes(r));
     })

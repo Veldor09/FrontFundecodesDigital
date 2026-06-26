@@ -308,8 +308,8 @@ export default function CollaboratorsTable() {
             </select>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" disabled={!canPrev} onClick={() => setPage(page - 1)}>Anterior</Button>
-            <Button size="sm" disabled={!canNext} onClick={() => setPage(page + 1)}>Siguiente</Button>
+            <Button size="sm" disabled={!canPrev} onClick={() => setPage(page - 1)} className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-200 disabled:text-slate-400">Anterior</Button>
+            <Button size="sm" disabled={!canNext} onClick={() => setPage(page + 1)} className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-200 disabled:text-slate-400">Siguiente</Button>
           </div>
         </div>
       </div>

@@ -261,7 +261,7 @@ export default function HistoryViewModal({ open, solicitudId, onClose }: Props) 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-3">
                   <div>
-                    <div className="text-xs uppercase text-slate-500">Título</div>
+                    <div className="text-xs uppercase text-slate-500">Número de factura</div>
                     <div className="text-slate-800 break-words break-all">{data.titulo}</div>
                   </div>
                   <div>

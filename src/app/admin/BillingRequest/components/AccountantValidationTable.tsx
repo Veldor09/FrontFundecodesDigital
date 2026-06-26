@@ -141,7 +141,7 @@ export default function AccountantValidationTable() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               className="pl-10 w-full sm:w-64"
-              placeholder="Buscar por título o descripción"
+              placeholder="Buscar por número de factura o descripción"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -197,7 +197,7 @@ export default function AccountantValidationTable() {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700 w-16">ID</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Título</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Número de factura</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Solicitante</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700 w-44">Destino</th>
                   <th className="px-4 py-3 text-right font-semibold text-slate-700 w-32">Monto</th>

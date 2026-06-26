@@ -4,6 +4,8 @@ export interface Visitacion {
   totalPersonas: number;
   nacionales: number;
   extranjeros: number;
+  /** Distribución de extranjeros por país: { "Costa Rica": 3, "Nicaragua": 2 } */
+  paisesExtranjeros?: Record<string, number> | null;
   notas?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -13,6 +15,8 @@ export interface VisitacionCreateInput {
   fecha: string;
   totalPersonas: number;
   nacionales: number;
+  /** Distribución de extranjeros por país */
+  paisesExtranjeros?: Record<string, number> | null;
   notas?: string;
 }
 

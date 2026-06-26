@@ -205,9 +205,9 @@ export default function RequestFormModal({ open, onClose, onSaved }: Props) {
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto px-5 pb-4 pt-1 space-y-4">
-            {/* Título */}
+            {/* Número de factura */}
             <div>
-              <label className="mb-1 block text-sm font-medium">Título</label>
+              <label className="mb-1 block text-sm font-medium">Número de factura</label>
               <input
                 className="w-full rounded-md border p-2 outline-none ring-blue-500 focus:ring-2"
                 value={titulo}
