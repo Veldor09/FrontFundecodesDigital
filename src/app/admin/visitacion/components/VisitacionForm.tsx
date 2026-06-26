@@ -300,7 +300,7 @@ export default function VisitacionForm({ open, initial, onClose, onSave }: Props
             <Button
               type="submit"
               disabled={loading}
-              className="bg-sky-600 hover:bg-sky-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {loading ? "Guardando…" : isEdit ? "Guardar cambios" : "Registrar visita"}
             </Button>

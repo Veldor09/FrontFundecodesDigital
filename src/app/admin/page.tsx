@@ -26,7 +26,9 @@ type Role =
   | "colaboradorvoluntariado"
   | "colaboradorproyecto"
   | "colaboradorcontabilidad"
-  | "colaboradorvisitacion";
+  | "colaboradorvisitacion"
+  | "colaboradorsolicitante"
+  | "colaboradorvoluntariadoexterno";
 
 type ModuleCard = {
   key: string;
@@ -69,12 +71,15 @@ function normalizeRole(v?: string | null): Role | null {
     "colaboradorproyecto",
     "colaboradorcontabilidad",
     "colaboradorvisitacion",
+    "colaboradorsolicitante",
+    "colaboradorvoluntariadoexterno",
   ];
   return (allowed as string[]).includes(low) ? (low as Role) : null;
 }
 
 export default function AdminDashboardPage() {
   const [userRoles, setUserRoles] = useState<Role[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [pendingCommentsCount, setPendingCommentsCount] = useState(0);
   const [pendingRespuestasFormulariosCount, setPendingRespuestasFormulariosCount] =
     useState(0);
@@ -129,6 +134,7 @@ export default function AdminDashboardPage() {
       .map((r) => normalizeRole(r))
       .filter((r): r is Role => r !== null);
     setUserRoles([...new Set(normalized)]);
+    setRolesLoaded(true);
 
     loadPendingCommentsCount();
     loadPendingRespuestasFormulariosCount();
@@ -165,7 +171,7 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-teal-50 group-hover:border-teal-200",
         linkClasses:
           "mt-4 text-sm font-medium text-teal-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin", "colaboradorvoluntariado", "voluntario"],
+        roles: ["admin", "colaboradorvoluntariado", "voluntario", "colaboradorvoluntariadoexterno"],
       },
       {
         key: "proy",
@@ -193,7 +199,7 @@ export default function AdminDashboardPage() {
           "rounded-2xl p-3 bg-slate-50 border border-slate-200 group-hover:bg-green-50 group-hover:border-green-200",
         linkClasses:
           "mt-4 text-sm font-medium text-green-700 opacity-0 group-hover:opacity-100 transition-opacity",
-        roles: ["admin", "colaboradorfactura", "colaboradorcontabilidad"],
+        roles: ["admin", "colaboradorfactura", "colaboradorsolicitante"],
       },
       {
         key: "colabs",
@@ -314,6 +320,8 @@ export default function AdminDashboardPage() {
           "colaboradorproyecto",
           "colaboradorcontabilidad",
           "colaboradorvisitacion",
+          "colaboradorsolicitante",
+          "colaboradorvoluntariadoexterno",
           "voluntario",
         ],
       },
@@ -323,10 +331,10 @@ export default function AdminDashboardPage() {
   
 
   const visibleModules = useMemo(() => {
-    if (!userRoles.length) return MODULES; // aún cargando
+    if (!rolesLoaded) return MODULES; // aún cargando
     if (userRoles.includes("admin")) return MODULES;
     return MODULES.filter((m) => m.roles.some((r) => userRoles.includes(r)));
-  }, [MODULES, userRoles]);
+  }, [MODULES, userRoles, rolesLoaded]);
 
   // Le notificamos al AdminSidebar (renderizado por el layout) cuántos
   // comentarios están pendientes para que muestre el badge.
